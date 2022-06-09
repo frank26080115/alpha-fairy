@@ -1,24 +1,27 @@
-#!/usr/bin/env python3
-
-import gc
-gc.collect()
+DEFAULT_SSID          = "afairywifi"
+DEFAULT_WIFI_PASSWORD = "1234567890"
 
 try:
-    import micropython
-    from micropython import const
-    import esp, esp32
-    esp.osdebug(None)
-
-    import machine
-    from machine import Pin
     from m5stack import *
-    from m5ui import *
-    from uiflow import *
+    import fairyutils
 
+    welcome_time = fairyutils.time_millis()
+    if lcd.screensize()[1] == 160:
+        lcd.image(0, 0, "screens_160/welcome.jpg")
+    elif lcd.screensize()[1] == 240:
+        lcd.image(0, 0, "screens_240/welcome.jpg")
+
+    import sys
+
+    import gc
+    gc.collect()
+
+    from micropython import const
     import netmgr
     import irsirc
-    import fairyutils
-except:
+    print("\nhello, finished first set of imports")
+except Exception as ex:
+    print("ERROR during import: %s" % ex)
     import netmgrsim as netmgr
     import fairyutilssim as fairyutils
     import irsircsim as irsirc
@@ -32,10 +35,9 @@ import ptpsonyalphacamera
 import ptpcodes
 import ptpsonycodes
 
-LCD_HEIGHT = const(160)
-LCD_WIDTH  = const(80)
+print("\nhello, finished second set of imports")
 
-IRBLASTER_ENABLED = const(False)
+IRBLASTER_ENABLED          = False
 
 MENUSTATE_MAIN             = const(0)
 MENUSTATE_CONFIG           = const(1)
@@ -63,13 +65,13 @@ menu = [
     [ MENUITEM_FOCUSSTACK_FAR_1  , "screens/focusstack_far_1" ],
     [ MENUITEM_FOCUSSTACK_FAR_2  , "screens/focusstack_far_2" ],
     [ MENUITEM_FOCUSSTACK_FAR_3  , "screens/focusstack_far_3" ],
-    [ MENUITEM_FOCUSSTACK_NEAR_1 , "screens/focusstack_near_1" ],
-    [ MENUITEM_FOCUSSTACK_NEAR_2 , "screens/focusstack_near_2" ],
-    [ MENUITEM_FOCUSSTACK_NEAR_3 , "screens/focusstack_near_3" ],
-    [ MENUITEM_FOCUSSTACK_9POINT , "screens/focus_9point.jpg" ],
+    #[ MENUITEM_FOCUSSTACK_NEAR_1 , "screens/focusstack_near_1" ],
+    #[ MENUITEM_FOCUSSTACK_NEAR_2 , "screens/focusstack_near_2" ],
+    #[ MENUITEM_FOCUSSTACK_NEAR_3 , "screens/focusstack_near_3" ],
+    [ MENUITEM_FOCUSSTACK_9POINT , "screens/focus_9point" ],
     [ MENUITEM_REMOTESHUTTER_5S  , "screens/remoteshutter_5s" ],
-    [ MENUITEM_REMOTESHUTTER_10S , "screens/remoteshutter_10s" ],
-#    [ MENUITEM_CONFIG            , "screens/config" ],
+    [ MENUITEM_REMOTESHUTTER_10S , "screens/remoteshutter_10" ],
+    #[ MENUITEM_CONFIG            , "screens/config" ],
     [ MENUITEM_WIFI_INFO         , "screens/wifiinfo" ],
 ]
 
@@ -83,6 +85,7 @@ class AlphaFairy:
         self.btn_pressed_side = False
         self.btn_pressed_big2 = False
         self.btn_pressed_side2 = False
+        self.screen_size = lcd.screensize()
         self.net_mgr = netmgr.NetManager(self)
         self.camera = None
         self.ir = irsirc.InfraredSIRC()
@@ -91,11 +94,23 @@ class AlphaFairy:
         self.submenu_idx = 0
         self.last_img_path = ""
         self.load_cfg()
+        # continue to show welcome, this masks the network starting and connection
+        tnow = fairyutils.time_millis()
+        while (tnow - welcome_time) < 1000:
+            self.task_poll()
+            tnow = fairyutils.time_millis()
+        if self.camera is None:
+            self.show_full_screen("screens/connecting")
+            tstart = fairyutils.time_millis()
+            tnow = tstart
+            while (tnow - tstart) < 1000 and self.camera is None:
+                self.task_poll()
+                tnow = fairyutils.time_millis()
 
     def load_cfg(self):
         self.cfg = {}
-        self.cfg["wifi_ssid"] = netmgr.DEFAULT_SSID
-        self.cfg["wifi_password"] = netmgr.DEFAULT_WIFI_PASSWORD
+        self.cfg["wifi_ssid"] = DEFAULT_SSID
+        self.cfg["wifi_password"] = DEFAULT_WIFI_PASSWORD
         self.cfg["focus_delay"] = 100
         self.cfg["shutter_press_time"] = 250
         try:
@@ -134,7 +149,8 @@ class AlphaFairy:
         lcd.font(lcd.FONT_Default)
         lcd.orient(lcd.LANDSCAPE)
         lcd.clear()
-        lcd.print("SSID:\n %s\nPassword:\n %s\n" % (self.cfg["wifi_ssid"], self.cfg["wifi_password"]), 0, 0)
+        xy = (0,0) if self.screen_size[1] == 160 else (5,5)
+        lcd.print("SSID:\n %s\nPassword:\n %s\n" % (self.cfg["wifi_ssid"], self.cfg["wifi_password"]), xy[0], xy[1])
         if self.camera is not None:
             lcd.print("Client IP:\n %s" % self.net_mgr.ssdp_cli_addr)
         while btnA.isPressed():
@@ -162,8 +178,8 @@ class AlphaFairy:
         x_spacing = int(round(ptpsonycodes.FOCUSPOINT_X_MAX / 4))
         y_spacing = int(round(ptpsonycodes.FOCUSPOINT_Y_MAX / 4))
         dot_spacing = 30
-        dot_x_center = LCD_WIDTH // 2
-        dot_y_center = 97
+        dot_x_center = self.screen_size[0] // 2
+        dot_y_center = 97 if self.screen_size[1] == 160 else 147
         cords = [
                 [int(round(ptpsonycodes.FOCUSPOINT_X_MID            )), int(round(ptpsonycodes.FOCUSPOINT_Y_MID            )), dot_x_center              , dot_y_center              ],
                 [int(round(ptpsonycodes.FOCUSPOINT_X_MID + x_spacing)), int(round(ptpsonycodes.FOCUSPOINT_Y_MID            )), dot_x_center + dot_spacing, dot_y_center              ],
@@ -269,7 +285,7 @@ class AlphaFairy:
         lcd.orient(lcd.PORTRAIT)
         if img_path is None:
             img_path = self.last_img_path
-        lcd.image(img_path, 0, 0)
+        lcd.image(0, 0, img_path.replace("/", "_%u" % self.screen_size[1]) + ".jpg")
         self.last_img_path = img_path
 
     def show_dots(self, dots_cnt, dot_highlight, dot_size = 6, reverse = False, color_idle=(255,200,200), color_highlighted=(255,0,0), x_offset = 0, y_width = None):
@@ -277,10 +293,10 @@ class AlphaFairy:
         if reverse:
             dot_highlight = dots_cnt - dot_highlight - 1
         if y_width is None or y_width == 0:
-            y_width = LCD_HEIGHT
+            y_width = self.screen_size[1]
         spacing = y_width / (dots_cnt + 1)
         y_center = 0
-        x_center = int(round((LCD_WIDTH // 2) + x_offset))
+        x_center = int(round((self.screen_size[0] // 2) + x_offset))
         i = 0
         while i < dots_cnt:
             y_center += spacing
@@ -353,7 +369,7 @@ class AlphaFairy:
                     elif IRBLASTER_ENABLED and self.ir.can_work() and not cam_ready and mii == MENUITEM_MOVIE_RECORD:
                         self.irblast_movie()
                     elif not cam_ready and (mii >= MENUITEM_FOCUSSTACK_FAR_1 and mii <= MENUITEM_MOVIE_RECORD):
-                        self.show_full_screen("screens/connecting.bmp")
+                        self.show_full_screen("screens/connecting")
                         self.sleep(1000)
                     #elif mii == MENUITEM_CONFIG:
                     #    self.menu_state = MENUSTATE_CONFIG
@@ -393,11 +409,15 @@ def main():
     while True:
         app.task()
         fairyutils.time_sleep_ms(0)
-    pass
 
-if __name__ == "__main__":
+if __name__ == "__main__" or True:
     try:
         main()
+    except Exception as ex:
+        print("FATAL EXCEPTION: %s" % ex)
+        sys.traceback.print_exception(ex)
+        with open("last_error.txt", "w") as f:
+            sys.traceback.print_exception(ex, file=f)
     finally:
         try:
             hwsim.stop_button_checker()

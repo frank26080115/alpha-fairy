@@ -148,12 +148,16 @@ def get_name_(val, mod):
     return None
 
 def get_name(val):
-    import sys
-    x = get_name_(val, sys.modules[__name__])
-    if x is not None:
-        return x
-    import ptpsonycodes
-    x = get_name_(val, ptpsonycodes)
-    if x is not None:
-        return x
+    try:
+        import sys
+        x = get_name_(val, sys.modules[__name__])
+        if x is not None:
+            return x
+        import ptpsonycodes
+        x = get_name_(val, ptpsonycodes)
+        if x is not None:
+            return x
+        return "0x%04X" % val
+    except:
+        pass
     return "0x%04X" % val

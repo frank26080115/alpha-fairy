@@ -8,13 +8,10 @@ class FakeLCD:
     def __init__(self):
         pass
 
-    def text(self, text, x=0, y=0, c=0, a1=0):
-        print("LCD SIM TXT: \"%s\"" % text)
-
     def print(self, text, x=0, y=0, c=0, a1=0):
         print("LCD SIM PRINT: \"%s\"" % text)
 
-    def image(self, img_path, x=0, y=0, c=0, a1=0):
+    def image(self, x, y, img_path, c=0, a1=0):
         print("LCD SIM IMG: \"%s\"" % img_path)
 
     def clear(self):

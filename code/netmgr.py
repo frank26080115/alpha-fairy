@@ -7,7 +7,7 @@ import micropython
 import esp
 esp.osdebug(None)
 import usocket as socket
-import uasyncio as asyncio
+#import uasyncio as asyncio
 import utime as time
 import uselect as select
 import uerrno as errno
@@ -50,7 +50,7 @@ class NetManager:
         self.udp_srv_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.udp_srv_sock.bind(addr)
         self.udp_srv_sock.listen(3)
-        print('awaiting connection %s %d' % (addr, port))
+        print('awaiting connection on: %s : %d' % (addr, port))
         self.udp_srv_poller = select.poll()
         self.udp_srv_poller.register(self.udp_srv_sock, select.POLLIN)
 
@@ -58,33 +58,18 @@ class NetManager:
         res = self.udp_srv_poller.poll(1)
         if res:
             c_sock, c_addr = self.udp_srv_sock.accept()
-            c_sock.setblocking(False)
+            #c_sock.setblocking(False)
+            c_sock.settimeout(0.5)
             self.ssdp_cli_sock = c_sock
             self.ssdp_cli_addr = c_addr
             print("SSDP client connected %s" % c_addr)
-            start_time = fairyutils.time_millis()
-            while True:
-                try:
-                    d = self.ssdp_cli_sock.recv(4096)
-                    if len(d) > 0:
-                        print("SSDP client recv data %d" % len(d))
-                        return True
-                    else:
-                        if (fairyutils.time_millis() - start_time) > 5000:
-                            return False
-                        else:
-                            # Waiting for data from client. Limit CPU overhead. 
-                            await asyncio.sleep(TIM_TINY)
-                except OSError as ex:
-                    err = ex.args[0]
-                    if err == errno.EAGAIN:
-                        if (fairyutils.time_millis() - start_time) > 5000:
-                            return False
-                        else:
-                            # Waiting for data from client. Limit CPU overhead. 
-                            await asyncio.sleep(TIM_TINY)
-                    else:
-                        return False
+            try:
+                d = self.ssdp_cli_sock.recv(256)
+                if len(d) > 0:
+                    print("SSDP client recv data")
+            except socket.timeout as ex:
+                pass
+            return True
         return False
 
     def restart_ssdp_server(self):
