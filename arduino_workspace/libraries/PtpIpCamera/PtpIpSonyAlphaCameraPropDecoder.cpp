@@ -2,7 +2,7 @@
 #include <Arduino.h>
 #include "ptpip_utils.h"
 
-#if 1
+#if 0
     #define PROPDECODER_VERBOSE_PRINTF Serial.printf
     #if 1
         #define PROPDECODER_INTERESTED_PRINTF(...)
@@ -130,7 +130,7 @@ void PtpIpSonyAlphaCamera::decode_properties()
             }
             else
             {
-                uint32_t elecnt;
+                uint32_t elecnt = p[i];
                 i -= 2;
                 if (p[i] == 0x01 && p[i + 1] == 0x01) // check the get/set
                 {
@@ -139,7 +139,7 @@ void PtpIpSonyAlphaCamera::decode_properties()
                     elecnt = (*((uint32_t*)&p[i])) & 0xFFFF;
                     i += 2;
                 }
-                else if (p[i] == 0x00 && p[i + 1] == 0x02 && p[i + 3] == 0x00)
+                else if (p[i] == 0x00 && p[i + 1] == 0x02 && p[i + 2] == 0x00)
                 {
                     // I don't understand this but it works
                     i += 3;
@@ -152,6 +152,7 @@ void PtpIpSonyAlphaCamera::decode_properties()
                     // warning: in-place copy
                     copyn_utf16_to_bytes(&(p[i]), &(p[i]), elecnt);
                     PROPDECODER_VERBOSE_PRINTF("\"%s\"", (char*)(&(p[i])));
+                    i += elecnt * 2;
                 }
                 else
                 {
@@ -222,6 +223,9 @@ void PtpIpSonyAlphaCamera::decode_properties()
 
 bool PtpIpSonyAlphaCamera::update_property(uint16_t prop_code, uint16_t data_type, uint8_t* data_chunk, uint8_t data_size)
 {
+    if (data_type > 0x0A) {
+        return false;
+    }
     int32_t x = decode_chunk_to_int(data_type, data_chunk, data_size);
     int i;
 
@@ -295,6 +299,13 @@ bool PtpIpSonyAlphaCamera::has_property(uint16_t prop_code)
         }
     }
     return false;
+}
+
+void PtpIpSonyAlphaCamera::test_prop_decode(uint8_t* data, uint32_t len)
+{
+    memcpy(databuff, data, len);
+    databuff_idx = len;
+    decode_properties();
 }
 
 void propdecoder_print_hex(uint16_t datatype, uint8_t* dptr, int cnt)

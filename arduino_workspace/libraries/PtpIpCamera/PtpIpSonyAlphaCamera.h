@@ -19,6 +19,7 @@ class PtpIpSonyAlphaCamera : public PtpIpCamera
         bool has_property(uint16_t prop_code);
         bool check_dev_props(void);
         void decode_properties(void);
+        void test_prop_decode(uint8_t* data, uint32_t len);
 
         void decode_pkt(uint8_t buff[], uint32_t buff_len);
         void task(void);
