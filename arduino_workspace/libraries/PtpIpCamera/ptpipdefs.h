@@ -8,6 +8,8 @@
 extern "C" {
 #endif
 
+#define PTP_OVER_IP_PORT 15740
+
 #define PTPIP_NAME_LENGTH_MAX 256
 
 typedef struct
@@ -40,6 +42,51 @@ typedef struct
     uint32_t       conn_id;
 }
 ptpip_pkt_eventreq_t;
+
+typedef struct
+{
+    ptpip_pkthdr_t header;
+    uint32_t data_phase;
+    uint16_t op_code;
+    uint32_t transaction_id;
+}
+ptpip_pkt_operreq_t;
+
+typedef struct
+{
+    ptpip_pkthdr_t header;
+    uint16_t resp_code;
+}
+ptpip_pkt_operresp_t;
+
+typedef struct
+{
+    ptpip_pkthdr_t header;
+    uint32_t transaction_id;
+    uint64_t pending_data_length;
+}
+ptpip_pkt_startdata_t;
+
+typedef struct
+{
+    ptpip_pkthdr_t header;
+    uint32_t transaction_id;
+}
+ptpip_pkt_data_t;
+
+typedef struct
+{
+    ptpip_pkthdr_t header;
+    uint32_t transaction_id;
+}
+ptpip_pkt_enddata_t;
+
+typedef struct
+{
+    ptpip_pkthdr_t header;
+    uint16_t event_code;
+}
+ptpip_pkt_event_t;
 
 #ifdef __cplusplus
 }

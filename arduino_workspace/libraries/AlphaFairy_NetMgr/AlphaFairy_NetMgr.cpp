@@ -1,3 +1,5 @@
+#include "AlphaFairy_NetMgr.h"
+
 #include <WiFi.h>
 #include "esp_wifi.h"
 
@@ -23,7 +25,7 @@ void NetMgr_task()
     int client_cnt = adapter_sta_list.num;
     if (client_cnt == 1 && last_client_cnt <= 0) {
         if (callback != NULL) {
-            callback(adapter_sta_list.sta[0].ip);
+            callback(adapter_sta_list.sta[0].ip.addr);
         }
     }
     last_client_cnt = client_cnt;

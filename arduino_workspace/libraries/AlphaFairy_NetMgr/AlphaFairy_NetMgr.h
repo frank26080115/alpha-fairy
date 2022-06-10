@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-typedef void (*got_client_t)(ip4_addr_t);
+typedef void (*got_client_t)(uint32_t);
 
 void NetMgr_begin(char* ssid, char* password, got_client_t cb);
 void NetMgr_task(void);

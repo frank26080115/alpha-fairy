@@ -3,7 +3,7 @@
 import socket
 import struct
 
-import fairyutilssim as fairyutils
+import fairyutils
 
 import ptpcodes, ptpsonycodes
 

@@ -4,7 +4,7 @@ import socket
 import struct
 import ptpcamera
 import ptpcodes, ptpsonycodes
-import fairyutilssim as fairyutils
+import fairyutils
 
 PTPSTATE_GETDEVINFO            = 8
 PTPSTATE_GETSTORAGEIDS         = 10
@@ -127,7 +127,7 @@ class PtpSonyAlphaCamera(ptpcamera.PtpCamera):
             return False
         if ptpsonycodes.PROPCODE_FocusArea in self.prop_dict:
             curval = self.prop_dict[ptpsonycodes.PROPCODE_FocusArea]
-            if curval == ptpsonycodes.FOCUSAREA_ZONE or curval == ptpsonycodes.FOCUSAREA_TRACKING_ZONE or curval == ptpsonycodes.FOCUSAREA_MOVEABLE_SMALL  or curval == ptpsonycodes.FOCUSAREA_MOVEABLE_MEDIUM or curval == ptpsonycodes.FOCUSAREA_MOVEABLE_LARGE or curval == ptpsonycodes.FOCUSAREA_MOVEABLE_EXPAND or curval == ptpsonycodes.FOCUSAREA_TRACKING_MOVEABLE_SMALL or curval == ptpsonycodes.FOCUSAREA_TRACKING_MOVEABLE_MEDIUM or curval == ptpsonycodes.FOCUSAREA_TRACKING_MOVEABLE_LARGE  or curval == ptpsonycodes.FOCUSAREA_TRACKING_MOVEABLE_EXPAND:
+            if curval == ptpsonycodes.FOCUSAREA_ZONE or curval == ptpsonycodes.FOCUSAREA_TRACKING_ZONE or curval == ptpsonycodes.FOCUSAREA_MOVEABLE_SMALL  or curval == ptpsonycodes.FOCUSAREA_MOVEABLE_MEDIUM or curval == ptpsonycodes.FOCUSAREA_MOVEABLE_LARGE or curval == ptpsonycodes.FOCUSAREA_MOVEABLE_EXPAND or curval == ptpsonycodes.FOCUSAREA_TRACKING_MOVEABLE_SMALL or curval == ptpsonycodes.FOCUSAREA_TRACKING_MOVEABLE_MEDIUM or curval == ptpsonycodes.FOCUSAREA_TRACKING_MOVEABLE_LARGE or curval == ptpsonycodes.FOCUSAREA_TRACKING_MOVEABLE_EXPAND:
                 return True
         return False
 
