@@ -2,8 +2,9 @@
 #include <Arduino.h>
 #include "ptpip_utils.h"
 
-#define PTPIP_TIMEOUT 200
+#define PTPIP_TIMEOUT 500
 #define PTPIP_CONN_TIMEOUT 5000
+#define PTPIP_CONN_WAIT 1000
 #define PTPIP_PACKET_TIMEOUT 2000
 #define PTPIP_ERROR_THRESH 10
 
@@ -24,18 +25,24 @@
     #define EVENT_PRINTF(...)
 #endif
 
+//#define PTPIP_DEBUG_RX
+
 PtpIpCamera::PtpIpCamera(char* name) {
     strcpy(my_name, name);
     state = PTPSTATE_INIT;
 }
 
 void PtpIpCamera::begin(uint32_t ip) {
+    if (ip == 0) {
+        //PTPSTATE_ERROR_PRINTF("PTP camera got an empty IP address\r\n");
+        return;
+    }
+    if (state > PTPSTATE_START_WAIT && state < PTPSTATE_DISCONNECTED) {
+        return;
+    }
     PTPSTATE_PRINTF("PTP camera beginning connection %08X\r\n", ip);
-    reset_buffers();
-    error_cnt = 0;
-    socket_main.connect (IPAddress(ip), PTP_OVER_IP_PORT, PTPIP_TIMEOUT);
-    socket_event.connect(IPAddress(ip), PTP_OVER_IP_PORT, PTPIP_TIMEOUT);
-    state = PTPSTATE_SOCK_CONN;
+    ip_addr = ip;
+    state = PTPSTATE_START_WAIT;
     last_rx_time = millis();
 }
 
@@ -45,8 +52,18 @@ void PtpIpCamera::task()
     if (state == PTPSTATE_INIT) {
         return;
     }
+    if (state == PTPSTATE_START_WAIT && (now - last_rx_time) > PTPIP_CONN_WAIT) {
+        reset_buffers();
+        error_cnt = 0;
+        socket_main.connect (IPAddress(ip_addr), PTP_OVER_IP_PORT, PTPIP_CONN_TIMEOUT);
+        socket_event.connect(IPAddress(ip_addr), PTP_OVER_IP_PORT, PTPIP_CONN_TIMEOUT);
+        state = PTPSTATE_SOCK_CONN;
+        last_rx_time = now;
+    }
     if (state == PTPSTATE_SOCK_CONN) {
         if (socket_main.connected() && socket_event.connected()) {
+            socket_main.setTimeout(PTPIP_TIMEOUT);
+            socket_event.setTimeout(PTPIP_TIMEOUT);
             last_rx_time = now;
             state += 2;
             PTPSTATE_PRINTF("PTP sockets connected\r\n");
@@ -82,7 +99,9 @@ void PtpIpCamera::task()
         //now = millis();
         if (now > last_rx_time && (now - last_rx_time) > PTPIP_PACKET_TIMEOUT) {
             if (pktbuff_idx > 0) {
-                PTPSTATE_ERROR_PRINTF("PTP timeout receiving packet (%u rem)\r\n", pktbuff_idx);
+                if (try_decode_pkt(pktbuff, &pktbuff_idx, PACKET_BUFFER_SIZE, true) == false) {
+                    PTPSTATE_ERROR_PRINTF("PTP timeout receiving packet (%u rem)\r\n", pktbuff_idx);
+                }
             }
             reset_buffers();
         }
@@ -112,7 +131,7 @@ void PtpIpCamera::task()
             PTPSTATE_ERROR_PRINTF("PTP init send error, open_session failed\r\n");
         }
     }
-    else if (state >= PTPSTATE_SESSION_INIT && canSend()) {
+    else if (state >= PTPSTATE_SESSION_INIT && state < PTPSTATE_POLLING && canSend()) {
         if (init_substeps == NULL)
         {
             PTPSTATE_PRINTF("PTP init no other tasks, now polling\r\n");
@@ -154,24 +173,34 @@ void PtpIpCamera::poll_socket(WiFiClient* sock, uint8_t buff[], uint32_t* buff_i
         error_cnt += 1;
         return;
     }
-    if ((avail = sock->available()) <= 0) {
-        return;
+
+    do
+    {
+        if ((avail = sock->available()) <= 0) {
+            return;
+        }
+        read_limit = buff_max - (*buff_idx) - 1;
+        to_read = avail > read_limit ? read_limit : avail;
+        did_read = sock->read((uint8_t*)&(buff[*buff_idx]), (size_t)to_read);
+        (*buff_idx) += did_read;
+
+        if (did_read > 0) {
+            #ifdef PTPIP_DEBUG_RX
+            debug_rx((uint8_t*)buff, did_read);
+            #endif
+            error_cnt = 0;
+        }
+        last_rx_time = now;
     }
-    read_limit = buff_max - (*buff_idx) - 1;
-    to_read = avail > read_limit ? read_limit : avail;
-    did_read = sock->read((uint8_t*)buff, (size_t)to_read);
-    (*buff_idx) += did_read;
-    if (did_read > 0) {
-        error_cnt = 0;
-    }
-    last_rx_time = now;
+    while (did_read >= 512);
+
     int retries = 3;
     // the data we just read might contain multiple valid packets
     // we try to decode as much of it as possible
     do
     {
-        if ((*buff_idx) > 8) {
-            if (try_decode_pkt(buff, buff_idx, buff_max) == false) {
+        if ((*buff_idx) >= 8) {
+            if (try_decode_pkt(buff, buff_idx, buff_max, false) == false) {
                 break;
             }
         }
@@ -179,7 +208,7 @@ void PtpIpCamera::poll_socket(WiFiClient* sock, uint8_t buff[], uint32_t* buff_i
     while ((retries--) > 0);
 }
 
-bool PtpIpCamera::try_decode_pkt(uint8_t buff[], uint32_t* buff_idx, uint32_t buff_max)
+bool PtpIpCamera::try_decode_pkt(uint8_t buff[], uint32_t* buff_idx, uint32_t buff_max, bool can_force)
 {
     bool did_stuff = false;
     ptpip_pkthdr_t* hdr = (ptpip_pkthdr_t*)buff;
@@ -203,14 +232,15 @@ bool PtpIpCamera::try_decode_pkt(uint8_t buff[], uint32_t* buff_idx, uint32_t bu
                 }
                 memcpy(&(databuff[databuff_idx]), &(buff[12]), copy_size);
                 databuff_idx += copy_size;
-                pending_data -= hdr->length;
-                buffer_consume(buff, buff_idx, chunk_size, buff_max);
+                pending_data -= chunk_size;
+                decode_pkt(buff, *buff_idx); // this should only do a debug print
+                buffer_consume(buff, buff_idx, hdr->length, buff_max);
                 did_stuff = true;
             }
             else if (hdr->pkt_type == PTP_PKTTYPE_ENDDATA || hdr->pkt_type == PTP_PKTTYPE_CANCELDATA)
             {
                 pending_data = 0;
-                did_stuff = try_decode_pkt(buff, buff_idx, buff_max); // no chance of infinite recursion due to pending_data = 0
+                did_stuff |= try_decode_pkt(buff, buff_idx, buff_max, false); // no chance of infinite recursion due to pending_data = 0
             }
             else
             {
@@ -220,7 +250,7 @@ bool PtpIpCamera::try_decode_pkt(uint8_t buff[], uint32_t* buff_idx, uint32_t bu
             }
         }
     }
-    else if ((*buff_idx) >= 8)
+    else if ((*buff_idx) >= 8 && can_force)
     {
         // special case for incomplete packet, I see this come consistently from my camera
         decode_pkt(buff, *buff_idx);
@@ -282,19 +312,19 @@ void PtpIpCamera::decode_pkt(uint8_t buff[], uint32_t buff_len)
         ptpip_pkt_startdata_t* pktstruct = (ptpip_pkt_startdata_t*)buff;
         pending_data = pktstruct->pending_data_length;
         databuff_idx = 0;
-        DATARX_PRINTF("PTPIP start-data %u\r\n", pending_data);
+        DATARX_PRINTF("PTPRX start-data %u\r\n", pending_data);
     }
     else if (pkt_type == PTP_PKTTYPE_ENDDATA)
     {
-        DATARX_PRINTF("PTPIP end-data\r\n");
+        DATARX_PRINTF("PTPRX end-data\r\n");
     }
     else if (pkt_type == PTP_PKTTYPE_CANCELDATA)
     {
-        DATARX_PRINTF("PTPIP cancel-data\r\n");
+        DATARX_PRINTF("PTPRX cancel-data\r\n");
     }
     else if (pkt_type == PTP_PKTTYPE_DATA)
     {
-        DATARX_PRINTF("PTPIP data chunk %u\r\n", pkt_len);
+        DATARX_PRINTF("PTPRX data chunk %u\r\n", (pkt_len - 12));
     }
     else if (pkt_type == PTP_PKTTYPE_EVENT)
     {
@@ -317,7 +347,7 @@ void PtpIpCamera::parse_cmd_ack(uint8_t* data)
 {
     ptpip_pkt_cmdack_t* pktstruct = (ptpip_pkt_cmdack_t*)data;
     conn_id = pktstruct->conn_id;
-    copy_utf16_to_bytes(pktstruct->name, cam_name);
+    copy_utf16_to_bytes(cam_name, pktstruct->name);
     PTPSTATE_PRINTF("PTP recv'ed CMD-ACK, conn-ID 0x%08X, name: %s\r\n", conn_id, cam_name);
 }
 
@@ -344,4 +374,21 @@ void PtpIpCamera::reset_buffers()
     pktbuff_idx = 0;
     eventbuff_idx = 0;
     databuff_idx = 0;
+}
+
+void PtpIpCamera::debug_rx(uint8_t* buff, uint32_t read_in) {
+    uint32_t buff_addr = (uint32_t)buff;
+    uint32_t buff_addr_pkt = (uint32_t)(this->pktbuff);
+    uint32_t buff_addr_evt = (uint32_t)(this->eventbuff);
+    uint32_t buff_len;
+    if (buff_addr == buff_addr_pkt)
+    {
+        Serial.printf("RX[%u] PKT %u/%u:", millis(), read_in, (buff_len = this->pktbuff_idx));
+    }
+    else
+    {
+        Serial.printf("RX[%u] EVT %u/%u:", millis(), read_in, (buff_len = this->eventbuff_idx));
+    }
+    print_buffer_hex(buff, buff_len);
+    Serial.printf("\r\n");
 }

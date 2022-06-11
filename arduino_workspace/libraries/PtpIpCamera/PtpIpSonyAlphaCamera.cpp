@@ -26,8 +26,6 @@ static const uint16_t interested_properties[] = {
 };
 
 PtpIpSonyAlphaCamera::PtpIpSonyAlphaCamera(char* name) : PtpIpCamera(name) {
-    
-
     // make the properties table based on how many properties we are interested in
     uint8_t i;
     // so count first
@@ -94,13 +92,13 @@ bool PtpIpSonyAlphaCamera::check_dev_props()
 
 void PtpIpSonyAlphaCamera::task()
 {
-    if (state >= PTPSTATE_POLLING)
+    if (state >= PTPSTATE_POLLING && state < PTPSTATE_DISCONNECTED)
     {
         uint32_t now = millis();
         if ((now - check_props_time) >= SONYCAM_CHECK_PROPS_INTERVAL) {
             need_check_properties |= true;
         }
-        if (need_check_properties != false) {
+        if (need_check_properties != false && canSend()) {
             check_dev_props();
         }
     }

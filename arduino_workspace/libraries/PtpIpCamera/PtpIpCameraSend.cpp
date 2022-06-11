@@ -2,7 +2,7 @@
 #include <Arduino.h>
 #include "ptpip_utils.h"
 
-#if 0
+#if 1
 #define PTPSEND_DEBUG(x) send_debug(x)
 #else
 #define PTPSEND_DEBUG(x)
@@ -18,9 +18,11 @@ bool PtpIpCamera::send_oper_req(uint32_t opcode, uint32_t* params, uint8_t param
     pktstruct->data_phase = payload_len != 0 ? 1 : 0;
     pktstruct->op_code = opcode;
     pktstruct->transaction_id = transaction_id;
+
     memcpy(params_dest, params, params_cnt * sizeof(uint32_t));
     len = sizeof(ptpip_pkt_operreq_t) + (params_cnt * sizeof(uint32_t));
     pktstruct->header.length = len;
+
     PTPSEND_DEBUG("PTPSEND OPER_REQ");
     wrote = socket_main.write((const uint8_t*)outbuff, (size_t)len);
     if (wrote > 0) {
@@ -160,9 +162,6 @@ bool PtpIpCamera::send_open_session()
     params[0] = transaction_id;
     params[1] = session_id;
     bool success = send_oper_req(PTP_OPCODE_OpenSession, params, 2, NULL, -1);
-    if (success) {
-        error_cnt = 0;
-    }
     return success;
 }
 

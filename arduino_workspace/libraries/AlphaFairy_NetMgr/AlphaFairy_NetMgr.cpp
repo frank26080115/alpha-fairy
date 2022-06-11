@@ -5,10 +5,11 @@
 
 static got_client_t callback;
 
-static int last_client_cnt = 0;
+static uint32_t last_client = 0;
 
 void NetMgr_begin(char* ssid, char* password, got_client_t cb)
 {
+    last_client = 0;
     WiFi.softAP(ssid, password);
     callback = cb;
 }
@@ -22,11 +23,20 @@ void NetMgr_task()
     esp_wifi_ap_get_sta_list  (&wifi_sta_list);
     tcpip_adapter_get_sta_list(&wifi_sta_list, &adapter_sta_list);
 
-    int client_cnt = adapter_sta_list.num;
-    if (client_cnt == 1 && last_client_cnt <= 0) {
-        if (callback != NULL) {
-            callback(adapter_sta_list.sta[0].ip.addr);
+    int i;
+    for (i = 0; i < adapter_sta_list.num; i++) {
+        if (adapter_sta_list.sta[i].ip.addr != 0) {
+            if (last_client != adapter_sta_list.sta[i].ip.addr) {
+                if (callback != NULL) {
+                    callback(adapter_sta_list.sta[i].ip.addr);
+                }
+            }
+            last_client = adapter_sta_list.sta[i].ip.addr;
         }
     }
-    last_client_cnt = client_cnt;
+}
+
+void NetMgr_reset()
+{
+    last_client = 0;
 }

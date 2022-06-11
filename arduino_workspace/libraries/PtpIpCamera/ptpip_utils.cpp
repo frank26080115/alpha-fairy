@@ -2,6 +2,8 @@
 #include <Arduino.h>
 #include <math.h>
 
+//#define PTPIP_DEBUG_RX
+
 uint32_t copy_bytes_to_utf16(void* dest, void* src) {
     int i, j;
     uint8_t* dp = (uint8_t*)dest;
@@ -60,17 +62,31 @@ void buffer_consume(uint8_t buff[], uint32_t* buff_idx, uint32_t read_cnt, uint3
     if (read_cnt > (*buff_idx)) {
         read_cnt = (*buff_idx);
     }
-    for (i = 0, j = read_cnt; i < read_cnt && j < buff_max; i++, j++) {
+    for (i = 0, j = read_cnt; j < buff_max; i++, j++) {
         buff[i] = buff[j];
     }
-    (*buff_idx) -= i;
+    (*buff_idx) -= read_cnt;
+    #ifdef PTPIP_DEBUG_RX
+    if ((*buff_idx) > 0)
+    {
+        Serial.printf("BUF CONSUME (%u , %u) ", read_cnt, (*buff_idx));
+        for (i = 0; i < (*buff_idx); i++) {
+            Serial.printf(" %02X", buff[i]);
+        }
+        Serial.printf("\r\n");
+    }
+    #endif
 }
 
 void print_buffer_hex(uint8_t* data, uint32_t len)
 {
+    if (len > 128) {
+        Serial.printf(" too long");
+        return;
+    }
     uint32_t i;
     for (i = 0; i < len; i++) {
-        if (i != 0 && (i % 16) == 0) {
+        if (i != 0 && (i % 32) == 0) {
             Serial.printf("\r\n");
         }
         else {

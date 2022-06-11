@@ -12,11 +12,12 @@
 enum
 {
     PTPSTATE_INIT         = 0,
-    PTPSTATE_SOCK_CONN    = 2,
-    PTPSTATE_CMD_REQ      = 4,
-    PTPSTATE_EVENT_REQ    = 6,
-    PTPSTATE_OPENSESSION  = 8,
-    PTPSTATE_SESSION_INIT = 10,
+    PTPSTATE_START_WAIT   = 2,
+    PTPSTATE_SOCK_CONN    = 4,
+    PTPSTATE_CMD_REQ      = 6,
+    PTPSTATE_EVENT_REQ    = 8,
+    PTPSTATE_OPENSESSION  = 10,
+    PTPSTATE_SESSION_INIT = 12,
     PTPSTATE_POLLING      = 0x0100,
     PTPSTATE_DISCONNECTED = 0x1000,
 };
@@ -51,24 +52,27 @@ class PtpIpCamera
         virtual void    task(void);
         void            poll(void);
         inline bool     isAlive(void)         { return (state & 0xF000) == 0; };
-        inline bool     canSend(void)         { return (state & 0x0001) != 0; };
+        inline bool     canSend(void)         { return (state & 0x0001) == 0; };
         inline bool     isOperating(void)     { return (state & 0x0F00) != 0; };
         inline int      getState(void)        { return state; };
         inline uint32_t getLastRxTime(void)   { return last_rx_time; };
         inline char*    getCameraName(void)   { return (char*)cam_name; };
+        inline bool     canNewConnect(void)   { return state < PTPSTATE_START_WAIT || state >= PTPSTATE_DISCONNECTED; };
         bool send_oper_req(uint32_t opcode, uint32_t* params, uint8_t params_cnt, uint8_t* payload, int32_t payload_len);
         void wait_while_busy(uint32_t min_wait, uint32_t max_wait, volatile bool* exit_signal);
     protected:
         int state;
         int substate;
+        uint32_t   ip_addr;
         WiFiClient socket_main;
         WiFiClient socket_event;
         virtual void decode_pkt    (uint8_t buff[], uint32_t buff_len);
-        bool         try_decode_pkt(uint8_t buff[], uint32_t* buff_idx, uint32_t buff_max);
+        bool         try_decode_pkt(uint8_t buff[], uint32_t* buff_idx, uint32_t buff_max, bool can_force);
         void         poll_socket   (WiFiClient* sock, uint8_t buff[], uint32_t* buff_idx, uint32_t buff_max);
 
         uint32_t last_rx_time;
-        uint64_t pending_data;
+        uint32_t pending_data; // technically this should be 64 bits
+        int32_t incomplete_time;
 
         // buffers
         uint32_t pktbuff_idx;
@@ -103,6 +107,7 @@ class PtpIpCamera
         bool send_probe_resp(void);
         bool send_open_session(void);
         void send_debug(char* s);
+        void debug_rx(uint8_t*, uint32_t);
 };
 
 #endif

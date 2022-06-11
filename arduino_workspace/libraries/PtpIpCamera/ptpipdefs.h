@@ -12,14 +12,14 @@ extern "C" {
 
 #define PTPIP_NAME_LENGTH_MAX 256
 
-typedef struct
+typedef struct __attribute__((packed))
 {
     uint32_t length;
     uint32_t pkt_type;
 }
 ptpip_pkthdr_t;
 
-typedef struct
+typedef struct __attribute__((packed))
 {
     ptpip_pkthdr_t header;
     uint8_t        guid[16];
@@ -27,7 +27,7 @@ typedef struct
 }
 ptpip_pkt_cmdreq_t;
 
-typedef struct
+typedef struct __attribute__((packed))
 {
     ptpip_pkthdr_t header;
     uint32_t       conn_id;
@@ -36,14 +36,14 @@ typedef struct
 }
 ptpip_pkt_cmdack_t;
 
-typedef struct
+typedef struct __attribute__((packed))
 {
     ptpip_pkthdr_t header;
     uint32_t       conn_id;
 }
 ptpip_pkt_eventreq_t;
 
-typedef struct
+typedef struct __attribute__((packed))
 {
     ptpip_pkthdr_t header;
     uint32_t data_phase;
@@ -52,36 +52,37 @@ typedef struct
 }
 ptpip_pkt_operreq_t;
 
-typedef struct
+typedef struct __attribute__((packed))
 {
     ptpip_pkthdr_t header;
     uint16_t resp_code;
 }
 ptpip_pkt_operresp_t;
 
-typedef struct
+typedef struct __attribute__((packed))
 {
     ptpip_pkthdr_t header;
     uint32_t transaction_id;
-    uint64_t pending_data_length;
+    uint32_t pending_data_length;
+    uint32_t pending_data_length_h;
 }
 ptpip_pkt_startdata_t;
 
-typedef struct
+typedef struct __attribute__((packed))
 {
     ptpip_pkthdr_t header;
     uint32_t transaction_id;
 }
 ptpip_pkt_data_t;
 
-typedef struct
+typedef struct __attribute__((packed))
 {
     ptpip_pkthdr_t header;
     uint32_t transaction_id;
 }
 ptpip_pkt_enddata_t;
 
-typedef struct
+typedef struct __attribute__((packed))
 {
     ptpip_pkthdr_t header;
     uint16_t event_code;
