@@ -26,7 +26,7 @@
 #define WIFI_CLIENT_DEF_CONN_TIMEOUT_MS  (3000)
 #define WIFI_CLIENT_MAX_WRITE_RETRY      (10)
 #define WIFI_CLIENT_SELECT_TIMEOUT_US    (1000000)
-#define WIFI_CLIENT_FLUSH_BUFFER_SIZE    (1024)
+#define WIFI_CLIENT_FLUSH_BUFFER_SIZE    (1024 * 6)
 
 #undef connect
 #undef write
@@ -88,7 +88,7 @@ private:
         }
 
 public:
-    WiFiClientRxBuffer(int fd, size_t size=1436)
+    WiFiClientRxBuffer(int fd, size_t size=(1024 * 6))
         :_size(size)
         ,_buffer(NULL)
         ,_pos(0)
@@ -231,7 +231,7 @@ int WiFiClient::connect(IPAddress ip, uint16_t port, int32_t timeout)
     FD_ZERO(&fdset);
     FD_SET(sockfd, &fdset);
     tv.tv_sec = _timeout / 1000;
-    tv.tv_usec = 0;
+    tv.tv_usec = (_timeout % 1000) * 1000;
 
 #ifdef ESP_IDF_VERSION_MAJOR
     int res = lwip_connect(sockfd, (struct sockaddr*)&serveraddr, sizeof(serveraddr));
@@ -310,14 +310,14 @@ int WiFiClient::setSocketOption(int option, char* value, size_t len)
     return res;
 }
 
-int WiFiClient::setTimeout(uint32_t seconds)
+int WiFiClient::setTimeout(uint32_t ms)
 {
-    Client::setTimeout(seconds * 1000); // This should be here?
-    _timeout = seconds * 1000;
+    Client::setTimeout(ms); // This should be here?
+    _timeout = ms;
     if(fd() >= 0) {
         struct timeval tv;
-        tv.tv_sec = seconds;
-        tv.tv_usec = 0;
+        tv.tv_sec = ms / 1000;
+        tv.tv_usec = (ms % 1000) * 1000;
         if(setSocketOption(SO_RCVTIMEO, (char *)&tv, sizeof(struct timeval)) < 0) {
             return -1;
         }

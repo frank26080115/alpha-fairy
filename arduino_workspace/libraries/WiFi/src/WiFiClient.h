@@ -33,7 +33,7 @@ class ESPLwIPClient : public Client
 public:
         virtual int connect(IPAddress ip, uint16_t port, int32_t timeout) = 0;
         virtual int connect(const char *host, uint16_t port, int32_t timeout) = 0;
-        virtual int setTimeout(uint32_t seconds) = 0;
+        virtual int setTimeout(uint32_t ms) = 0;
 };
 
 class WiFiClient : public ESPLwIPClient
@@ -89,7 +89,7 @@ public:
     int setSocketOption(int option, char* value, size_t len);
     int setOption(int option, int *value);
     int getOption(int option, int *value);
-    int setTimeout(uint32_t seconds);
+    int setTimeout(uint32_t ms);
     int setNoDelay(bool nodelay);
     bool getNoDelay();
 
