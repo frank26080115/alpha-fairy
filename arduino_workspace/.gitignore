@@ -20,6 +20,9 @@ libraries/ClosedCube_TCA9548A
 libraries/M5_EzData
 libraries/FFT
 libraries/M5_FPC1020A
+libraries/Wifi/examples
+libraries/Wifi/keywords.txt
+libraries/Wifi/library.properties
 
 libraries/readme.txt
 
