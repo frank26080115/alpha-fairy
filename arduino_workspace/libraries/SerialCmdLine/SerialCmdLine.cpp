@@ -27,7 +27,6 @@ SerialCmdLine::SerialCmdLine(Stream* stream_obj, cmd_def_t* user_cmd_list, bool 
     this->_echo = local_echo;
     this->_cmd_list = user_cmd_list;
     this->_higher_priori = higher_priori;
-    this->_stream->write(this->_prompt, strlen(this->_prompt));
 }
 
 int SerialCmdLine::task()
@@ -113,4 +112,10 @@ int SerialCmdLine::task()
     }
     while (_stream->available() > 0 && _higher_priori);
     return ret;
+}
+
+void SerialCmdLine::print_prompt() {
+    if (this->_prompt != NULL) {
+        this->_stream->write(this->_prompt, strlen(this->_prompt));
+    }
 }

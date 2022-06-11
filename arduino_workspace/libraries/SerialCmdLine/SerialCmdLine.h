@@ -22,6 +22,7 @@ class SerialCmdLine
 {
     public:
         SerialCmdLine(Stream* stream_obj, cmd_def_t* user_cmd_list, bool local_echo, char* prompt, char* unknown_reply, bool higher_priori, uint32_t buffer_size);
+        void print_prompt(void);
         int task(void);
         inline void set_echo(bool x) { this->_echo = x; };
     protected:

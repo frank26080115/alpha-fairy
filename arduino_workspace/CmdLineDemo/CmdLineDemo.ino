@@ -14,6 +14,7 @@ SerialCmdLine cmdline(&Serial, (cmd_def_t*)cmds, false, (char*)">>>", (char*)"??
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
+  cmdline.print_prompt();
 }
 
 void loop() {
