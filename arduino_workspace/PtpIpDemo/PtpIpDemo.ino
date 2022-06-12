@@ -8,10 +8,12 @@ PtpIpSonyAlphaCamera camera((char*)"Alpha-Fairy");
 void on_got_client(uint32_t ip);
 void shoot_func(void* cmd, char* argstr, Stream* stream);
 void echo_func(void* cmd, char* argstr, Stream* stream);
+void memcheck_func(void* cmd, char* argstr, Stream* stream);
 
 cmd_def_t cmds[] = {
   { "shoot", shoot_func },
   { "echo", echo_func },
+  { "mem", memcheck_func },
   { NULL, NULL }, // end of table
 };
 
@@ -58,4 +60,9 @@ void shoot_func(void* cmd, char* argstr, Stream* stream)
 void echo_func(void* cmd, char* argstr, Stream* stream)
 {
   stream->println(argstr);
+}
+
+void memcheck_func(void* cmd, char* argstr, Stream* stream)
+{
+  stream->printf("free heap mem: %u\r\n", ESP.getFreeHeap());
 }

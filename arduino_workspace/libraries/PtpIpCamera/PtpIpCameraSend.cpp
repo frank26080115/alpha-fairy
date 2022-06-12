@@ -3,9 +3,15 @@
 #include "ptpip_utils.h"
 
 #if 1
-#define PTPSEND_DEBUG(x) send_debug(x)
+#define PTPSEND_DEBUG(x) send_debug((char*)x)
 #else
 #define PTPSEND_DEBUG(x)
+#endif
+
+#ifdef USE_ASYNC_SOCK
+    #define SOCK_WRITE(_s, _b, _blen) (_s).write((const char*)(_b), (size_t)(_blen))
+#else
+    #define SOCK_WRITE(_s, _b, _blen) (_s).write((const uint8_t*)(_b), (size_t)(_blen))
 #endif
 
 bool PtpIpCamera::send_oper_req(uint32_t opcode, uint32_t* params, uint8_t params_cnt, uint8_t* payload, int32_t payload_len)
@@ -24,7 +30,7 @@ bool PtpIpCamera::send_oper_req(uint32_t opcode, uint32_t* params, uint8_t param
     pktstruct->header.length = len;
 
     PTPSEND_DEBUG("PTPSEND OPER_REQ");
-    wrote = socket_main.write((const uint8_t*)outbuff, (size_t)len);
+    wrote = SOCK_WRITE(socket_main, outbuff, len);
     if (wrote > 0) {
         if (payload_len > 0) {
             if (send_data(payload, payload_len) == false) {
@@ -34,7 +40,9 @@ bool PtpIpCamera::send_oper_req(uint32_t opcode, uint32_t* params, uint8_t param
         }
         transaction_id += 1;
         state |= 1;
+        #ifndef USE_ASYNC_SOCK
         error_cnt = 0;
+        #endif
         return true;
     }
     else {
@@ -53,7 +61,7 @@ bool PtpIpCamera::send_data(uint8_t* payload, uint32_t payload_len)
     startstruct->pending_data_length = payload_len;
     startstruct->header.length = sizeof(ptpip_pkt_startdata_t);
     PTPSEND_DEBUG("PTPSEND START_DATA");
-    wrote = socket_main.write((const uint8_t*)outbuff, (size_t)(startstruct->header.length));
+    wrote = SOCK_WRITE(socket_main, outbuff, startstruct->header.length);
     if (wrote <= 0) {
         error_cnt += 1;
         return false;
@@ -65,7 +73,7 @@ bool PtpIpCamera::send_data(uint8_t* payload, uint32_t payload_len)
     memcpy((void*)&(outbuff[sizeof(ptpip_pkt_data_t)]), payload, payload_len);
     datastruct->header.length = sizeof(ptpip_pkt_data_t) + payload_len;
     PTPSEND_DEBUG("PTPSEND DATA");
-    wrote = socket_main.write((const uint8_t*)outbuff, (size_t)(startstruct->header.length));
+    wrote = SOCK_WRITE(socket_main, outbuff, startstruct->header.length);
     if (wrote <= 0) {
         error_cnt += 1;
         return false;
@@ -76,13 +84,15 @@ bool PtpIpCamera::send_data(uint8_t* payload, uint32_t payload_len)
     endstruct->transaction_id = transaction_id;
     endstruct->header.length = sizeof(ptpip_pkt_enddata_t);
     PTPSEND_DEBUG("PTPSEND END_DATA");
-    wrote = socket_main.write((const uint8_t*)outbuff, (size_t)(endstruct->header.length));
+    wrote = SOCK_WRITE(socket_main, outbuff, endstruct->header.length);
     if (wrote <= 0) {
         error_cnt += 1;
         return false;
     }
 
+    #ifndef USE_ASYNC_SOCK
     error_cnt = 0;
+    #endif
     return true;
 }
 
@@ -104,10 +114,12 @@ bool PtpIpCamera::send_cmd_req()
     len += 4;
     pktstruct->header.length = len;
     PTPSEND_DEBUG("PTPSEND CMD_REQ");
-    wrote = socket_main.write((const uint8_t*)outbuff, (size_t)(len));
+    wrote = SOCK_WRITE(socket_main, outbuff, len);
     if (wrote > 0) {
         state |= 1;
+        #ifndef USE_ASYNC_SOCK
         error_cnt = 0;
+        #endif
         return true;
     }
     else {
@@ -124,10 +136,12 @@ bool PtpIpCamera::send_event_req()
     pktstruct->conn_id = conn_id;
     pktstruct->header.length = sizeof(ptpip_pkt_eventreq_t);
     PTPSEND_DEBUG("PTPSEND EVENT_REQ");
-    wrote = socket_event.write((const uint8_t*)outbuff, (size_t)(pktstruct->header.length));
+    wrote = SOCK_WRITE(socket_event, outbuff, pktstruct->header.length);
     if (wrote > 0) {
         state |= 1;
+        #ifndef USE_ASYNC_SOCK
         error_cnt = 0;
+        #endif
         return true;
     }
     else {
@@ -143,9 +157,11 @@ bool PtpIpCamera::send_probe_resp()
     pktstruct->pkt_type = PTP_PKTTYPE_PROBERESP;
     pktstruct->length = sizeof(ptpip_pkthdr_t);
     PTPSEND_DEBUG("PTPSEND PROBE_RESP");
-    wrote = socket_event.write((const uint8_t*)outbuff, (size_t)(pktstruct->length));
+    wrote = SOCK_WRITE(socket_main, outbuff, pktstruct->length);
     if (wrote > 0) {
+        #ifndef USE_ASYNC_SOCK
         error_cnt = 0;
+        #endif
         return true;
     }
     else {

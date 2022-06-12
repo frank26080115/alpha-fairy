@@ -22,11 +22,16 @@ enum
     PTPSTATE_DISCONNECTED = 0x1000,
 };
 
-#define PACKET_BUFFER_SIZE  1024
+#define PACKET_BUFFER_SIZE (1024 * 6) // needs to be just big enough for a whole device properties packet
 #define DATA_BUFFER_SIZE   (1024 * 6) // needs to be just big enough for a whole device properties packet
 #define NAME_BUFFER_SIZE    256
 
 #define DEFAULT_BUSY_TIMEOUT 1000
+
+//#define USE_ASYNC_SOCK
+#ifdef USE_ASYNC_SOCK
+#include <AsyncTCP.h>
+#endif
 
 typedef struct
 {
@@ -52,7 +57,11 @@ class PtpIpCamera
         virtual void    task(void);
         void            poll(void);
         inline bool     isAlive(void)         { return (state & 0xF000) == 0; };
-        inline bool     canSend(void)         { return (state & 0x0001) == 0; };
+        inline bool     canSend(void)         { return (state & 0x0001) == 0
+                                                #ifdef USE_ASYNC_SOCK
+                                                && socket_main.canSend()
+                                                #endif
+                                                    ; };
         inline bool     isOperating(void)     { return (state & 0x0F00) != 0; };
         inline int      getState(void)        { return state; };
         inline uint32_t getLastRxTime(void)   { return last_rx_time; };
@@ -64,11 +73,24 @@ class PtpIpCamera
         int state;
         int substate;
         uint32_t   ip_addr;
+        #ifndef USE_ASYNC_SOCK
         WiFiClient socket_main;
         WiFiClient socket_event;
+        #else
+        AsyncClient socket_main;
+        AsyncClient socket_event;
+        #endif
+        void poll_socket (
+            #ifndef USE_ASYNC_SOCK
+                WiFiClient* sock,
+            #endif
+                uint8_t buff[], uint32_t* buff_idx, uint32_t buff_max
+            #ifdef USE_ASYNC_SOCK
+                , struct pbuf* pb
+            #endif
+                );
         virtual void decode_pkt    (uint8_t buff[], uint32_t buff_len);
         bool         try_decode_pkt(uint8_t buff[], uint32_t* buff_idx, uint32_t buff_max, bool can_force);
-        void         poll_socket   (WiFiClient* sock, uint8_t buff[], uint32_t* buff_idx, uint32_t buff_max);
 
         uint32_t last_rx_time;
         uint32_t pending_data; // technically this should be 64 bits
@@ -108,6 +130,14 @@ class PtpIpCamera
         bool send_open_session(void);
         void send_debug(char* s);
         void debug_rx(uint8_t*, uint32_t);
+
+        #ifdef USE_ASYNC_SOCK
+        static void onAsyncPacket     (void*, AsyncClient*, struct pbuf *pb);
+        static void onAsyncPacketEvent(void*, AsyncClient*, struct pbuf *pb);
+        static void onAsyncError      (void*, AsyncClient*, int8_t);
+        static void onAsyncTimeout    (void*, AsyncClient*, uint32_t);
+        static void onAsyncAck        (void*, AsyncClient*, size_t, uint32_t);
+        #endif
 };
 
 #endif

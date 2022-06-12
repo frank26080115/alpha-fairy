@@ -4,7 +4,7 @@
 
 #include <stdlib.h>
 
-#define SONYCAM_CHECK_PROPS_INTERVAL 500
+#define SONYCAM_CHECK_PROPS_INTERVAL 5000
 
 static const ptpip_init_substep_t init_table[] = {
     { PTP_OPCODE_GetDeviceInfo             , {     0,  0, 0 } , 0 },
@@ -92,6 +92,7 @@ bool PtpIpSonyAlphaCamera::check_dev_props()
 
 void PtpIpSonyAlphaCamera::task()
 {
+    yield();
     if (state >= PTPSTATE_POLLING && state < PTPSTATE_DISCONNECTED)
     {
         uint32_t now = millis();

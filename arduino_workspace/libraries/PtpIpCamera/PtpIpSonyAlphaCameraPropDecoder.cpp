@@ -219,6 +219,7 @@ void PtpIpSonyAlphaCamera::decode_properties()
     PROPDECODER_VERBOSE_PRINTF("\r\n");
 
     databuff_idx = 0;
+    check_props_time = millis();
 }
 
 bool PtpIpSonyAlphaCamera::update_property(uint16_t prop_code, uint16_t data_type, uint8_t* data_chunk, uint8_t data_size)
