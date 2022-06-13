@@ -49,7 +49,7 @@ PtpIpSonyAlphaCamera::PtpIpSonyAlphaCamera(char* name) : PtpIpCamera(name) {
     properties_pending = false;
 }
 
-void PtpIpSonyAlphaCamera::decode_pkt(uint8_t buff[], uint32_t buff_len)
+bool PtpIpSonyAlphaCamera::decode_pkt(uint8_t buff[], uint32_t buff_len)
 {
     ptpip_pkthdr_t* hdr = (ptpip_pkthdr_t*)buff;
     uint32_t pkt_len = hdr->length;
@@ -74,7 +74,7 @@ void PtpIpSonyAlphaCamera::decode_pkt(uint8_t buff[], uint32_t buff_len)
             need_check_properties = true;
         }
     }
-    PtpIpCamera::decode_pkt(buff, buff_len);
+    return PtpIpCamera::decode_pkt(buff, buff_len);
 }
 
 bool PtpIpSonyAlphaCamera::check_dev_props()
@@ -93,7 +93,7 @@ bool PtpIpSonyAlphaCamera::check_dev_props()
 void PtpIpSonyAlphaCamera::task()
 {
     yield();
-    if (state >= PTPSTATE_POLLING && state < PTPSTATE_DISCONNECTED)
+    if (state >= PTPSTATE_POLLING && state < PTPSTATE_DISCONNECT)
     {
         uint32_t now = millis();
         if ((now - check_props_time) >= SONYCAM_CHECK_PROPS_INTERVAL) {

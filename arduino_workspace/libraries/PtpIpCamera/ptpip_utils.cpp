@@ -62,9 +62,10 @@ void buffer_consume(uint8_t buff[], uint32_t* buff_idx, uint32_t read_cnt, uint3
     if (read_cnt > (*buff_idx)) {
         read_cnt = (*buff_idx);
     }
-    for (i = 0, j = read_cnt; j < buff_max; i++, j++) {
-        buff[i] = buff[j];
-    }
+    //for (i = 0, j = read_cnt; j < buff_max; i++, j++) {
+    //    buff[i] = buff[j];
+    //}
+    memcpy(buff, &(buff[read_cnt]), buff_max - read_cnt);
     (*buff_idx) -= read_cnt;
     #ifdef PTPIP_DEBUG_RX
     if ((*buff_idx) > 0)
@@ -80,10 +81,12 @@ void buffer_consume(uint8_t buff[], uint32_t* buff_idx, uint32_t read_cnt, uint3
 
 void print_buffer_hex(uint8_t* data, uint32_t len)
 {
+    #if 1
     if (len > 128) {
         Serial.printf(" too long");
         return;
     }
+    #endif
     uint32_t i;
     for (i = 0; i < len; i++) {
         if (i != 0 && (i % 32) == 0) {

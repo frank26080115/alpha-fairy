@@ -2,7 +2,7 @@
 #include <Arduino.h>
 #include "ptpip_utils.h"
 
-#define PTPIP_TIMEOUT 500
+#define PTPIP_TIMEOUT 3000
 #define PTPIP_CONN_TIMEOUT 5000
 #define PTPIP_CONN_WAIT 1000
 #define PTPIP_PACKET_TIMEOUT 2000
@@ -30,6 +30,11 @@
 PtpIpCamera::PtpIpCamera(char* name) {
     strcpy(my_name, name);
     state = PTPSTATE_INIT;
+    #ifdef PTPIP_KEEP_STATS
+    stats_pkts = 0;
+    stats_acks = 0;
+    stats_tx = 0;
+    #endif
 }
 
 void PtpIpCamera::begin(uint32_t ip) {
@@ -64,6 +69,7 @@ void PtpIpCamera::task()
         socket_event.onPacket (this->onAsyncPacketEvent, this);
         socket_event.onError  (this->onAsyncError      , this);
         socket_event.onTimeout(this->onAsyncTimeout    , this);
+        socket_event.onAck    (this->onAsyncAck        , this);
         #endif
 
         socket_main.connect (IPAddress(ip_addr), PTP_OVER_IP_PORT
@@ -82,11 +88,12 @@ void PtpIpCamera::task()
     if (state == PTPSTATE_SOCK_CONN) {
         if (socket_main.connected() && socket_event.connected()) {
             #ifndef USE_ASYNC_SOCK
-                socket_main.setTimeout(PTPIP_TIMEOUT);
+                socket_main .setTimeout(PTPIP_TIMEOUT);
                 socket_event.setTimeout(PTPIP_TIMEOUT);
             #else
-                socket_main.setAckTimeout(PTPIP_TIMEOUT);
+                socket_main .setAckTimeout(PTPIP_TIMEOUT);
                 socket_event.setAckTimeout(PTPIP_TIMEOUT);
+                //PTPSTATE_PRINTF("PTP socket MSS %u\r\n", socket_main.getMss());
             #endif
             last_rx_time = now;
             state += 2;
@@ -99,34 +106,54 @@ void PtpIpCamera::task()
             return;
         }
     }
-    if (state >= PTPSTATE_DISCONNECTED && (state & 1) == 0) {
-        socket_main.stop();
+    if (state == PTPSTATE_DISCONNECT) {
+        #ifdef USE_ASYNC_SOCK
+        socket_main .close(true);
+        socket_event.close(true);
+        #else
+        socket_main .stop();
         socket_event.stop();
+        #endif
         PTPSTATE_ERROR_PRINTF("PTP socket stopping due to disconnection\r\n");
         state |= 1;
         return;
     }
-    if (state < PTPSTATE_DISCONNECTED && error_cnt >= PTPIP_ERROR_THRESH) {
-        PTPSTATE_ERROR_PRINTF("PTP socket too many errors (state %u)\r\n", state);
+    else if (state == (PTPSTATE_DISCONNECT | 1)) {
+        #ifdef USE_ASYNC_SOCK
+        if (socket_main.disconnected() && socket_event.disconnected()) {
+            state = PTPSTATE_DISCONNECTED;
+        }
+        #else
         state = PTPSTATE_DISCONNECTED;
+        #endif
+        return;
+    }
+    if (state < PTPSTATE_DISCONNECT && error_cnt >= PTPIP_ERROR_THRESH) {
+        PTPSTATE_ERROR_PRINTF("PTP socket too many errors (state %u)\r\n", state);
+        state = PTPSTATE_DISCONNECT;
         return;
     }
 
-    if (state > PTPSTATE_SOCK_CONN + 1 && state < PTPSTATE_DISCONNECTED)
+    if (state > PTPSTATE_SOCK_CONN + 1 && state < PTPSTATE_DISCONNECT)
     {
         if (socket_main.connected() == 0 || socket_event.connected() == 0) {
             PTPSTATE_ERROR_PRINTF("PTP socket disconnected (state %u)\r\n", state);
-            state = PTPSTATE_DISCONNECTED;
+            state = PTPSTATE_DISCONNECT;
             return;
         }
         poll();
         //now = millis();
-        if (now > last_rx_time && (now - last_rx_time) > PTPIP_PACKET_TIMEOUT) {
+        uint32_t pkt_timeout = PTPIP_PACKET_TIMEOUT;
+        if (pending_data > 0 || pktbuff_idx > 0) {
+            pkt_timeout *= 3;
+        }
+        if (now > last_rx_time && (now - last_rx_time) > pkt_timeout) {
             if (pktbuff_idx > 0) {
                 if (try_decode_pkt(pktbuff, &pktbuff_idx, PACKET_BUFFER_SIZE, true) == false) {
                     PTPSTATE_ERROR_PRINTF("PTP timeout receiving packet (%u rem)\r\n", pktbuff_idx);
                 }
             }
+            last_rx_time = now;
             reset_buffers();
         }
     }
@@ -195,6 +222,8 @@ void PtpIpCamera::poll()
 void PtpIpCamera::poll_socket(
     #ifndef USE_ASYNC_SOCK
     WiFiClient* sock,
+    #else
+    AsyncClient* sock,
     #endif
     uint8_t buff[], uint32_t* buff_idx, uint32_t buff_max
     #ifdef USE_ASYNC_SOCK
@@ -215,6 +244,7 @@ void PtpIpCamera::poll_socket(
     if ((avail = sock->available()) <= 0) {
         return;
     }
+    digitalWrite(10, LOW);
     #else
     avail = pb->len; // note: the _recv function from AsyncClient already handles the pb->next packet for you, do not attempt to chain them here
     #endif
@@ -236,7 +266,7 @@ void PtpIpCamera::poll_socket(
     }
     last_rx_time = now;
 
-    int retries = 3;
+    int retries = 6;
     // the data we just read might contain multiple valid packets
     // we try to decode as much of it as possible
     do
@@ -249,6 +279,8 @@ void PtpIpCamera::poll_socket(
         }
     }
     while ((retries--) > 0);
+
+    digitalWrite(10, HIGH);
 }
 
 bool PtpIpCamera::try_decode_pkt(uint8_t buff[], uint32_t* buff_idx, uint32_t buff_max, bool can_force)
@@ -260,8 +292,12 @@ bool PtpIpCamera::try_decode_pkt(uint8_t buff[], uint32_t* buff_idx, uint32_t bu
     {
         if (pending_data <= 0)
         {
-            decode_pkt(buff, *buff_idx);
-            buffer_consume(buff, buff_idx, hdr->length, buff_max);
+            if (decode_pkt(buff, *buff_idx)) {
+                buffer_consume(buff, buff_idx, hdr->length, buff_max);
+            }
+            else {
+                reset_buffers();
+            }
             did_stuff = true;
         }
         else // pending_data > 0
@@ -287,24 +323,29 @@ bool PtpIpCamera::try_decode_pkt(uint8_t buff[], uint32_t* buff_idx, uint32_t bu
             }
             else
             {
-                decode_pkt(buff, *buff_idx);
-                buffer_consume(buff, buff_idx, hdr->length, buff_max);
+                if (decode_pkt(buff, *buff_idx)) {
+                    buffer_consume(buff, buff_idx, hdr->length, buff_max);
+                }
+                else {
+                    reset_buffers();
+                }
                 did_stuff = true;
             }
         }
     }
     else if ((*buff_idx) >= 8 && can_force)
     {
-        // special case for incomplete packet, I see this come consistently from my camera
         decode_pkt(buff, *buff_idx);
-        buffer_consume(buff, buff_idx, (*buff_idx), buff_max);
+        //buffer_consume(buff, buff_idx, (*buff_idx), buff_max);
+        // no need to call buffer_consume as the only place that calls can_force will do a reset_buffer anyways
         did_stuff = true;
     }
     return did_stuff;
 }
 
-void PtpIpCamera::decode_pkt(uint8_t buff[], uint32_t buff_len)
+bool PtpIpCamera::decode_pkt(uint8_t buff[], uint32_t buff_len)
 {
+    bool pkt_valid = true;
     ptpip_pkthdr_t* hdr = (ptpip_pkthdr_t*)buff;
     uint32_t pkt_len = hdr->length;
     uint32_t pkt_type = hdr->pkt_type;
@@ -385,7 +426,9 @@ void PtpIpCamera::decode_pkt(uint8_t buff[], uint32_t buff_len)
     else
     {
         PTPSTATE_ERROR_PRINTF("PTP unknown packet type 0x%08X\r\n", pkt_type);
+        pkt_valid = false;
     }
+    return pkt_valid;
 }
 
 void PtpIpCamera::parse_cmd_ack(uint8_t* data)
@@ -404,6 +447,7 @@ void PtpIpCamera::wait_while_busy(uint32_t min_time, uint32_t max_time, volatile
     while ((canSend() == false && (now - start_time) < max_time) || (now - start_time) < min_time) {
         now = millis();
         poll(); // poll, not task, because poll only reads and never sends
+        // note: poll calls yield
         if (exit_signal != NULL)
         {
             to_exit |= *exit_signal;
@@ -413,6 +457,17 @@ void PtpIpCamera::wait_while_busy(uint32_t min_time, uint32_t max_time, volatile
         }
     }
 }
+
+#ifdef USE_ASYNC_SOCK
+void PtpIpCamera::wait_canSend(AsyncClient* sock, uint32_t max_time)
+{
+    uint32_t start_time = millis();
+    uint32_t now = start_time;
+    while ((sock->canSend() == false && (now - start_time) < max_time)) {
+        now = millis();
+    }
+}
+#endif
 
 void PtpIpCamera::reset_buffers()
 {
@@ -443,13 +498,16 @@ void PtpIpCamera::debug_rx(uint8_t* buff, uint32_t read_in) {
 void PtpIpCamera::onAsyncPacket(void* pcam, AsyncClient* sock, struct pbuf* pb)
 {
     PtpIpCamera* cam = (PtpIpCamera*)pcam;
-    cam->poll_socket(cam->pktbuff, &(cam->pktbuff_idx), PACKET_BUFFER_SIZE, pb);
+    cam->poll_socket(sock, cam->pktbuff, &(cam->pktbuff_idx), PACKET_BUFFER_SIZE, pb);
+    #ifdef PTPIP_KEEP_STATS
+    cam->stats_pkts++;
+    #endif
 }
 
 void PtpIpCamera::onAsyncPacketEvent(void* pcam, AsyncClient* sock, struct pbuf* pb)
 {
     PtpIpCamera* cam = (PtpIpCamera*)pcam;
-    cam->poll_socket(cam->eventbuff, &(cam->eventbuff_idx), PACKET_BUFFER_SIZE, pb);
+    cam->poll_socket(sock, cam->eventbuff, &(cam->eventbuff_idx), PACKET_BUFFER_SIZE, pb);
 }
 
 void PtpIpCamera::onAsyncError(void* pcam, AsyncClient* sock, int8_t errnum)
@@ -470,6 +528,9 @@ void PtpIpCamera::onAsyncAck(void* pcam, AsyncClient* sock, size_t sz, uint32_t 
 {
     PtpIpCamera* cam = (PtpIpCamera*)pcam;
     cam->error_cnt = 0;
+    #ifdef PTPIP_KEEP_STATS
+    cam->stats_acks++;
+    #endif
 }
 
 #endif

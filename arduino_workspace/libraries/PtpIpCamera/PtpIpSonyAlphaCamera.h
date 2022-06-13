@@ -21,7 +21,7 @@ class PtpIpSonyAlphaCamera : public PtpIpCamera
         void decode_properties(void);
         void test_prop_decode(uint8_t* data, uint32_t len);
 
-        void decode_pkt(uint8_t buff[], uint32_t buff_len);
+        bool decode_pkt(uint8_t buff[], uint32_t buff_len);
         void task(void);
 
         bool is_manuallyfocused(void);

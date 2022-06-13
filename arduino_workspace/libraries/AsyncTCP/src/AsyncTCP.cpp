@@ -188,6 +188,7 @@ static void _handle_async_event(lwip_event_packet_t * e){
 static void _async_service_task(void *pvParameters){
     lwip_event_packet_t * packet = NULL;
     for (;;) {
+        yield();
         if(_get_async_event(&packet)){
 #if CONFIG_ASYNC_TCP_USE_WDT
             if(esp_task_wdt_add(NULL) != ESP_OK){
@@ -929,17 +930,15 @@ int8_t AsyncClient::_recv(tcp_pcb* pcb, pbuf* pb, int8_t err) {
         b->next = NULL;
         if(_pb_cb){
             _pb_cb(_pb_cb_arg, this, b);
-        } else {
-            if(_recv_cb) {
-                _recv_cb(_recv_cb_arg, this, b->payload, b->len);
-            }
-            if(!_ack_pcb) {
-                _rx_ack_len += b->len;
-            } else if(_pcb) {
-                _tcp_recved(_pcb, _closed_slot, b->len);
-            }
-            pbuf_free(b);
+        } else if(_recv_cb) {
+            _recv_cb(_recv_cb_arg, this, b->payload, b->len);
         }
+        if(!_ack_pcb) {
+            _rx_ack_len += b->len;
+        } else if(_pcb) {
+            _tcp_recved(_pcb, _closed_slot, b->len);
+        }
+        pbuf_free(b);
     }
     return ERR_OK;
 }
