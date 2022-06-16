@@ -37,6 +37,7 @@ void settings_init() {
 void settings_save() {
   config_settings.magic = CONFIGSETTINGS_MAGIC;
   uint32_t crc_calced = CHECKSUM(&config_settings, sizeof(configsettings_t) - sizeof(uint32_t));
+  config_settings.crc32 = crc_calced;
   EEPROM.writeBytes(0, (const void*)(&config_settings), sizeof(configsettings_t));
   EEPROM.commit();
 }
