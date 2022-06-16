@@ -2,10 +2,10 @@
 #include <Arduino.h>
 #include "ptpip_utils.h"
 
-#define PTPIP_TIMEOUT 3000
+#define PTPIP_TIMEOUT 5000
 #define PTPIP_CONN_TIMEOUT 5000
 #define PTPIP_CONN_WAIT 1000
-#define PTPIP_PACKET_TIMEOUT 2000
+#define PTPIP_PACKET_TIMEOUT 5000
 #define PTPIP_ERROR_THRESH 10
 
 #define PTPSTATE_ERROR_PRINTF Serial.printf
@@ -216,6 +216,11 @@ void PtpIpCamera::poll()
     #ifndef USE_ASYNC_SOCK
     poll_socket(&socket_main , pktbuff  , &pktbuff_idx  , PACKET_BUFFER_SIZE);
     poll_socket(&socket_event, eventbuff, &eventbuff_idx, PACKET_BUFFER_SIZE);
+    #else
+        #ifdef ASYNCTCP_NO_RTOS_TASK
+            socket_main.poll_task();
+            socket_event.poll_task();
+        #endif
     #endif
 }
 
@@ -474,6 +479,22 @@ void PtpIpCamera::reset_buffers()
     pktbuff_idx = 0;
     eventbuff_idx = 0;
     databuff_idx = 0;
+}
+
+bool PtpIpCamera::isKindaBusy()
+{
+    if (canNewConnect()) {
+        return false;
+    }
+    if (isOperating()) {
+        if (canSend() && pending_data <= 0) {
+            return false;
+        }
+        else {
+            return true;
+        }
+    }
+    return true;
 }
 
 void PtpIpCamera::debug_rx(uint8_t* buff, uint32_t read_in) {

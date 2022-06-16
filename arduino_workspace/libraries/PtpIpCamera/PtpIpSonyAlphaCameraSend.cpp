@@ -60,7 +60,7 @@ bool PtpIpSonyAlphaCamera::cmd_MovieRecord(bool onoff)
     return send_oper_req((uint32_t)SONYALPHA_OPCODE_SetControlDeviceB, &propcode, 1, (uint8_t*)data, 2);
 }
 
-bool PtpIpSonyAlphaCamera::cmd_MovieRecordToggle(bool onoff)
+bool PtpIpSonyAlphaCamera::cmd_MovieRecordToggle()
 {
     bool already_on = is_movierecording();
     return cmd_MovieRecord(!already_on);

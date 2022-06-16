@@ -7,9 +7,18 @@ static got_client_t callback;
 
 static uint32_t last_client = 0;
 
+static char* NetMgr_ssid = NULL;
+static char* NetMgr_password = NULL;
+
 void NetMgr_begin(char* ssid, char* password, got_client_t cb)
 {
     last_client = 0;
+
+    NetMgr_ssid     = (char*)malloc(strlen(ssid    ) + 1);
+    NetMgr_password = (char*)malloc(strlen(password) + 1);
+    strcpy(NetMgr_ssid    , ssid);
+    strcpy(NetMgr_password, password);
+
     WiFi.softAP(ssid, password);
     callback = cb;
 }
@@ -39,4 +48,16 @@ void NetMgr_task()
 void NetMgr_reset()
 {
     last_client = 0;
+}
+
+char* NetMgr_getSSID() {
+    return NetMgr_ssid;
+}
+
+char* NetMgr_getPassword() {
+    return NetMgr_password;
+}
+
+uint32_t NetMgr_getClient() {
+    return last_client;
 }

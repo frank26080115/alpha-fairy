@@ -15,6 +15,9 @@ typedef void (*got_client_t)(uint32_t);
 void NetMgr_begin(char* ssid, char* password, got_client_t cb);
 void NetMgr_task(void);
 void NetMgr_reset(void);
+char* NetMgr_getSSID(void);
+char* NetMgr_getPassword(void);
+uint32_t NetMgr_getClient(void);
 
 #ifdef __cplusplus
 }

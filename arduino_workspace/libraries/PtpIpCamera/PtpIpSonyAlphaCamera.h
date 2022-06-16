@@ -12,7 +12,7 @@ class PtpIpSonyAlphaCamera : public PtpIpCamera
         PtpIpSonyAlphaCamera(char* s);
         ptpipcam_prop_t* properties;
         int properties_cnt;
-        bool is_focused;
+        volatile bool is_focused;
 
         bool update_property(uint16_t prop_code, uint16_t data_type, uint8_t* data_chunk, uint8_t data_size);
         int32_t get_property(uint16_t prop_code);
@@ -27,13 +27,14 @@ class PtpIpSonyAlphaCamera : public PtpIpCamera
         bool is_manuallyfocused(void);
         bool is_movierecording(void);
         bool is_spotfocus(void);
+        //bool is_focused(void);
         bool cmd_AutoFocus(bool onoff);
         bool cmd_Shutter(bool openclose);
         bool cmd_ManualFocusStep(int16_t step);
         bool cmd_FocusPointSet(int16_t x, int16_t y);
         bool cmd_Shoot(int t);
         bool cmd_MovieRecord(bool onoff);
-        bool cmd_MovieRecordToggle(bool onoff);
+        bool cmd_MovieRecordToggle();
         bool cmd_ManualFocusMode(bool onoff);
         bool cmd_ManualFocusToggle(bool onoff);
 

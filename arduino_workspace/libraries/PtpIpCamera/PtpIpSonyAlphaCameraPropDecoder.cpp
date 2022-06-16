@@ -176,7 +176,7 @@ void PtpIpSonyAlphaCamera::decode_properties()
 
         bool interesting = update_property(propcode, datatype, dptr, dsz);
         if (interesting) {
-            PROPDECODER_INTERESTED_PRINTF(">>>DevProp[0x%04X]: 0x%08X\r\n", propcode, get_property(propcode));
+            PROPDECODER_INTERESTED_PRINTF("***DevProp[0x%04X]: 0x%08X\r\n", propcode, get_property(propcode));
         }
 
         uint8_t formflag = p[i];

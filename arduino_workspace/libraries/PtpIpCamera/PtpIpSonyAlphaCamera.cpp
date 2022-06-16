@@ -4,7 +4,7 @@
 
 #include <stdlib.h>
 
-#define SONYCAM_CHECK_PROPS_INTERVAL 5000
+#define SONYCAM_CHECK_PROPS_INTERVAL 10000
 
 static const ptpip_init_substep_t init_table[] = {
     { PTP_OPCODE_GetDeviceInfo             , {     0,  0, 0 } , 0 },
@@ -22,6 +22,7 @@ static const uint16_t interested_properties[] = {
     SONYALPHA_PROPCODE_FocusMode,
     SONYALPHA_PROPCODE_Recording,
     SONYALPHA_PROPCODE_FocusArea,
+    SONYALPHA_PROPCODE_ManualFocusDist,
     0x0000, // end of table
 };
 
@@ -96,9 +97,13 @@ void PtpIpSonyAlphaCamera::task()
     if (state >= PTPSTATE_POLLING && state < PTPSTATE_DISCONNECT)
     {
         uint32_t now = millis();
+        #ifdef SONYCAM_CHECK_PROPS_INTERVAL
+        #if SONYCAM_CHECK_PROPS_INTERVAL > 0
         if ((now - check_props_time) >= SONYCAM_CHECK_PROPS_INTERVAL) {
             need_check_properties |= true;
         }
+        #endif
+        #endif
         if (need_check_properties != false && canSend()) {
             check_dev_props();
         }
@@ -135,3 +140,15 @@ bool PtpIpSonyAlphaCamera::is_spotfocus()
     int32_t x = get_property(prop_code);
     return (x == SONYALPHA_FOCUSAREA_ZONE || x == SONYALPHA_FOCUSAREA_TRACKING_ZONE || x == SONYALPHA_FOCUSAREA_MOVEABLE_SMALL  || x == SONYALPHA_FOCUSAREA_MOVEABLE_MEDIUM || x == SONYALPHA_FOCUSAREA_MOVEABLE_LARGE || x == SONYALPHA_FOCUSAREA_MOVEABLE_EXPAND || x == SONYALPHA_FOCUSAREA_TRACKING_MOVEABLE_SMALL || x == SONYALPHA_FOCUSAREA_TRACKING_MOVEABLE_MEDIUM || x == SONYALPHA_FOCUSAREA_TRACKING_MOVEABLE_LARGE || x == SONYALPHA_FOCUSAREA_TRACKING_MOVEABLE_EXPAND);
 }
+
+/*
+bool PtpIpSonyAlphaCamera::is_focused()
+{
+    uint16_t prop_code = SONYALPHA_PROPCODE_FocusFound;
+    if (has_property(prop_code) == false) {
+        return false;
+    }
+    int32_t x = get_property(prop_code);
+    return (x != SONYALPHA_FOCUSSTATUS_FOCUSED);
+}
+*/
