@@ -9,10 +9,10 @@ void app_anglePoll()
 {
     uint8_t old_angle = imu_angle;
     M5.IMU.getAhrsData(&imu_pitch, &imu_roll, &imu_yaw);
-    if (imu_roll >= 30) {
+    if (imu_roll >= ANGLE_THRESH || (imu_angle == ANGLE_IS_UP && imu_roll >= (ANGLE_THRESH - ANGLE_HYSTER))) {
         imu_angle = ANGLE_IS_UP;
     }
-    else if (imu_roll <= -30) {
+    else if (imu_roll <= -ANGLE_THRESH || (imu_angle == ANGLE_IS_DOWN && imu_roll <= -(ANGLE_THRESH - ANGLE_HYSTER))) {
         imu_angle = ANGLE_IS_DOWN;
     }
     else {

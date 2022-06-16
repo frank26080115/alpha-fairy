@@ -13,4 +13,7 @@
 
 #define BTN_DEBOUNCE 50
 
+#define ANGLE_THRESH 40
+#define ANGLE_HYSTER 20
+
 #endif
