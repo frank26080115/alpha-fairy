@@ -8,24 +8,28 @@
 #include "alfy_types.h"
 #include "alfy_defs.h"
 
+#ifdef HW_M5STICKC
 #include <M5StickC.h>
+#endif
+#ifdef HW_M5STICKCPLUS
+#include <M5StickC-Plus.h>
+#endif
 #include <M5DisplayExt.h>
 #include <PtpIpCamera.h>
 #include <PtpIpSonyAlphaCamera.h>
 #include <AlphaFairy_NetMgr.h>
 #include <SerialCmdLine.h>
 #include <SonyCameraInfraredRemote.h>
+#include <DebuggingSerial.h>
 
-#if 1
-#define DEBUG_PRINTF Serial.printf
-#else
-#define DEBUG_PRINTF(...)
-#endif
+extern PtpIpSonyAlphaCamera camera;
+extern DebuggingSerial      dbg_ser;
+extern SerialCmdLine        cmdline;
+extern configsettings_t     config_settings;
 
-extern configsettings_t config_settings;
-extern bool app_poll(void);
-extern SerialCmdLine cmdline;
 extern uint8_t imu_angle;
 extern bool imu_hasChange;
+
+extern bool app_poll(void);
 
 #endif

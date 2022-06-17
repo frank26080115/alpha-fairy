@@ -1,12 +1,19 @@
 #include "AlphaFairy.h"
 #include <SerialCmdLine.h>
 
+/*
+handles command line commands
+this is used only for testing
+*/
+
 void shoot_func     (void* cmd, char* argstr, Stream* stream);
 void echo_func      (void* cmd, char* argstr, Stream* stream);
 void memcheck_func  (void* cmd, char* argstr, Stream* stream);
 void statscheck_func(void* cmd, char* argstr, Stream* stream);
 void reboot_func    (void* cmd, char* argstr, Stream* stream);
 void imu_func       (void* cmd, char* argstr, Stream* stream);
+void debug_func     (void* cmd, char* argstr, Stream* stream);
+void camdebug_func  (void* cmd, char* argstr, Stream* stream);
 
 const cmd_def_t cmds[] = {
   { "shoot" , shoot_func },
@@ -14,7 +21,9 @@ const cmd_def_t cmds[] = {
   { "mem"   , memcheck_func },
   { "imu"   , imu_func },
   { "stats" , statscheck_func },
-  { "reboot", statscheck_func },
+  { "reboot", reboot_func },
+  { "debug" , debug_func },
+  { "camdebug" , camdebug_func },
   { "", NULL }, // end of table
 };
 
@@ -62,4 +71,20 @@ extern float imu_pitch, imu_roll, imu_yaw;
 void imu_func(void* cmd, char* argstr, Stream* stream)
 {
   stream->printf("imu:   %0.1f   %0.1f   %0.1f\r\n", imu_pitch, imu_roll, imu_yaw);
+}
+
+extern DebuggingSerial dbg_ser;
+void debug_func(void* cmd, char* argstr, Stream* stream)
+{
+    dbg_ser.enabled = atoi(argstr) != 0;
+    stream->printf("debugging output = %u\r\n", dbg_ser.enabled);
+    dbg_ser.println("test output from debugging serial port");
+}
+
+void camdebug_func(void* cmd, char* argstr, Stream* stream)
+{
+    int x = atoi(argstr);
+    camera.set_debugflags(x);
+    stream->printf("camera debugging output = %u\r\n", x);
+    camera.test_debug_msg("test from cam debug serport\r\n");
 }

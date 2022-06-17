@@ -2,6 +2,11 @@
 #include <Arduino.h>
 #include <stdbool.h>
 
+/*
+interrupts are used to catch new button press events
+a simple debounce algorithm is used
+*/
+
 #define PIN_BTN_SIDE 39
 #define PIN_BTN_BIG 37
 

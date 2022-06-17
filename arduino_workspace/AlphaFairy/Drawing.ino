@@ -1,5 +1,4 @@
 #include "AlphaFairy.h"
-#include <M5StickC.h>
 #include <M5DisplayExt.h>
 
 void guimenu_init()
@@ -16,6 +15,7 @@ void guimenu_init()
 
 void guimenu_drawPages()
 {
+    // this function draws a line of dots to indicate the total menu pages and which one we are currently on
     int lcd_width  = M5Lcd.width();
     int lcd_height = M5Lcd.height();
     int dot_size = PAGINATION_DOT_SIZE;
@@ -30,14 +30,19 @@ void guimenu_drawPages()
         uint32_t boarder_color = TFT_WHITE;
         uint32_t fill_color    = TFT_BLACK;
         if (i == menuitem_idx) {
+            // current selected dot is a bigger black dot, otherwise the white default won't show up
             boarder_color = TFT_BLACK;
         }
+
+        // draw a grey dot beside the current black dot, depending on if the user tilted the device angle
         else if (i == (menuitem_idx - 1) && imu_angle == ANGLE_IS_DOWN) {
             fill_color = TFT_LIGHTGREY;
         }
         else if (i == (menuitem_idx + 1) && imu_angle != ANGLE_IS_DOWN) {
             fill_color = TFT_LIGHTGREY;
         }
+
+        // draw a box outside the dot
         M5Lcd.drawFastVLine(x - 1       , y_start - 1       , dot_size + 2, boarder_color);
         M5Lcd.drawFastVLine(x + dot_size, y_start - 1       , dot_size + 2, boarder_color);
         M5Lcd.drawFastHLine(x - 1       , y_start - 1       , dot_size + 2, boarder_color);
@@ -48,6 +53,9 @@ void guimenu_drawPages()
 
 void gui_drawVerticalDots(int x_offset, int y_margin, int y_offset, int dot_radius, int dot_cnt, int dot_idx, bool reverse, uint16_t back_color, uint16_t fore_color)
 {
+    // draws a line of vertical dots, with one dot that's highlighted
+    // the calling function can move the highlighted dot to indicate progress/count-down/busy-status
+    // defaults to being in the middle of the screen but the offsets can be defined
     int lcd_width  = M5Lcd.height();
     int lcd_height = M5Lcd.width();
     int x = (lcd_width / 2) + x_offset;
@@ -77,6 +85,7 @@ void guimenu_drawScreen()
 
 int guimenu_getIdx(int x)
 {
+    // this is used to search through the whole menu to find the index of a specific menu item
     int i;
     for (i = 0; i < menuitem_cnt; i++) {
         menuitem_t* menuitm = (menuitem_t*)&(menu_items[menuitem_idx]);
@@ -94,11 +103,14 @@ void gui_startPrint()
     // TODO: set font?
     M5Lcd.highlight(true);
     M5Lcd.setTextWrap(true);
-    M5Lcd.setHighlightColor(TFT_BLACK);
+    M5Lcd.setHighlightColor(TFT_BLACK); // there's no frame buffer, so use the highlight function to prevent messy overlapping text
 }
 
 void gui_drawConnecting(bool first)
 {
+    // this function will blink between a sequence of images that indicates that we are waiting for the camera to connect
+    // this code can be tweaked for more animation frames if needed
+    // right now it just goes between 0 and 1
     static char conn_filename[] = "/connecting0.jpg";
     static int last_idx = -1;
     if (first) {
@@ -116,8 +128,16 @@ void gui_drawConnecting(bool first)
     }
 }
 
+void gui_setCursorNextLine()
+{
+    // the new-line sequence only shifts Y and puts X back to zero
+    // so this wrapper call restores X but uses the new Y
+    M5Lcd.setCursor(SUBMENU_X_OFFSET, M5Lcd.getCursorY());
+}
+
 void welcome()
 {
+    // show a splash screen first
     M5Lcd.drawJpgFile(SPIFFS, "/welcome.jpg", 0, 0);
     uint32_t now;
     bool btn_quit = false;
@@ -126,6 +146,7 @@ void welcome()
         app_poll();
         if (btnBig_hasPressed(true) || btnSide_hasPressed(true))
         {
+            // exit on any button press
             btn_quit = true;
             break;
         }
@@ -135,15 +156,20 @@ void welcome()
         app_waitAllRelease(BTN_DEBOUNCE);
         return;
     }
-    while ((now = millis()) < WELCOME_CONN_TIME_MS)
+    // show camera is still connecting
+    if (camera.isOperating() == false)
     {
-        if (app_poll())
+        while ((now = millis()) < WELCOME_CONN_TIME_MS)
         {
-            gui_drawConnecting(false);
-        }
-        if (btnBig_hasPressed(true) || btnSide_hasPressed(true) || camera.isOperating())
-        {
-            break;
+            if (app_poll())
+            {
+                gui_drawConnecting(false);
+            }
+            if (btnBig_hasPressed(true) || btnSide_hasPressed(true) || camera.isOperating())
+            {
+                // exit on any button press, or successful connection
+                break;
+            }
         }
     }
     app_waitAllRelease(BTN_DEBOUNCE);
