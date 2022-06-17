@@ -14,6 +14,7 @@ void reboot_func    (void* cmd, char* argstr, Stream* stream);
 void imu_func       (void* cmd, char* argstr, Stream* stream);
 void debug_func     (void* cmd, char* argstr, Stream* stream);
 void camdebug_func  (void* cmd, char* argstr, Stream* stream);
+void infrared_func  (void* cmd, char* argstr, Stream* stream);
 
 const cmd_def_t cmds[] = {
   { "shoot" , shoot_func },
@@ -24,6 +25,7 @@ const cmd_def_t cmds[] = {
   { "reboot", reboot_func },
   { "debug" , debug_func },
   { "camdebug" , camdebug_func },
+  { "ir"       , infrared_func },
   { "", NULL }, // end of table
 };
 
@@ -87,4 +89,10 @@ void camdebug_func(void* cmd, char* argstr, Stream* stream)
     camera.set_debugflags(x);
     stream->printf("camera debugging output = %u\r\n", x);
     camera.test_debug_msg("test from cam debug serport\r\n");
+}
+
+void infrared_func(void* cmd, char* argstr, Stream* stream)
+{
+    stream->printf("infrared test fire\r\n");
+    SonyCamIr_Shoot();
 }

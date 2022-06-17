@@ -14,6 +14,7 @@
 #include <ir_Sony.hpp>
 
 #define IR_TX_PIN 9
+//#define IR_TX_PIN 26
 
 #endif
 
@@ -22,6 +23,7 @@
 #include "soc/rmt_reg.h"
 
 #define IR_TX_PIN   GPIO_NUM_9
+//#define IR_TX_PIN   GPIO_NUM_26
 #define RMT_CHANNEL RMT_CHANNEL_3
 
 #define ACTIVE_VAL 0
@@ -69,7 +71,7 @@ void SonyCamIr_SendRaw(uint16_t addr, uint8_t cmd)
     static rmt_item32_t rmtObjects[32];
     uint8_t i, j;
     data = addr; data <<= 7; data &= 0xFFFF80; data |= cmd & 0x7F;
-    rmtObjects[0].duration0 = 24000;
+    rmtObjects[0].duration0 = 2400;
     rmtObjects[0].level0 = ACTIVE_VAL == 0 ? 0 : 1;
     rmtObjects[0].duration1 = 600;
     rmtObjects[0].level1 = ACTIVE_VAL == 0 ? 1 : 0;
