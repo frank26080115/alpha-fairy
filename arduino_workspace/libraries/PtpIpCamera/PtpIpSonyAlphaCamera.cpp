@@ -17,28 +17,40 @@ static const ptpip_init_substep_t init_table[] = {
     {                                     0, {     0,  0, 0 } , 0 }, // end of table
 };
 
-static const uint16_t interested_properties[] = {
+static const uint16_t interested_properties_default[] = {
     SONYALPHA_PROPCODE_FocusFound,
     SONYALPHA_PROPCODE_FocusMode,
     SONYALPHA_PROPCODE_Recording,
     SONYALPHA_PROPCODE_FocusArea,
     SONYALPHA_PROPCODE_ManualFocusDist,
+	SONYALPHA_PROPCODE_ShutterSpeed,
     0x0000, // end of table
 };
 
-PtpIpSonyAlphaCamera::PtpIpSonyAlphaCamera(char* name) : PtpIpCamera(name) {
+PtpIpSonyAlphaCamera::PtpIpSonyAlphaCamera(char* host_name, uint16_t* interested_properties) : PtpIpCamera(host_name) {
     // make the properties table based on how many properties we are interested in
-    uint8_t i;
+    uint8_t i, j;
     // so count first
     for (i = 0; ; i++) {
-        if (interested_properties[i] == 0) { // end of table
+        if (interested_properties_default[i] == 0) { // end of table
             break;
         }
     }
-    properties_cnt = i;
+    if (interested_properties != NULL) {
+        for (j = 0; ; j++) {
+            if (interested_properties[j] == 0) { // end of table
+                break;
+            }
+        }
+    }
+    properties_cnt = i + j;
     properties = (ptpipcam_prop_t*)malloc(properties_cnt * sizeof(ptpipcam_prop_t));
     memset(properties, 0, sizeof(ptpipcam_prop_t) * properties_cnt);
-    p_interested_properties = (uint16_t*)interested_properties;
+    p_interested_properties = (uint16_t*)malloc(properties_cnt * sizeof(uint16_t));
+    memcpy(p_interested_properties, interested_properties_default, sizeof(uint16_t) * i);
+    if (interested_properties != NULL && j > 0) {
+        memcpy(&(p_interested_properties[i]), interested_properties, sizeof(uint16_t) * j);
+    }
 
     this->init_substeps = (ptpip_init_substep_t*)init_table;
 

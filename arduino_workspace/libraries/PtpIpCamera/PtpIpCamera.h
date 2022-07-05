@@ -55,7 +55,7 @@ ptpipcam_prop_t;
 class PtpIpCamera
 {
     public:
-        PtpIpCamera(char* name);
+        PtpIpCamera(char* host_name);
         void            begin(uint32_t);
         virtual void    task(void);
         void            poll(void);

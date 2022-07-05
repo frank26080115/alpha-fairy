@@ -8,27 +8,10 @@
 #define PTPIP_PACKET_TIMEOUT 5000
 #define PTPIP_ERROR_THRESH 10
 
-#define PTPSTATE_ERROR_PRINTF Serial.printf
-#if 1
-    #define PTPSTATE_PRINTF Serial.printf
-#else
-    #define PTPSTATE_PRINTF(...)
-#endif
-#if 1
-    #define DATARX_PRINTF Serial.printf
-#else
-    #define DATARX_PRINTF(...)
-#endif
-#if 1
-    #define EVENT_PRINTF Serial.printf
-#else
-    #define EVENT_PRINTF(...)
-#endif
-
 #define PTPIP_DEBUG_RX
 
-PtpIpCamera::PtpIpCamera(char* name) {
-    strcpy(my_name, name);
+PtpIpCamera::PtpIpCamera(char* host_name) {
+    strcpy(my_name, host_name);
     state = PTPSTATE_INIT;
     #ifdef PTPIP_KEEP_STATS
     stats_pkts = 0;

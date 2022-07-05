@@ -6,13 +6,21 @@
 
 #define SONYCAM_DEFAULT_SHUTTER_TIME 250
 
+enum
+{
+    SONYALPHAMODEL_NONE = 0,
+    SONYALPHAMODEL_A1   = 1,
+};
+
 class PtpIpSonyAlphaCamera : public PtpIpCamera
 {
     public:
-        PtpIpSonyAlphaCamera(char* s);
+        PtpIpSonyAlphaCamera(char* host_name, uint16_t* interested_properties);
         ptpipcam_prop_t* properties;
         int properties_cnt;
         volatile bool is_focused;
+
+        uint8_t cam_model = 0;
 
         bool update_property(uint16_t prop_code, uint16_t data_type, uint8_t* data_chunk, uint8_t data_size);
         int32_t get_property(uint16_t prop_code);

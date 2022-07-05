@@ -47,6 +47,7 @@ void remotes_shutter(void* mip)
 
     bool starting_mf = camera.is_manuallyfocused();
 
+    // start focusing at the beginning of the countdown
     if (starting_mf == false) {
         camera.cmd_AutoFocus(true);
     }
@@ -55,9 +56,12 @@ void remotes_shutter(void* mip)
     uint32_t now = tstart;
     uint32_t tdiff;
     bool quit = false;
+    // wait the countdown time
     while (((tdiff = ((now = millis()) - tstart)) < (time_delay * 1000)) && camera.isOperating()) {
         if (app_poll()) {
-            gui_drawVerticalDots(0, 20, -1, 3, time_delay, tdiff / 1000, false, TFT_GREEN, TFT_RED);
+            if (time_delay > 2) {
+                gui_drawVerticalDots(0, 20, -1, 3, time_delay, tdiff / 1000, false, TFT_GREEN, TFT_RED);
+            }
         }
         if (btnSide_hasPressed(true)) {
             quit = true;
@@ -65,19 +69,26 @@ void remotes_shutter(void* mip)
         }
     }
 
+    // if user cancelled
     if (quit) {
+            // end autofocus
         if (starting_mf == false) {
             camera.cmd_AutoFocus(false);
         }
     }
 
+    bool fail_shown = false;
+
     tstart = millis();
-    if (camera.is_focused)
+    if (camera.is_focused || starting_mf)
     {
+        // if the camera is focused or MF, then the shutter should immediately take the picture
         camera.cmd_Shoot(config_settings.shutter_press_time_ms);
+        // TODO: implement shutter holding open in bulb mode
     }
     else if (btnBig_isPressed())
     {
+        // if the camera is not focused, we try to take the shot anyways if the user is holding the button
         camera.cmd_Shutter(true);
         while ((btnBig_isPressed() || (starting_mf == false && camera.is_focused == false && ((now = millis()) - tstart) < 5000)) && camera.isOperating())
         {
@@ -88,9 +99,18 @@ void remotes_shutter(void* mip)
         }
         camera.cmd_Shutter(false);
     }
+    else
+    {
+        // TODO: in this case, the camera didn't take a photo! what should we do?
+        gui_drawVerticalDots(0, 20, -1, 3, time_delay > 2 ? time_delay : 5, 0, false, TFT_RED, TFT_RED);
+    }
 
     if (starting_mf == false) {
         camera.cmd_AutoFocus(false);
+    }
+
+    if (fail_shown) {
+        app_sleep(300, true);
     }
 
     app_waitAllRelease(BTN_DEBOUNCE);
