@@ -347,6 +347,12 @@ void focus_9point(void* mip)
     app_waitAllRelease(BTN_DEBOUNCE);
 }
 
+void shutter_step(void* mip)
+{
+    dbg_ser.println("shutter_step");
+    app_waitAllRelease(BTN_DEBOUNCE);
+}
+
 void wifi_info(void* mip)
 {
     dbg_ser.println("wifi_info");

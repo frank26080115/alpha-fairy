@@ -6,35 +6,68 @@
 #include <SerialCmdLine.h>
 #include <SonyCameraInfraredRemote.h>
 
-PtpIpSonyAlphaCamera camera((char*)"Alpha-Fairy");
+PtpIpSonyAlphaCamera camera((char*)"Alpha-Fairy", NULL);
 
 void remotes_shutter(void* mip);
 void focus_stack    (void* mip);
 void focus_9point   (void* mip);
+void shutter_step   (void* mip);
 void wifi_info      (void* mip);
 void record_movie   (void* mip);
 void conf_settings  (void* mip);
+void submenu_enter  (void* mip);
 
 void on_got_client(uint32_t ip);
 
-uint8_t menuitem_cnt = 0; // menu length is counted at run-time
-uint8_t menuitem_idx = 0; // currently shown menu item
+const menuitem_t menu_items_main[] = {
+    // ID                   , FILE-NAME            , FUNCTION POINTER
+    { MENUITEM_REMOTE,        "/main_remote.jpg"   , submenu_enter },
+    { MENUITEM_FOCUS,         "/main_focus.jpg"    , submenu_enter },
+    { MENUITEM_INTERVAL,      "/main_interval.jpg" , submenu_enter },
+    { MENUITEM_ASTRO,         "/main_astro.jpg"    , submenu_enter },
+    { MENUITEM_UTILS,         "/main_utils.jpg"    , submenu_enter },
+    { MENUITEM_END_OF_TABLE , ""                   , NULL          }, // menu length is counted at run-time
+};
 
-const menuitem_t menu_items[] = {
+const menuitem_t menu_items_remote[] = {
     // ID                       , FILE-NAME               , FUNCTION POINTER
     { MENUITEM_REMOTESHUTTER_NOW, "/remoteshutter.jpg"    , remotes_shutter },
     { MENUITEM_REMOTESHUTTER_2S , "/remoteshutter_2s.jpg" , remotes_shutter },
     { MENUITEM_REMOTESHUTTER_5S , "/remoteshutter_5s.jpg" , remotes_shutter },
     { MENUITEM_REMOTESHUTTER_10S, "/remoteshutter_10.jpg" , remotes_shutter },
+    { MENUITEM_RECORDMOVIE      , "/recordmovie.jpg"      , record_movie    },
+    { MENUITEM_BACK             , "/back.jpg"             , NULL            },
+    { MENUITEM_END_OF_TABLE     , ""                      , NULL            }, // menu length is counted at run-time
+};
+
+const menuitem_t menu_items_focus[] = {
+    // ID                       , FILE-NAME               , FUNCTION POINTER
     { MENUITEM_FOCUSSTACK_FAR_1 , "/focusstack_far_1.jpg" , focus_stack     },
     { MENUITEM_FOCUSSTACK_FAR_2 , "/focusstack_far_2.jpg" , focus_stack     },
     { MENUITEM_FOCUSSTACK_FAR_3 , "/focusstack_far_3.jpg" , focus_stack     },
     { MENUITEM_FOCUS_9POINT     , "/focus_9point.jpg"     , focus_9point    },
-    { MENUITEM_RECORDMOVIE      , "/recordmovie.jpg"      , record_movie    },
-    { MENUITEM_WIFIINFO         , "/wifiinfo.jpg"         , wifi_info       },
-    { MENUITEM_CONFIG           , "/config.jpg"           , conf_settings   },
+    { MENUITEM_SHUTTERSTEP      , "/shutter_step.jpg"     , shutter_step    },
+    { MENUITEM_BACK             , "/back.jpg"             , NULL            },
     { MENUITEM_END_OF_TABLE     , ""                      , NULL            }, // menu length is counted at run-time
 };
+
+const menuitem_t menu_items_utils[] = {
+    // ID                       , FILE-NAME               , FUNCTION POINTER
+    { MENUITEM_WIFIINFO         , "/wifiinfo.jpg"         , wifi_info       },
+    { MENUITEM_CONFIG           , "/config.jpg"           , conf_settings   },
+    { MENUITEM_BACK             , "/back.jpg"             , NULL            },
+    { MENUITEM_END_OF_TABLE     , ""                      , NULL            }, // menu length is counted at run-time
+};
+
+menustate_t menustate_main;
+menustate_t menustate_remote;
+menustate_t menustate_focus;
+menustate_t menustate_utils;
+
+menustate_t menustate_intval;
+menustate_t menustate_astro;
+
+menustate_t* curmenu = &menustate_main;
 
 DebuggingSerial dbg_ser(&Serial);
 
@@ -43,11 +76,11 @@ void setup()
     settings_init();
     ledblink_init();
     btns_init();
-    guimenu_init();
+
     SonyCamIr_Init();
     Serial.begin(115200);
     dbg_ser.enabled = true;
-    M5.begin(false); // do not initilize the LCD, we have our own extended M5Lcd class to initialize later
+    M5.begin(false); // do not initialize the LCD, we have our own extended M5Lcd class to initialize later
     M5.IMU.Init();
     M5Lcd.begin(); // our own extended LCD object
     while (!SPIFFS.begin(true)){
@@ -56,7 +89,14 @@ void setup()
     }
     cmdline.print_prompt();
     NetMgr_begin((char*)"afairywifi", (char*)"1234567890", on_got_client);
+
+    guimenu_init(MENUITEM_MAIN  , &menustate_main  , (menuitem_t*)menu_items_main  );
+    guimenu_init(MENUITEM_REMOTE, &menustate_remote, (menuitem_t*)menu_items_remote);
+    guimenu_init(MENUITEM_FOCUS , &menustate_focus , (menuitem_t*)menu_items_focus );
+    guimenu_init(MENUITEM_UTILS , &menustate_utils , (menuitem_t*)menu_items_utils );
+
     dbg_ser.printf("finished setup() at %u ms\r\n", millis());
+
     welcome(); // splash screen for a few seconds
 }
 
@@ -66,7 +106,8 @@ void loop()
     {
         // can do more low priority tasks
         // the graphics is very IO-intensive and blocking so we want to do it when the network is not busy
-        guimenu_task();
+
+        guimenu_task(&menustate_main);
     }
 }
 
@@ -88,62 +129,6 @@ bool app_poll()
         return true; // can do more low priority tasks
     }
     return false; // should not do more low priority tasks
-}
-
-void guimenu_task()
-{
-    static int last_menu_idx = -1; // remember last item to prevent unneccessary re-draws
-
-    // if the camera is already recording a movie, then automatically move the menu page to the moving recording page
-    // the camera won't respond to any other commands in this state anyways, so why not?
-    if (camera.isOperating() && camera.is_movierecording()) {
-        int x = guimenu_getIdx(MENUITEM_RECORDMOVIE);
-        if (x >= 0) {
-            menuitem_idx = x;
-            dbg_ser.printf("movie is recording, forcing menu idx %u\r\n", menuitem_idx);
-        }
-    }
-
-    if (btnSide_hasPressed(true))
-    {
-        // side-button press means go to another menu item
-        // go to the previous item if the angle of the device is "down"
-        if (imu_angle == ANGLE_IS_DOWN) {
-            if (menuitem_idx > 0) {
-                menuitem_idx -= 1;
-                dbg_ser.printf("menu prev idx %u\r\n", menuitem_idx);
-            }
-        }
-        else { // go to the next item if the angle is not "down"
-            if (menuitem_idx < (menuitem_cnt - 1)) {
-                menuitem_idx += 1;
-            }
-            else {
-                menuitem_idx = 0;
-            }
-            dbg_ser.printf("menu next idx %u\r\n", menuitem_idx);
-        }
-    }
-
-    if (last_menu_idx != menuitem_idx) { // prevent unneccessary re-draws
-        guimenu_drawScreen();
-        last_menu_idx = menuitem_idx;
-        app_sleep(50, true); // kinda sorta a debounce and rate limit, don't think I need this here
-    }
-    else if (imu_hasChange) { // prevent unneccessary re-draws
-        guimenu_drawPages(); // this draws the scroll dots that indicate which page we are on
-        imu_hasChange = false;
-    }
-
-    if (btnBig_hasPressed(true))
-    {
-        menuitem_t* menuitm = (menuitem_t*)&(menu_items[menuitem_idx]);
-        dbg_ser.printf("menu idx %u - %u calling func\r\n", menuitem_idx, menuitm->id);
-        menuitm->func((void*)menuitm);
-        guimenu_drawScreen(); // any sort of indicator while in the function need to be removed, so just draw the whole menu here again
-        ledblink_setMode(LEDMODE_NORMAL);
-        app_sleep(50, true); // kinda sorta a debounce and rate limit, don't think I need this here
-    }
 }
 
 void app_sleep(uint32_t x, bool forget_btns)

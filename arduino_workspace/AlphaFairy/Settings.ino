@@ -16,6 +16,16 @@ void settings_default() {
   config_settings.manual_focus_return   = 1;
   config_settings.infrared_enabled      = 1;
   config_settings.nine_point_dist       = 200;
+
+  config_settings.intv_bulb    = 0;
+  config_settings.intv_intval  = 10;
+  config_settings.intv_delay   = 2;
+  config_settings.intv_limit   = 999;
+
+  config_settings.astro_bulb   = 30;
+  config_settings.astro_pause  = 1;
+  config_settings.astro_delay  = 2;
+  config_settings.astro_limit  = 999;
 }
 
 bool settings_load() {

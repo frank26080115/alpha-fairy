@@ -1,44 +1,51 @@
 #include "AlphaFairy.h"
 #include <M5DisplayExt.h>
 
-void guimenu_init()
+void guimenu_init(int8_t id, menustate_t* m, menuitem_t* itms)
 {
   int i;
+  m->id = id;
+  m->items = itms;
   for (i = 0; ; i++) {
-    if (menu_items[i].id == MENUITEM_END_OF_TABLE) {
-      menuitem_cnt = i;
+    if (itms[i].id == MENUITEM_END_OF_TABLE) {
+      m->cnt = i;
       break;
     }
   }
-  menuitem_idx = 0;
+  m->idx = 0;
+  m->last_idx = -1;
 }
 
 void guimenu_drawPages()
 {
+    if (curmenu == NULL) {
+        return;
+    }
+
     // this function draws a line of dots to indicate the total menu pages and which one we are currently on
     int lcd_width  = M5Lcd.width();
     int lcd_height = M5Lcd.height();
     int dot_size = PAGINATION_DOT_SIZE;
     int space_size = PAGINATION_SPACE_SIZE;
-    int pagination_width = ((dot_size + space_size) * menuitem_cnt) - space_size;
+    int pagination_width = ((dot_size + space_size) * curmenu->cnt) - space_size;
     int x_start = (lcd_width - pagination_width) / 2;
     int y_start = lcd_height - space_size - dot_size - PAGINATION_BOTTOM_MARGIN;
     int i;
-    for (i = 0; i < menuitem_cnt; i++)
+    for (i = 0; i < curmenu->cnt; i++)
     {
         int x = x_start + (i * (dot_size + space_size));
         uint32_t boarder_color = TFT_WHITE;
         uint32_t fill_color    = TFT_BLACK;
-        if (i == menuitem_idx) {
+        if (i == curmenu->idx) {
             // current selected dot is a bigger black dot, otherwise the white default won't show up
             boarder_color = TFT_BLACK;
         }
 
         // draw a grey dot beside the current black dot, depending on if the user tilted the device angle
-        else if (i == (menuitem_idx - 1) && imu_angle == ANGLE_IS_DOWN) {
+        else if (i == (curmenu->idx - 1) && imu_angle == ANGLE_IS_DOWN) {
             fill_color = TFT_LIGHTGREY;
         }
-        else if (i == (menuitem_idx + 1) && imu_angle != ANGLE_IS_DOWN) {
+        else if (i == (curmenu->idx + 1) && imu_angle != ANGLE_IS_DOWN) {
             fill_color = TFT_LIGHTGREY;
         }
 
@@ -75,9 +82,9 @@ void gui_drawVerticalDots(int x_offset, int y_margin, int y_offset, int dot_radi
     }
 }
 
-void guimenu_drawScreen()
+void guimenu_drawScreen(menuitem_t* menu)
 {
-    menuitem_t* menuitm = (menuitem_t*)&(menu_items[menuitem_idx]);
+    menuitem_t* menuitm = (menuitem_t*)&(menu[curmenu->idx]);
     M5Lcd.setRotation(0);
     M5Lcd.drawJpgFile(SPIFFS, menuitm->fname, 0, 0);
     guimenu_drawPages();
@@ -87,8 +94,8 @@ int guimenu_getIdx(int x)
 {
     // this is used to search through the whole menu to find the index of a specific menu item
     int i;
-    for (i = 0; i < menuitem_cnt; i++) {
-        menuitem_t* menuitm = (menuitem_t*)&(menu_items[menuitem_idx]);
+    for (i = 0; i < curmenu->cnt; i++) {
+        menuitem_t* menuitm = (menuitem_t*)&(curmenu->items[curmenu->idx]);
         if (menuitm->id == x) {
             return i;
         }
@@ -133,6 +140,172 @@ void gui_setCursorNextLine()
     // the new-line sequence only shifts Y and puts X back to zero
     // so this wrapper call restores X but uses the new Y
     M5Lcd.setCursor(SUBMENU_X_OFFSET, M5Lcd.getCursorY());
+}
+
+void gui_blankRestOfLine()
+{
+    uint32_t lim = M5Lcd.width() - 16;
+    while (M5Lcd.getCursorX() < lim) {
+        M5Lcd.print(" ");
+    }
+}
+
+void gui_formatSecondsTime(int32_t x, char* str)
+{
+    int i = 0;
+    if (x < 0) {
+        i += sprintf(&(str[i]), "-");
+        x *= -1;
+    }
+    uint32_t mins = x / 60;
+    uint32_t hrs = mins / 60;
+    mins %= 60;
+    uint32_t secs = x % 60;
+    if (hrs > 0) {
+        i += sprintf(&(str[i]), "%u:", hrs);
+        if (mins < 10) {
+            i += sprintf(&(str[i]), "0");
+        }
+    }
+    i += sprintf(&(str[i]), "%u:%02u", mins, secs);
+}
+
+void gui_showVal(int32_t x, uint8_t cfgfmt, Print* printer)
+{
+    char str[16]; int i = 0;
+    if ((cfgfmt & CFGFMT_BOOL) != 0) {
+        if (x == 0) {
+            i += sprintf(&(str[i]), "NO");
+        }
+        else {
+            i += sprintf(&(str[i]), "YES");
+        }
+    }
+    else if ((cfgfmt & CFGFMT_TIME) != 0) {
+        gui_formatSecondsTime(x, str);
+    }
+    else if ((cfgfmt & CFGFMT_BULB) != 0) {
+        if (x == 0) {
+            i += sprintf(&(str[i]), "0 (use Tv)");
+        }
+        else {
+            gui_formatSecondsTime(x, str);
+        }
+    }
+    else {
+        i += sprintf(&(str[i]), "%d", x);
+    }
+    if (printer != NULL) {
+        printer->print(str);
+    }
+}
+
+void gui_showValOnLcd(int32_t val, uint8_t cfgfmt, int lcdx, int lcdy, int8_t dir, bool blank_rest)
+{
+    M5Lcd.setCursor(lcdx, lcdy);
+    gui_showVal(val, cfgfmt, (Print*)&M5Lcd);
+    if (dir != 0) {
+        M5Lcd.print((dir > 0) ? " + " : " - ");
+    }
+    else {
+        M5Lcd.print("   ");
+    }
+    if (blank_rest) {
+        gui_blankRestOfLine();
+    }
+}
+
+void gui_valIncDec(configitem_t* cfgitm)
+{
+    int32_t* val_ptr = cfgitm->ptr_val;
+    uint8_t cfgfmt = cfgitm->flags;
+    int32_t next_step = 0;
+    uint32_t press_time = 0;
+    int lcdx, lcdy;
+
+    if (cfgfmt == 0xFF) // use auto config
+    {
+        cfgfmt = 0;
+        if (cfgitm->val_min == 0 && cfgitm->val_max == 1 && cfgitm->step_size == 1) {
+            cfgfmt |= CFGFMT_BOOL;
+        }
+        else if (cfgitm->val_min <= 1 && cfgitm->val_max >= 1000 && cfgitm->step_size == 1) {
+            cfgfmt |= CFGFMT_BYTENS;
+        }
+    }
+
+    lcdx = M5Lcd.getCursorX(); lcdy = M5Lcd.getCursorY(); // remember start of line position for quick redraw of values
+    if (imu_angle == ANGLE_IS_UP)
+    {
+        if (btnBig_hasPressed(true)) // change the value on button press
+        {
+            (*val_ptr) += cfgitm->step_size;
+            if ((*val_ptr) >= cfgitm->val_max) { // limit the range
+                (*val_ptr) = cfgitm->val_max;
+            }
+            else {
+                next_step = cfgitm->step_size; // indicate that change has been made
+            }
+        }
+    }
+    else if (imu_angle == ANGLE_IS_DOWN)
+    {
+        if (btnBig_hasPressed(true)) // change the value on button press
+        {
+            (*val_ptr) -= cfgitm->step_size;
+            if ((*val_ptr) <= cfgitm->val_min) { // limit the range
+                (*val_ptr) = cfgitm->val_min;
+            }
+            else {
+                next_step = -cfgitm->step_size; // indicate that change has been made
+            }
+        }
+    }
+
+    if (next_step != 0 && (cfgfmt & CFGFMT_BOOL) == 0) // has pressed
+    {
+        press_time = millis();
+        gui_showValOnLcd((*val_ptr), cfgfmt, lcdx, lcdy, next_step, true);
+        uint32_t dly = 500; // press-and-hold repeating delay
+        int step_cnt = 0; // used to
+        int tens = 10 * next_step * ((next_step < 0) ? (-1) : (1));
+        while (btnBig_isPressed())
+        {
+            app_poll();
+            uint32_t now = millis();
+            if ((now - press_time) >= dly)
+            {
+                press_time = now;
+                // make the required delay shorter for the next iteration
+                // this makes the changes "accelerate"
+                dly *= 3;
+                dly /= 4;
+                // impose a limit on the delay
+                if ((cfgfmt & CFGFMT_BYTENS) != 0) {
+                    dly = (dly < 100) ? 100 : dly;
+                }
+                step_cnt++;
+                (*val_ptr) += next_step;
+                if ((*val_ptr) >= cfgitm->val_max) { // limit the range
+                    (*val_ptr) = cfgitm->val_max;
+                    break;
+                }
+                else if ((*val_ptr) <= cfgitm->val_min) { // limit the range
+                    (*val_ptr) = cfgitm->val_min;
+                    break;
+                }
+                if ((*val_ptr) >= 10 && ((*val_ptr) % tens) == 0 && step_cnt > 5 && (cfgfmt & CFGFMT_BYTENS) != 0) {
+                    step_cnt = 0;
+                    tens *= 10;
+                    next_step *= 10;
+                }
+                gui_showValOnLcd((*val_ptr), cfgfmt, lcdx, lcdy, next_step, true);
+            }
+        }
+    }
+
+    gui_showValOnLcd((*val_ptr), cfgfmt, lcdx, lcdy, next_step, true);
+    app_waitAllRelease(BTN_DEBOUNCE); // wait for release, because 
 }
 
 void welcome()

@@ -27,6 +27,8 @@ extern DebuggingSerial      dbg_ser;
 extern SerialCmdLine        cmdline;
 extern configsettings_t     config_settings;
 
+extern menustate_t* curmenu;
+
 extern uint8_t imu_angle;
 extern bool imu_hasChange;
 

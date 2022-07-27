@@ -16,6 +16,17 @@ menuitem_t;
 
 typedef struct
 {
+    menuitem_t* items;
+    int8_t      id;
+    int8_t      idx;
+    int8_t      last_idx;
+    uint8_t     cnt;
+    uint8_t     flags;
+}
+menustate_t;
+
+typedef struct
+{
   uint32_t magic;
 
   int32_t focus_pause_time_ms;
@@ -23,6 +34,17 @@ typedef struct
   int32_t manual_focus_return;
   int32_t infrared_enabled;
   int32_t nine_point_dist;
+  int32_t gpio_enabled;
+
+  int32_t intv_bulb;
+  int32_t intv_intval;
+  int32_t intv_delay;
+  int32_t intv_limit;
+
+  int32_t astro_bulb;
+  int32_t astro_pause;
+  int32_t astro_delay;
+  int32_t astro_limit;
 
   uint32_t crc32;
 }
@@ -35,6 +57,7 @@ typedef struct
   const int32_t val_min;
   const int32_t step_size;
   const char    text[64];
+  const uint8_t flags;
 }
 configitem_t;
 
