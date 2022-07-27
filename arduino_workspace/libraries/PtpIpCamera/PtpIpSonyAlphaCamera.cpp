@@ -23,7 +23,8 @@ static const uint16_t interested_properties_default[] = {
     SONYALPHA_PROPCODE_Recording,
     SONYALPHA_PROPCODE_FocusArea,
     SONYALPHA_PROPCODE_ManualFocusDist,
-	SONYALPHA_PROPCODE_ShutterSpeed,
+    SONYALPHA_PROPCODE_ShutterSpeed,
+    SONYALPHA_PROPCODE_DriveMode,
     0x0000, // end of table
 };
 
@@ -153,7 +154,19 @@ bool PtpIpSonyAlphaCamera::is_spotfocus()
     return (x == SONYALPHA_FOCUSAREA_ZONE || x == SONYALPHA_FOCUSAREA_TRACKING_ZONE || x == SONYALPHA_FOCUSAREA_MOVEABLE_SMALL  || x == SONYALPHA_FOCUSAREA_MOVEABLE_MEDIUM || x == SONYALPHA_FOCUSAREA_MOVEABLE_LARGE || x == SONYALPHA_FOCUSAREA_MOVEABLE_EXPAND || x == SONYALPHA_FOCUSAREA_TRACKING_MOVEABLE_SMALL || x == SONYALPHA_FOCUSAREA_TRACKING_MOVEABLE_MEDIUM || x == SONYALPHA_FOCUSAREA_TRACKING_MOVEABLE_LARGE || x == SONYALPHA_FOCUSAREA_TRACKING_MOVEABLE_EXPAND);
 }
 
+bool PtpIpSonyAlphaCamera::is_continuousshooting()
+{
+    uint16_t prop_code = SONYALPHA_PROPCODE_DriveMode;
+    if (has_property(prop_code) == false) {
+        return false;
+    }
+    int32_t x = get_property(prop_code);
+    return (x == SONYALPHA_DRIVEMODE_ContHi || x == SONYALPHA_DRIVEMODE_ContHiPlus || x == SONYALPHA_DRIVEMODE_ContLo || x == SONYALPHA_DRIVEMODE_ContMid || x == SONYALPHA_DRIVEMODE_Continuous || x == SONYALPHA_DRIVEMODE_ContinuousSpeedPriority);
+}
+
 /*
+//this function is available as a live-updated variable instead
+
 bool PtpIpSonyAlphaCamera::is_focused()
 {
     uint16_t prop_code = SONYALPHA_PROPCODE_FocusFound;
