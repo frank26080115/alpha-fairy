@@ -10,25 +10,45 @@
 
 #define PTPIP_DEBUG_RX
 
-PtpIpCamera::PtpIpCamera(char* host_name) {
-    strcpy(my_name, host_name);
+PtpIpCamera::PtpIpCamera(char* name) {
+    strcpy(my_name, name);
     state = PTPSTATE_INIT;
     #ifdef PTPIP_KEEP_STATS
     stats_pkts = 0;
     stats_acks = 0;
     stats_tx = 0;
     #endif
+
+    dbgser_important       = new DebuggingSerial(&Serial);
+    dbgser_states          = new DebuggingSerial(&Serial);
+    dbgser_events          = new DebuggingSerial(&Serial);
+    dbgser_rx              = new DebuggingSerial(&Serial);
+    dbgser_tx              = new DebuggingSerial(&Serial);
+    dbgser_devprop_dump    = new DebuggingSerial(&Serial);
+    dbgser_devprop_change  = new DebuggingSerial(&Serial);
+
+    dbgser_important->enabled = true;
+    dbgser_states->   enabled = true;
+    dbgser_events->   enabled = true;
+    dbgser_rx->       enabled = false;
+    #ifdef PTPIP_DEBUG_RX
+    dbgser_rx->enabled = true;
+    #endif
+    dbgser_tx->enabled = false;
+    dbgser_devprop_dump->  enabled = false;
+    dbgser_devprop_change->enabled = false;
 }
 
 void PtpIpCamera::begin(uint32_t ip) {
     if (ip == 0) {
-        //PTPSTATE_ERROR_PRINTF("PTP camera got an empty IP address\r\n");
+        //dbgser_important->printf("PTP camera got an empty IP address\r\n");
         return;
     }
     if (state > PTPSTATE_START_WAIT && state < PTPSTATE_DISCONNECTED) {
         return;
     }
-    PTPSTATE_PRINTF("PTP camera beginning connection %08X\r\n", ip);
+
+    dbgser_states->printf("PTP camera beginning connection %08X\r\n", ip);
     ip_addr = ip;
     state = PTPSTATE_START_WAIT;
     last_rx_time = millis();
@@ -76,15 +96,15 @@ void PtpIpCamera::task()
             #else
                 socket_main .setAckTimeout(PTPIP_TIMEOUT);
                 socket_event.setAckTimeout(PTPIP_TIMEOUT);
-                //PTPSTATE_PRINTF("PTP socket MSS %u\r\n", socket_main.getMss());
+                //dbgser_states->printf("PTP socket MSS %u\r\n", socket_main.getMss());
             #endif
             last_rx_time = now;
             state += 2;
-            PTPSTATE_PRINTF("PTP sockets connected\r\n");
+            dbgser_states->printf("PTP sockets connected\r\n");
             return;
         }
         else if ((now - last_rx_time) > PTPIP_CONN_TIMEOUT) {
-            PTPSTATE_ERROR_PRINTF("PTP connection timed out\r\n");
+            dbgser_important->printf("PTP connection timed out\r\n");
             state = PTPSTATE_DISCONNECTED;
             return;
         }
@@ -97,7 +117,7 @@ void PtpIpCamera::task()
         socket_main .stop();
         socket_event.stop();
         #endif
-        PTPSTATE_ERROR_PRINTF("PTP socket stopping due to disconnection\r\n");
+        dbgser_important->printf("PTP socket stopping due to disconnection\r\n");
         state |= 1;
         return;
     }
@@ -112,7 +132,7 @@ void PtpIpCamera::task()
         return;
     }
     if (state < PTPSTATE_DISCONNECT && error_cnt >= PTPIP_ERROR_THRESH) {
-        PTPSTATE_ERROR_PRINTF("PTP socket too many errors (state %u)\r\n", state);
+        dbgser_important->printf("PTP socket too many errors (state %u)\r\n", state);
         state = PTPSTATE_DISCONNECT;
         return;
     }
@@ -120,7 +140,7 @@ void PtpIpCamera::task()
     if (state > PTPSTATE_SOCK_CONN + 1 && state < PTPSTATE_DISCONNECT)
     {
         if (socket_main.connected() == 0 || socket_event.connected() == 0) {
-            PTPSTATE_ERROR_PRINTF("PTP socket disconnected (state %u)\r\n", state);
+            dbgser_important->printf("PTP socket disconnected (state %u)\r\n", state);
             state = PTPSTATE_DISCONNECT;
             return;
         }
@@ -133,7 +153,7 @@ void PtpIpCamera::task()
         if (now > last_rx_time && (now - last_rx_time) > pkt_timeout) {
             if (pktbuff_idx > 0) {
                 if (try_decode_pkt(pktbuff, &pktbuff_idx, PACKET_BUFFER_SIZE, true) == false) {
-                    PTPSTATE_ERROR_PRINTF("PTP timeout receiving packet (%u rem)\r\n", pktbuff_idx);
+                    dbgser_important->printf("PTP timeout receiving packet (%u rem)\r\n", pktbuff_idx);
                 }
             }
             last_rx_time = now;
@@ -143,32 +163,32 @@ void PtpIpCamera::task()
 
     if (state == PTPSTATE_CMD_REQ) {
         if (send_cmd_req()) {
-            PTPSTATE_PRINTF("PTP init sent CMD_REQ\r\n");
+            dbgser_states->printf("PTP init sent CMD_REQ\r\n");
         }
         else {
-            PTPSTATE_ERROR_PRINTF("PTP init send error, CMD_REQ failed\r\n");
+            dbgser_important->printf("PTP init send error, CMD_REQ failed\r\n");
         }
     }
     else if (state == PTPSTATE_EVENT_REQ) {
         if (send_event_req()) {
-            PTPSTATE_PRINTF("PTP init sent EVENT_REQ\r\n");
+            dbgser_states->printf("PTP init sent EVENT_REQ\r\n");
         }
         else {
-            PTPSTATE_ERROR_PRINTF("PTP init send error, EVENT_REQ failed\r\n");
+            dbgser_important->printf("PTP init send error, EVENT_REQ failed\r\n");
         }
     }
     else if (state == PTPSTATE_OPENSESSION) {
         if (send_open_session()) {
-            PTPSTATE_PRINTF("PTP init sent open_session\r\n");
+            dbgser_states->printf("PTP init sent open_session\r\n");
         }
         else {
-            PTPSTATE_ERROR_PRINTF("PTP init send error, open_session failed\r\n");
+            dbgser_important->printf("PTP init send error, open_session failed\r\n");
         }
     }
     else if (state >= PTPSTATE_SESSION_INIT && state < PTPSTATE_POLLING && canSend()) {
         if (init_substeps == NULL)
         {
-            PTPSTATE_PRINTF("PTP init no other tasks, now polling\r\n");
+            dbgser_states->printf("PTP init no other tasks, now polling\r\n");
             state = PTPSTATE_POLLING;
         }
         else
@@ -177,16 +197,16 @@ void PtpIpCamera::task()
             if (substepstruct->op_code != 0)
             {
                 if (send_oper_req(substepstruct->op_code, (uint32_t*)(substepstruct->params), substepstruct->params_cnt, NULL, -1)) {
-                    PTPSTATE_PRINTF("PTP init sent substate %u\r\n", substate);
+                    dbgser_states->printf("PTP init sent substate %u\r\n", substate);
                 }
                 else {
-                    PTPSTATE_ERROR_PRINTF("PTP init failed to send substate %u\r\n", substate);
+                    dbgser_important->printf("PTP init failed to send substate %u\r\n", substate);
                 }
             }
             else // 0 in the table's opcode means end-of-table
             {
-                PTPSTATE_PRINTF("PTP init finished sending all substates %u\r\n", substate);
-                PTPSTATE_PRINTF("PTP init done, now polling\r\n");
+                dbgser_states->printf("PTP init finished sending all substates %u\r\n", substate);
+                dbgser_states->printf("PTP init done, now polling\r\n");
                 state = PTPSTATE_POLLING;
             }
         }
@@ -341,12 +361,12 @@ bool PtpIpCamera::decode_pkt(uint8_t buff[], uint32_t buff_len)
     {
         parse_cmd_ack(buff);
         state = PTPSTATE_EVENT_REQ;
-        PTPSTATE_PRINTF("PTP init next state EVENT_REQ (%u)\r\n", state);
+        dbgser_states->printf("PTP init next state EVENT_REQ (%u)\r\n", state);
     }
     else if (pkt_type == PTP_PKTTYPE_INITEVENTACK && state <= (PTPSTATE_EVENT_REQ + 1))
     {
         state = PTPSTATE_OPENSESSION;
-        PTPSTATE_PRINTF("PTP init next state OPEN_SESSION (%u)\r\n", state);
+        dbgser_states->printf("PTP init next state OPEN_SESSION (%u)\r\n", state);
     }
     else if (pkt_type == PTP_PKTTYPE_OPERRESP && state <= (PTPSTATE_OPENSESSION + 1))
     {
@@ -356,10 +376,10 @@ bool PtpIpCamera::decode_pkt(uint8_t buff[], uint32_t buff_len)
             ) {
             state = PTPSTATE_SESSION_INIT;
             substate = 0;
-            PTPSTATE_PRINTF("PTP init, session opened %u, next state SESSION_INIT (%u)\r\n", session_id, state);
+            dbgser_states->printf("PTP init, session opened %u, next state SESSION_INIT (%u)\r\n", session_id, state);
         }
         else {
-            PTPSTATE_ERROR_PRINTF("PTP init OPEN_SESSION failed 0x%04X\r\n", operresp->resp_code);
+            dbgser_important->printf("PTP init OPEN_SESSION failed 0x%04X\r\n", operresp->resp_code);
         }
     }
     else if (pkt_type == PTP_PKTTYPE_OPERRESP && state >= PTPSTATE_SESSION_INIT && state < PTPSTATE_POLLING)
@@ -368,10 +388,10 @@ bool PtpIpCamera::decode_pkt(uint8_t buff[], uint32_t buff_len)
         if (PTP_RESPCODE_IS_OK_ISH(operresp->resp_code) || buff_len == 8) {
             state += 1;
             substate += 1;
-            PTPSTATE_PRINTF("PTP init next state/substate %u/%u\r\n", state, substate);
+            dbgser_states->printf("PTP init next state/substate %u/%u\r\n", state, substate);
         }
         else {
-            PTPSTATE_ERROR_PRINTF("PTP init oper-resp failed 0x%04X (state/substate %u/%u)\r\n", operresp->resp_code, state, substate);
+            dbgser_important->printf("PTP init oper-resp failed 0x%04X (state/substate %u/%u)\r\n", operresp->resp_code, state, substate);
         }
         state &= 0xFFFFFFFE;
     }
@@ -379,41 +399,41 @@ bool PtpIpCamera::decode_pkt(uint8_t buff[], uint32_t buff_len)
     {
         state &= 0xFFFFFFFE;
         ptpip_pkt_operresp_t* operresp = (ptpip_pkt_operresp_t*)buff;
-        PTPSTATE_PRINTF("PTP got oper-resp 0x%04X\r\n", operresp->resp_code);
+        dbgser_states->printf("PTP got oper-resp 0x%04X\r\n", operresp->resp_code);
     }
     else if (pkt_type == PTP_PKTTYPE_STARTDATA)
     {
         ptpip_pkt_startdata_t* pktstruct = (ptpip_pkt_startdata_t*)buff;
         pending_data = pktstruct->pending_data_length;
         databuff_idx = 0;
-        DATARX_PRINTF("PTPRX start-data %u\r\n", pending_data);
+        dbgser_rx->printf("PTPRX start-data %u\r\n", pending_data);
     }
     else if (pkt_type == PTP_PKTTYPE_ENDDATA)
     {
-        DATARX_PRINTF("PTPRX end-data\r\n");
+        dbgser_rx->printf("PTPRX end-data\r\n");
     }
     else if (pkt_type == PTP_PKTTYPE_CANCELDATA)
     {
-        DATARX_PRINTF("PTPRX cancel-data\r\n");
+        dbgser_rx->printf("PTPRX cancel-data\r\n");
     }
     else if (pkt_type == PTP_PKTTYPE_DATA)
     {
-        DATARX_PRINTF("PTPRX data chunk %u\r\n", (pkt_len - 12));
+        dbgser_rx->printf("PTPRX data chunk %u\r\n", (pkt_len - 12));
     }
     else if (pkt_type == PTP_PKTTYPE_EVENT)
     {
         ptpip_pkt_event_t* pktstruct = (ptpip_pkt_event_t*)buff;
         uint16_t event_code = pktstruct->event_code;
-        EVENT_PRINTF("PTPIP event 0x%04X\r\n", event_code);
+        dbgser_events->printf("PTPIP event 0x%04X\r\n", event_code);
     }
     else if (pkt_type == PTP_PKTTYPE_PROBEREQ)
     {
         send_probe_resp();
-        EVENT_PRINTF("PTPIP probe request\r\n");
+        dbgser_events->printf("PTPIP probe request\r\n");
     }
     else
     {
-        PTPSTATE_ERROR_PRINTF("PTP unknown packet type 0x%08X\r\n", pkt_type);
+        dbgser_important->printf("PTP unknown packet type 0x%08X\r\n", pkt_type);
         pkt_valid = false;
     }
     return pkt_valid;
@@ -424,7 +444,7 @@ void PtpIpCamera::parse_cmd_ack(uint8_t* data)
     ptpip_pkt_cmdack_t* pktstruct = (ptpip_pkt_cmdack_t*)data;
     conn_id = pktstruct->conn_id;
     copy_utf16_to_bytes(cam_name, pktstruct->name);
-    PTPSTATE_PRINTF("PTP recv'ed CMD-ACK, conn-ID 0x%08X, name: %s\r\n", conn_id, cam_name);
+    dbgser_states->printf("PTP recv'ed CMD-ACK, conn-ID 0x%08X, name: %s\r\n", conn_id, cam_name);
 }
 
 void PtpIpCamera::wait_while_busy(uint32_t min_time, uint32_t max_time, volatile bool* exit_signal)
@@ -487,14 +507,32 @@ void PtpIpCamera::debug_rx(uint8_t* buff, uint32_t read_in) {
     uint32_t buff_len;
     if (buff_addr == buff_addr_pkt)
     {
-        Serial.printf("RX[%u] PKT %u/%u:", millis(), read_in, (buff_len = this->pktbuff_idx));
+        dbgser_rx->printf("RX[%u] PKT %u/%u:", millis(), read_in, (buff_len = this->pktbuff_idx));
     }
     else
     {
-        Serial.printf("RX[%u] EVT %u/%u:", millis(), read_in, (buff_len = this->eventbuff_idx));
+        dbgser_rx->printf("RX[%u] EVT %u/%u:", millis(), read_in, (buff_len = this->eventbuff_idx));
     }
-    print_buffer_hex(buff, buff_len);
-    Serial.printf("\r\n");
+    if (dbgser_rx->enabled) {
+        print_buffer_hex(buff, buff_len);
+    }
+    dbgser_rx->printf("\r\n");
+}
+
+void PtpIpCamera::set_debugflags(uint32_t x)
+{
+    this->debug_flags = x;
+    dbgser_states->        enabled = ((x & PTPDEBUGFLAG_STATES        ) != 0);
+    dbgser_events->        enabled = ((x & PTPDEBUGFLAG_EVENTS        ) != 0);
+    dbgser_rx->            enabled = ((x & PTPDEBUGFLAG_RX            ) != 0);
+    dbgser_tx->            enabled = ((x & PTPDEBUGFLAG_TX            ) != 0);
+    dbgser_devprop_dump->  enabled = ((x & PTPDEBUGFLAG_DEVPROP_DUMP  ) != 0);
+    dbgser_devprop_change->enabled = ((x & PTPDEBUGFLAG_DEVPROP_CHANGE) != 0);
+}
+
+void PtpIpCamera::test_debug_msg(const char* s)
+{
+    dbgser_states->print(s);
 }
 
 #ifdef USE_ASYNC_SOCK
@@ -518,14 +556,14 @@ void PtpIpCamera::onAsyncError(void* pcam, AsyncClient* sock, int8_t errnum)
 {
     PtpIpCamera* cam = (PtpIpCamera*)pcam;
     cam->error_cnt += 1;
-    PTPSTATE_ERROR_PRINTF("PTP socket error event 0x%02X\r\n", errnum);
+    dbgser_important->printf("PTP socket error event 0x%02X\r\n", errnum);
 }
 
 void PtpIpCamera::onAsyncTimeout(void* pcam, AsyncClient* sock, uint32_t t)
 {
     PtpIpCamera* cam = (PtpIpCamera*)pcam;
     cam->error_cnt += 1;
-    PTPSTATE_ERROR_PRINTF("PTP socket timeout event\r\n");
+    dbgser_important->printf("PTP socket timeout event\r\n");
 }
 
 void PtpIpCamera::onAsyncAck(void* pcam, AsyncClient* sock, size_t sz, uint32_t t)

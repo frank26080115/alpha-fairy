@@ -6,6 +6,8 @@
 #include <WiFi.h>
 #include "esp_wifi.h"
 
+#include <DebuggingSerial.h>
+
 #include "ptpipdefs.h"
 #include "ptpcodes.h"
 
@@ -52,10 +54,21 @@ typedef struct
 }
 ptpipcam_prop_t;
 
+enum
+{
+    PTPDEBUGFLAG_NONE   = 0x00,
+    PTPDEBUGFLAG_STATES = 0x01,
+    PTPDEBUGFLAG_EVENTS = 0x02,
+    PTPDEBUGFLAG_RX     = 0x04,
+    PTPDEBUGFLAG_TX     = 0x08,
+    PTPDEBUGFLAG_DEVPROP_DUMP   = 0x10,
+    PTPDEBUGFLAG_DEVPROP_CHANGE = 0x20,
+};
+
 class PtpIpCamera
 {
     public:
-        PtpIpCamera(char* host_name);
+        PtpIpCamera(char* name);
         void            begin(uint32_t);
         virtual void    task(void);
         void            poll(void);
@@ -73,6 +86,10 @@ class PtpIpCamera
                bool     isKindaBusy(void);
         bool send_oper_req(uint32_t opcode, uint32_t* params, uint8_t params_cnt, uint8_t* payload, int32_t payload_len);
         void wait_while_busy(uint32_t min_wait, uint32_t max_wait, volatile bool* exit_signal);
+
+        virtual void set_debugflags(uint32_t x);
+        uint32_t debug_flags;
+        void test_debug_msg(const char*);
 
 #ifdef PTPIP_KEEP_STATS
         uint32_t stats_tx;
@@ -152,6 +169,14 @@ class PtpIpCamera
         static void onAsyncTimeout    (void*, AsyncClient*, uint32_t);
         static void onAsyncAck        (void*, AsyncClient*, size_t, uint32_t);
         #endif
+
+        DebuggingSerial* dbgser_important;
+        DebuggingSerial* dbgser_states;
+        DebuggingSerial* dbgser_events;
+        DebuggingSerial* dbgser_rx;
+        DebuggingSerial* dbgser_tx;
+        DebuggingSerial* dbgser_devprop_dump;
+        DebuggingSerial* dbgser_devprop_change;
 };
 
 #endif

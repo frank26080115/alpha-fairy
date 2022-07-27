@@ -2,11 +2,7 @@
 #include <Arduino.h>
 #include "ptpip_utils.h"
 
-#if 1
-#define PTPSEND_DEBUG(x) send_debug((char*)x)
-#else
-#define PTPSEND_DEBUG(x)
-#endif
+#define PTPSEND_DEBUG(x)    do { if (dbgser_tx->enabled) { send_debug((char*)x); } } while (0)
 
 #ifdef USE_ASYNC_SOCK
     #define SOCK_WRITE(_s, _b, _blen) (_s).write((const char*)(_b), (size_t)(_blen))
@@ -223,13 +219,15 @@ bool PtpIpCamera::send_open_session()
 
 void PtpIpCamera::send_debug(char* s)
 {
-    Serial.print(s);
+    dbgser_tx->printf(s);
     #ifdef USE_ASYNC_SOCK
-    Serial.printf(" (space %u) ", socket_main.space());
+    dbgser_tx->printf(" (space %u) ", socket_main.space());
     #else
-    Serial.print(" ");
+    dbgser_tx->printf(" ");
     #endif
     uint32_t* len = (uint32_t*)outbuff;
-    print_buffer_hex(outbuff, *len);
-    Serial.println();
+    if (dbgser_tx->enabled) {
+        print_buffer_hex(outbuff, *len);
+    }
+    dbgser_tx->println();
 }
