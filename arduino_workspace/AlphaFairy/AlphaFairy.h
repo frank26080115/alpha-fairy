@@ -8,13 +8,10 @@
 #include "alfy_types.h"
 #include "alfy_defs.h"
 
-#ifdef HW_M5STICKC
-#include <M5StickC.h>
-#endif
-#ifdef HW_M5STICKCPLUS
-#include <M5StickC-Plus.h>
-#endif
+#include <M5StickCPlus.h>
 #include <M5DisplayExt.h>
+#include <FS.h>
+#include <SPIFFS.h>
 #include <PtpIpCamera.h>
 #include <PtpIpSonyAlphaCamera.h>
 #include <AlphaFairy_NetMgr.h>

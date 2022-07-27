@@ -1,4 +1,5 @@
 #include "AlphaFairy.h"
+#include <M5StickCPlus.h>
 #include <M5DisplayExt.h>
 #include <PtpIpCamera.h>
 #include <PtpIpSonyAlphaCamera.h>
@@ -21,41 +22,41 @@ void on_got_client(uint32_t ip);
 
 const menuitem_t menu_items_main[] = {
     // ID                   , FILE-NAME            , FUNCTION POINTER
-    { MENUITEM_REMOTE,        "/main_remote.jpg"   , submenu_enter },
-    { MENUITEM_FOCUS,         "/main_focus.jpg"    , submenu_enter },
-    { MENUITEM_INTERVAL,      "/main_interval.jpg" , submenu_enter },
-    { MENUITEM_ASTRO,         "/main_astro.jpg"    , submenu_enter },
-    { MENUITEM_UTILS,         "/main_utils.jpg"    , submenu_enter },
+    { MENUITEM_REMOTE,        "/main_remote.png"   , submenu_enter },
+    { MENUITEM_FOCUS,         "/main_focus.png"    , submenu_enter },
+    { MENUITEM_INTERVAL,      "/main_interval.png" , submenu_enter },
+    { MENUITEM_ASTRO,         "/main_astro.png"    , submenu_enter },
+    { MENUITEM_UTILS,         "/main_utils.png"    , submenu_enter },
     { MENUITEM_END_OF_TABLE , ""                   , NULL          }, // menu length is counted at run-time
 };
 
 const menuitem_t menu_items_remote[] = {
     // ID                       , FILE-NAME               , FUNCTION POINTER
-    { MENUITEM_REMOTESHUTTER_NOW, "/remoteshutter.jpg"    , remotes_shutter },
-    { MENUITEM_REMOTESHUTTER_2S , "/remoteshutter_2s.jpg" , remotes_shutter },
-    { MENUITEM_REMOTESHUTTER_5S , "/remoteshutter_5s.jpg" , remotes_shutter },
-    { MENUITEM_REMOTESHUTTER_10S, "/remoteshutter_10.jpg" , remotes_shutter },
-    { MENUITEM_RECORDMOVIE      , "/recordmovie.jpg"      , record_movie    },
-    { MENUITEM_BACK             , "/back.jpg"             , NULL            },
+    { MENUITEM_REMOTESHUTTER_NOW, "/remoteshutter.png"    , remotes_shutter },
+    { MENUITEM_REMOTESHUTTER_2S , "/remoteshutter_2s.png" , remotes_shutter },
+    { MENUITEM_REMOTESHUTTER_5S , "/remoteshutter_5s.png" , remotes_shutter },
+    { MENUITEM_REMOTESHUTTER_10S, "/remoteshutter_10.png" , remotes_shutter },
+    { MENUITEM_RECORDMOVIE      , "/recordmovie.png"      , record_movie    },
+    { MENUITEM_BACK             , "/back.png"             , NULL            },
     { MENUITEM_END_OF_TABLE     , ""                      , NULL            }, // menu length is counted at run-time
 };
 
 const menuitem_t menu_items_focus[] = {
     // ID                       , FILE-NAME               , FUNCTION POINTER
-    { MENUITEM_FOCUSSTACK_FAR_1 , "/focusstack_far_1.jpg" , focus_stack     },
-    { MENUITEM_FOCUSSTACK_FAR_2 , "/focusstack_far_2.jpg" , focus_stack     },
-    { MENUITEM_FOCUSSTACK_FAR_3 , "/focusstack_far_3.jpg" , focus_stack     },
-    { MENUITEM_FOCUS_9POINT     , "/focus_9point.jpg"     , focus_9point    },
-    { MENUITEM_SHUTTERSTEP      , "/shutter_step.jpg"     , shutter_step    },
-    { MENUITEM_BACK             , "/back.jpg"             , NULL            },
+    { MENUITEM_FOCUSSTACK_FAR_1 , "/focusstack_far_1.png" , focus_stack     },
+    { MENUITEM_FOCUSSTACK_FAR_2 , "/focusstack_far_2.png" , focus_stack     },
+    { MENUITEM_FOCUSSTACK_FAR_3 , "/focusstack_far_3.png" , focus_stack     },
+    { MENUITEM_FOCUS_9POINT     , "/focus_9point.png"     , focus_9point    },
+    { MENUITEM_SHUTTERSTEP      , "/shutter_step.png"     , shutter_step    },
+    { MENUITEM_BACK             , "/back.png"             , NULL            },
     { MENUITEM_END_OF_TABLE     , ""                      , NULL            }, // menu length is counted at run-time
 };
 
 const menuitem_t menu_items_utils[] = {
     // ID                       , FILE-NAME               , FUNCTION POINTER
-    { MENUITEM_WIFIINFO         , "/wifiinfo.jpg"         , wifi_info       },
-    { MENUITEM_CONFIG           , "/config.jpg"           , conf_settings   },
-    { MENUITEM_BACK             , "/back.jpg"             , NULL            },
+    { MENUITEM_WIFIINFO         , "/wifiinfo.png"         , wifi_info       },
+    { MENUITEM_CONFIG           , "/config.png"           , conf_settings   },
+    { MENUITEM_BACK             , "/back.png"             , NULL            },
     { MENUITEM_END_OF_TABLE     , ""                      , NULL            }, // menu length is counted at run-time
 };
 
@@ -82,6 +83,7 @@ void setup()
     dbg_ser.enabled = true;
     M5.begin(false); // do not initialize the LCD, we have our own extended M5Lcd class to initialize later
     M5.IMU.Init();
+    M5.Axp.begin();
     M5Lcd.begin(); // our own extended LCD object
     while (!SPIFFS.begin(true)){
         Serial.println("SPIFFS Mount Failed");

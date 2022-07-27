@@ -24,7 +24,11 @@ libraries/Wifi/examples
 libraries/Wifi/keywords.txt
 libraries/Wifi/library.properties
 
+libraries/M5*
+
 libraries/readme.txt
+
+AlphaFairy/data/*
 
 # Prerequisites
 *.d

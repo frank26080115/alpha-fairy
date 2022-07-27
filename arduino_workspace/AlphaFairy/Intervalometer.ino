@@ -1,4 +1,5 @@
 #include "AlphaFairy.h"
+#include <M5DisplayExt.h>
 
 const configitem_t intval_config_generic[] = {
   // item pointer                           ,  max , min , step , text           , flags
@@ -48,10 +49,24 @@ void intervalometer_config(void* mip)
     {
         app_poll();
 
+        if (batt_need_recheck) {
+            // if battery state changed, force a redraw
+            batt_need_recheck = false;
+            M5Lcd.fillScreen(TFT_BLACK); // item has changed so clear the screen
+            if (is_low_batt()) {
+                battlow_draw(true);
+            }
+            interval_drawIcon(menuitm->id);
+        }
+
         if (btnSide_hasPressed(true))
         {
             m->idx = (m->idx >= m->cnt) ? 0 : (m->idx + 1);
             M5Lcd.fillScreen(TFT_BLACK); // item has changed so clear the screen
+            if (is_low_batt()) {
+                battlow_draw(true);
+            }
+            interval_drawIcon(menuitm->id);
         }
 
         configitem_t* cfgitm = (configitem_t*)&(config_items[m->idx]);
@@ -144,5 +159,19 @@ void intervalometer_config(void* mip)
                 gui_showVal(total_time, CFGFMT_TIME, (Print*)&M5Lcd);
             }
         }
+        if (is_low_batt()) {
+            battlow_draw(true);
+        }
+        interval_drawIcon(menuitm->id);
+    }
+}
+
+void interval_drawIcon(uint8_t id)
+{
+    if (id == MENUITEM_INTERVAL) {
+        M5Lcd.drawPngFile(SPIFFS, "/intervalometer_icon.png", M5Lcd.width() - 60, M5Lcd.height() - 60);
+    }
+    else if (id == MENUITEM_ASTRO) {
+        M5Lcd.drawPngFile(SPIFFS, "/galaxy_icon.png", M5Lcd.width() - 60, M5Lcd.height() - 60);
     }
 }

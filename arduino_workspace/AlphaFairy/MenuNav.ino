@@ -1,4 +1,5 @@
 #include "AlphaFairy.h"
+#include <M5DisplayExt.h>
 
 bool guimenu_task(menustate_t* m)
 {
@@ -23,13 +24,27 @@ bool guimenu_task(menustate_t* m)
         }
     }
 
+    if (batt_need_recheck) {
+        // if battery state changed, force a redraw
+        batt_need_recheck = false;
+        m->last_idx = -1;
+    }
+
     if (m->last_idx != m->idx) { // prevent unnecessary re-draws
         guimenu_drawScreen(&(m->items[m->idx]));
+        if ((m->flags & MENUFLAG_DRAW_PAGES) != 0) {
+            guimenu_drawPages();
+        }
+        if (is_low_batt()) {
+            battlow_draw(false);
+        }
         m->last_idx = m->idx;
         app_sleep(50, true); // kinda sorta a debounce and rate limit, don't think I need this here
     }
     else if (imu_hasChange) { // prevent unneccessary re-draws
-        guimenu_drawPages(); // this draws the scroll dots that indicate which page we are on
+        if ((m->flags & MENUFLAG_DRAW_PAGES) != 0) {
+            guimenu_drawPages();
+        }
         imu_hasChange = false;
     }
 
@@ -43,12 +58,9 @@ bool guimenu_task(menustate_t* m)
         }
         dbg_ser.printf("menu[%u] idx %u - %u calling func\r\n", m->id, m->idx, menuitm->id);
         menuitm->func((void*)menuitm);
-        if ((m->flags & MENUFLAG_RETURN_POP) != 0)
-        {
-            guimenu_drawScreen(&(m->items[m->idx])); // any sort of indicator while in the function need to be removed, so just draw the whole menu here again
-            ledblink_setMode(LEDMODE_NORMAL);
-            app_sleep(50, true); // kinda sorta a debounce and rate limit, don't think I need this here
-        }
+        m->last_idx = -1; // force redraw
+        ledblink_setMode(LEDMODE_NORMAL);
+        app_sleep(50, true); // kinda sorta a debounce and rate limit, don't think I need this here
     }
 
     return false;

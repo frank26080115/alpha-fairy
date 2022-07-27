@@ -84,10 +84,9 @@ void gui_drawVerticalDots(int x_offset, int y_margin, int y_offset, int dot_radi
 
 void guimenu_drawScreen(menuitem_t* menu)
 {
-    menuitem_t* menuitm = (menuitem_t*)&(menu[curmenu->idx]);
     M5Lcd.setRotation(0);
-    M5Lcd.drawJpgFile(SPIFFS, menuitm->fname, 0, 0);
-    guimenu_drawPages();
+    Serial.println(menu->fname);
+    M5Lcd.drawPngFile(SPIFFS, menu->fname, 0, 0);
 }
 
 int guimenu_getIdx(int x)
@@ -118,7 +117,7 @@ void gui_drawConnecting(bool first)
     // this function will blink between a sequence of images that indicates that we are waiting for the camera to connect
     // this code can be tweaked for more animation frames if needed
     // right now it just goes between 0 and 1
-    static char conn_filename[] = "/connecting0.jpg";
+    static char conn_filename[] = "/connecting0.png";
     static int last_idx = -1;
     if (first) {
         last_idx = -1;
@@ -131,7 +130,7 @@ void gui_drawConnecting(bool first)
         last_idx = cur_idx;
         conn_filename[11] = '0' + cur_idx;
         M5Lcd.setRotation(0);
-        M5Lcd.drawJpgFile(SPIFFS, conn_filename, 0, 0);
+        M5Lcd.drawPngFile(SPIFFS, conn_filename, 0, 0);
     }
 }
 
@@ -311,7 +310,8 @@ void gui_valIncDec(configitem_t* cfgitm)
 void welcome()
 {
     // show a splash screen first
-    M5Lcd.drawJpgFile(SPIFFS, "/welcome.jpg", 0, 0);
+    M5Lcd.setRotation(0);
+    M5Lcd.drawPngFile(SPIFFS, "/welcome.png", 0, 0);
     uint32_t now;
     bool btn_quit = false;
     while ((now = millis()) < WELCOME_TIME_MS)

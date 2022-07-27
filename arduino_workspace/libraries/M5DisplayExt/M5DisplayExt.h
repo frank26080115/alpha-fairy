@@ -5,6 +5,7 @@
 #include <Arduino.h>
 #include <FS.h>
 #include <SPI.h>
+#include <SPIFFS.h>
 
 class M5DisplayExt : public M5Display {
   public:
