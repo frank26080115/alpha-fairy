@@ -2,8 +2,71 @@
 
 #define APP_DOES_NOTHING
 
+void cam_shootQuick()
+{
+    if (camera.isOperating()) {
+        camera.cmd_Shoot(config_settings.shutter_press_time_ms);
+    }
+    else if (config_settings.gpio_enabled) {
+        cam_shootQuickGpio();
+    }
+    else if (config_settings.infrared_enabled) {
+        SonyCamIr_Shoot();
+    }
+}
+
+void cam_shootQuickGpio()
+{
+    digitalWrite(SHUTTER_GPIO, LOW);
+    pinMode(SHUTTER_GPIO, OUTPUT);
+    digitalWrite(SHUTTER_GPIO, LOW);
+    app_sleep(config_settings.shutter_press_time_ms, false);
+    pinMode(SHUTTER_GPIO, INPUT);
+}
+
+void cam_shootOpen()
+{
+    if (camera.isOperating()) {
+        camera.cmd_Shutter(true);
+        if (gpio_time != 0) {
+            pinMode(SHUTTER_GPIO, INPUT);
+            gpio_time = 0;
+        }
+    }
+    else if (config_settings.gpio_enabled) {
+        digitalWrite(SHUTTER_GPIO, LOW);
+        pinMode(SHUTTER_GPIO, OUTPUT);
+        digitalWrite(SHUTTER_GPIO, LOW);
+        gpio_time = millis();
+    }
+    else if (config_settings.infrared_enabled) {
+        SonyCamIr_Shoot();
+    }
+}
+
+void cam_shootClose()
+{
+    if (camera.isOperating()) {
+        camera.cmd_Shutter(false);
+        if (gpio_time != 0) {
+            pinMode(SHUTTER_GPIO, INPUT);
+            gpio_time = 0;
+        }
+    }
+    else if (config_settings.gpio_enabled) {
+        gpio_time = 0; // stop the timer
+        pinMode(SHUTTER_GPIO, INPUT);
+    }
+    else if (config_settings.infrared_enabled) {
+        // do nothing
+    }
+}
+
 void remotes_shutter(void* mip)
 {
+    uint32_t tstart, now, tdiff;
+    bool quit = false;
+
     menuitem_t* menuitm = (menuitem_t*)mip;
     int time_delay = 0;
     if (menuitm->id == MENUITEM_REMOTESHUTTER_NOW) {
@@ -21,8 +84,10 @@ void remotes_shutter(void* mip)
 
     if (camera.isOperating() == false)
     {
+        bool can_still_shoot = false;
         // no camera connected via wifi so use infrared if possible
-        if (config_settings.infrared_enabled && time_delay <= 2) {
+        if (config_settings.infrared_enabled && time_delay <= 2)
+        {
             if (time_delay == 2) {
                 dbg_ser.println("IR - shoot 2s");
                 SonyCamIr_Shoot2S();
@@ -31,14 +96,42 @@ void remotes_shutter(void* mip)
                 dbg_ser.println("IR - shoot");
                 SonyCamIr_Shoot();
             }
-            return;
+            can_still_shoot = true;
         }
-        else {
+
+        if (config_settings.gpio_enabled)
+        {
+            dbg_ser.print("GPIO rmt ");
+            if (time_delay > 0)
+            {
+                dbg_ser.print("wait ");
+                tstart = millis();
+                now = tstart;
+                quit = false;
+                // wait the countdown time
+                while (((tdiff = ((now = millis()) - tstart)) < (time_delay * 1000))) {
+                    if (app_poll()) {
+                        if (time_delay > 2) {
+                            gui_drawVerticalDots(0, 20, -1, 3, time_delay, tdiff / 1000, false, TFT_GREEN, TFT_RED);
+                        }
+                    }
+                    if (btnSide_hasPressed(true)) {
+                        quit = true;
+                        break;
+                    }
+                }
+            }
+            dbg_ser.println("shoot");
+            cam_shootQuickGpio();
+            can_still_shoot = true;
+        }
+
+        if (can_still_shoot == false) {
             // show user that the camera isn't connected
             dbg_ser.println("remotes_shutter but no camera connected");
             app_waitAllReleaseConnecting(BTN_DEBOUNCE);
-            return;
         }
+        return;
     }
 
 #ifdef APP_DOES_NOTHING
@@ -52,10 +145,9 @@ void remotes_shutter(void* mip)
         camera.cmd_AutoFocus(true);
     }
 
-    uint32_t tstart = millis();
-    uint32_t now = tstart;
-    uint32_t tdiff;
-    bool quit = false;
+    tstart = millis();
+    now = tstart;
+    quit = false;
     // wait the countdown time
     while (((tdiff = ((now = millis()) - tstart)) < (time_delay * 1000)) && camera.isOperating()) {
         if (app_poll()) {

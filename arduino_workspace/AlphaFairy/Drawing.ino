@@ -106,7 +106,7 @@ void gui_startPrint()
 {
     M5Lcd.fillScreen(TFT_BLACK);
     M5Lcd.setRotation(1);
-    // TODO: set font?
+    M5Lcd.setTextFont(2);
     M5Lcd.highlight(true);
     M5Lcd.setTextWrap(true);
     M5Lcd.setHighlightColor(TFT_BLACK); // there's no frame buffer, so use the highlight function to prevent messy overlapping text
@@ -143,13 +143,13 @@ void gui_setCursorNextLine()
 
 void gui_blankRestOfLine()
 {
-    uint32_t lim = M5Lcd.width() - 16;
+    uint32_t lim = M5Lcd.width() - 65;
     while (M5Lcd.getCursorX() < lim) {
         M5Lcd.print(" ");
     }
 }
 
-void gui_formatSecondsTime(int32_t x, char* str)
+void gui_formatSecondsTime(int32_t x, char* str, bool shorten)
 {
     int i = 0;
     if (x < 0) {
@@ -161,12 +161,21 @@ void gui_formatSecondsTime(int32_t x, char* str)
     mins %= 60;
     uint32_t secs = x % 60;
     if (hrs > 0) {
-        i += sprintf(&(str[i]), "%u:", hrs);
+        i += sprintf(&(str[i]), "%u", hrs);
+        if (shorten) {
+            i += sprintf(&(str[i]), "H");
+        }
+        i += sprintf(&(str[i]), ":");
         if (mins < 10) {
             i += sprintf(&(str[i]), "0");
         }
     }
-    i += sprintf(&(str[i]), "%u:%02u", mins, secs);
+    if (shorten && hrs > 0) {
+        i += sprintf(&(str[i]), "%u", mins);
+    }
+    else {
+        i += sprintf(&(str[i]), "%u:%02u", mins, secs);
+    }
 }
 
 void gui_showVal(int32_t x, uint8_t cfgfmt, Print* printer)
@@ -180,16 +189,26 @@ void gui_showVal(int32_t x, uint8_t cfgfmt, Print* printer)
             i += sprintf(&(str[i]), "YES");
         }
     }
-    else if ((cfgfmt & CFGFMT_TIME) != 0) {
-        gui_formatSecondsTime(x, str);
-    }
     else if ((cfgfmt & CFGFMT_BULB) != 0) {
         if (x == 0) {
-            i += sprintf(&(str[i]), "0 (use Tv)");
+            i += sprintf(&(str[i]), "(Tv)");
         }
         else {
-            gui_formatSecondsTime(x, str);
+            gui_formatSecondsTime(x, str, false);
         }
+    }
+    else if ((cfgfmt & CFGFMT_TIMELONG) != 0) {
+        gui_formatSecondsTime(x, str, true);
+    }
+    else if ((cfgfmt & CFGFMT_TIME) != 0) {
+        gui_formatSecondsTime(x, str, false);
+    }
+    else if ((cfgfmt & CFGFMT_TIMEMS) != 0) {
+        x = x < 0 ? 0 : x;
+        uint32_t tsec = x / 1000;
+        uint32_t tsubsec = (x / 100) % 10;
+        gui_formatSecondsTime(tsec, str, false);
+        sprintf(&(str[strlen(str)]), ".%d", tsubsec);
     }
     else {
         i += sprintf(&(str[i]), "%d", x);
@@ -246,6 +265,9 @@ void gui_valIncDec(configitem_t* cfgitm)
                 next_step = cfgitm->step_size; // indicate that change has been made
             }
         }
+        else {
+            gui_showValOnLcd((*val_ptr), cfgfmt, lcdx, lcdy, cfgitm->step_size, true);
+        }
     }
     else if (imu_angle == ANGLE_IS_DOWN)
     {
@@ -259,6 +281,12 @@ void gui_valIncDec(configitem_t* cfgitm)
                 next_step = -cfgitm->step_size; // indicate that change has been made
             }
         }
+        else {
+            gui_showValOnLcd((*val_ptr), cfgfmt, lcdx, lcdy, -cfgitm->step_size, true);
+        }
+    }
+    else {
+        gui_showValOnLcd((*val_ptr), cfgfmt, lcdx, lcdy, 0, true);
     }
 
     if (next_step != 0 && (cfgfmt & CFGFMT_BOOL) == 0) // has pressed
@@ -301,10 +329,10 @@ void gui_valIncDec(configitem_t* cfgitm)
                 gui_showValOnLcd((*val_ptr), cfgfmt, lcdx, lcdy, next_step, true);
             }
         }
+        gui_showValOnLcd((*val_ptr), cfgfmt, lcdx, lcdy, next_step, true);
     }
 
-    gui_showValOnLcd((*val_ptr), cfgfmt, lcdx, lcdy, next_step, true);
-    app_waitAllRelease(BTN_DEBOUNCE); // wait for release, because 
+    app_waitAllRelease(BTN_DEBOUNCE);
 }
 
 void welcome()

@@ -28,6 +28,7 @@ menustate_t;
 typedef struct
 {
   uint32_t magic;
+  uint32_t len;
 
   int32_t focus_pause_time_ms;
   int32_t shutter_press_time_ms;
@@ -43,8 +44,8 @@ typedef struct
 
   int32_t astro_bulb;
   int32_t astro_pause;
-  int32_t astro_delay;
-  int32_t astro_limit;
+  //int32_t astro_delay;
+  //int32_t astro_limit;
 
   uint32_t crc32;
 }

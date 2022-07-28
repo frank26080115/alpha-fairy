@@ -1,9 +1,11 @@
 #ifndef _ALFY_CONF_H_
 #define _ALFY_CONF_H_
 
-//#define LEDBLINK_USE_PWM
+#define LEDBLINK_USE_PWM
 #define LEDBLINK_PWM_DUTY_ON  (0xFF - 16)
 #define LEDBLINK_PWM_DUTY_OFF 0xFF
+
+#define SHUTTER_GPIO 26
 
 #define SUBMENU_X_OFFSET 5
 #define SUBMENU_Y_OFFSET 5

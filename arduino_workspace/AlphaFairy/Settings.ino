@@ -10,6 +10,8 @@ extern uint32_t fletcher32(const uint16_t *data, size_t len);
 configsettings_t config_settings;
 
 void settings_default() {
+  config_settings.len = sizeof(configsettings_t);
+
   // set the default setting values here
   config_settings.focus_pause_time_ms   = 100;
   config_settings.shutter_press_time_ms = 200;
@@ -24,8 +26,8 @@ void settings_default() {
 
   config_settings.astro_bulb   = 30;
   config_settings.astro_pause  = 1;
-  config_settings.astro_delay  = 2;
-  config_settings.astro_limit  = 999;
+  //config_settings.astro_delay  = 2;
+  //config_settings.astro_limit  = 999;
 }
 
 bool settings_load() {
@@ -49,6 +51,8 @@ void settings_init() {
 void settings_save() {
   // save the data with a valid checksum so it can be loaded next time
   config_settings.magic = CONFIGSETTINGS_MAGIC;
+  config_settings.len = sizeof(configsettings_t);
+
   uint32_t crc_calced = CHECKSUM(&config_settings, sizeof(configsettings_t) - sizeof(uint32_t));
   config_settings.crc32 = crc_calced;
   EEPROM.writeBytes(0, (const void*)(&config_settings), sizeof(configsettings_t));

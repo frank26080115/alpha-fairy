@@ -34,12 +34,20 @@ void conf_settings(void* mip)
 
     if (btnSide_hasPressed(true))
     {
-      menustate_confsettings.idx = (menustate_confsettings.idx >= menustate_confsettings.idx) ? 0 : (menustate_confsettings.idx + 1);
+      menustate_confsettings.idx = (menustate_confsettings.idx >= menustate_confsettings.cnt) ? 0 : (menustate_confsettings.idx + 1);
       M5Lcd.fillScreen(TFT_BLACK); // item has changed so clear the screen
     }
 
+    if (batt_need_recheck) {
+      batt_need_recheck = false;
+      M5Lcd.fillScreen(TFT_BLACK);
+      if (is_low_batt()) {
+        battlow_draw(true);
+      }
+    }
+
     configitem_t* cfgitm = (configitem_t*)&(config_items[menustate_confsettings.idx]);
-    if (menustate_confsettings.idx == menustate_confsettings.idx) // last item is the exit item
+    if (menustate_confsettings.idx == menustate_confsettings.cnt) // last item is the exit item
     {
       M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);
       M5Lcd.print("Save and Go Back");
@@ -58,6 +66,9 @@ void conf_settings(void* mip)
       M5Lcd.println();
       gui_setCursorNextLine();
       gui_valIncDec(cfgitm);
+    }
+    if (is_low_batt()) {
+      battlow_draw(true);
     }
   }
 }

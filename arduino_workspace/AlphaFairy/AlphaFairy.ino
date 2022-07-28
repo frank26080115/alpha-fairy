@@ -17,17 +17,18 @@ void wifi_info      (void* mip);
 void record_movie   (void* mip);
 void conf_settings  (void* mip);
 void submenu_enter  (void* mip);
+void intervalometer_config(void* mip);
 
 void on_got_client(uint32_t ip);
 
 const menuitem_t menu_items_main[] = {
     // ID                   , FILE-NAME            , FUNCTION POINTER
-    { MENUITEM_REMOTE,        "/main_remote.png"   , submenu_enter },
-    { MENUITEM_FOCUS,         "/main_focus.png"    , submenu_enter },
-    { MENUITEM_INTERVAL,      "/main_interval.png" , submenu_enter },
-    { MENUITEM_ASTRO,         "/main_astro.png"    , submenu_enter },
-    { MENUITEM_UTILS,         "/main_utils.png"    , submenu_enter },
-    { MENUITEM_END_OF_TABLE , ""                   , NULL          }, // menu length is counted at run-time
+    { MENUITEM_REMOTE,        "/main_remote.png"   , submenu_enter         },
+    { MENUITEM_FOCUS,         "/main_focus.png"    , submenu_enter         },
+    { MENUITEM_INTERVAL,      "/main_interval.png" , intervalometer_config },
+    { MENUITEM_ASTRO,         "/main_astro.png"    , intervalometer_config },
+    { MENUITEM_UTILS,         "/main_utils.png"    , submenu_enter         },
+    { MENUITEM_END_OF_TABLE , ""                   , NULL                  }, // menu length is counted at run-time
 };
 
 const menuitem_t menu_items_remote[] = {
@@ -72,6 +73,8 @@ menustate_t* curmenu = &menustate_main;
 
 DebuggingSerial dbg_ser(&Serial);
 
+uint32_t gpio_time = 0; // keeps track of the GPIO shutter activation time so it doesn't get stuck
+
 void setup()
 {
     settings_init();
@@ -115,12 +118,26 @@ void loop()
 
 bool app_poll()
 {
+    uint32_t now;
+
     // high priority tasks
     ledblink_task();
     NetMgr_task();
     camera.task();
     if (camera.getState() >= PTPSTATE_DISCONNECTED) {
         NetMgr_reset();
+    }
+
+    if (gpio_time != 0)
+    {
+        // release the GPIO after a timeout
+        uint32_t telapsed = millis() - gpio_time;
+        int32_t tlimit = config_settings.intv_bulb;
+        tlimit = (tlimit <= 0) ? config_settings.astro_bulb : tlimit;
+        if (tlimit > 0 && (telapsed >= (tlimit * 1000))) {
+            pinMode(SHUTTER_GPIO, INPUT);
+            gpio_time = 0;
+        }
     }
 
     // do low priority tasks if the networking is not busy
