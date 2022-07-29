@@ -13,11 +13,16 @@ void settings_default() {
   config_settings.len = sizeof(configsettings_t);
 
   // set the default setting values here
-  config_settings.focus_pause_time_ms   = 100;
-  config_settings.shutter_press_time_ms = 200;
-  config_settings.manual_focus_return   = 1;
-  config_settings.infrared_enabled      = 1;
-  config_settings.nine_point_dist       = 200;
+  config_settings.focus_pause_time_ms    = 100;
+  config_settings.shutter_press_time_ms  = 200;
+  config_settings.manual_focus_return    = 1;
+  config_settings.nine_point_dist        = 150;
+  config_settings.shutter_speed_step_cnt = 3;
+  config_settings.shutter_step_time_ms   = 300;
+  config_settings.infrared_enabled       = 1;
+  config_settings.gpio_enabled           = 0;
+
+  config_settings.led_enabled            = 0;
 
   config_settings.intv_bulb    = 0;
   config_settings.intv_intval  = 10;

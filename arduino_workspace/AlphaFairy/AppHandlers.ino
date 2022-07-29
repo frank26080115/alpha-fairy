@@ -1,9 +1,10 @@
 #include "AlphaFairy.h"
 
-#define APP_DOES_NOTHING
+//#define APP_DOES_NOTHING // this is only used for testing purposes
 
 void cam_shootQuick()
 {
+    // convenience function for quickly taking a photo without complicated connectivity checks
     if (camera.isOperating()) {
         camera.cmd_Shoot(config_settings.shutter_press_time_ms);
     }
@@ -17,6 +18,7 @@ void cam_shootQuick()
 
 void cam_shootQuickGpio()
 {
+    // convenience function for quickly taking a photo without complicated connectivity checks
     digitalWrite(SHUTTER_GPIO, LOW);
     pinMode(SHUTTER_GPIO, OUTPUT);
     digitalWrite(SHUTTER_GPIO, LOW);
@@ -26,6 +28,7 @@ void cam_shootQuickGpio()
 
 void cam_shootOpen()
 {
+    // convenience function for quickly taking a photo without complicated connectivity checks
     if (camera.isOperating()) {
         camera.cmd_Shutter(true);
         if (gpio_time != 0) {
@@ -46,6 +49,7 @@ void cam_shootOpen()
 
 void cam_shootClose()
 {
+    // convenience function for quickly taking a photo without complicated connectivity checks
     if (camera.isOperating()) {
         camera.cmd_Shutter(false);
         if (gpio_time != 0) {
@@ -62,13 +66,16 @@ void cam_shootClose()
     }
 }
 
-void remotes_shutter(void* mip)
+void remote_shutter(void* mip)
 {
     uint32_t tstart, now, tdiff;
     bool quit = false;
 
+    dbg_ser.println("remote_shutter");
+
     menuitem_t* menuitm = (menuitem_t*)mip;
     int time_delay = 0;
+    // determine time delay based on which menu item was used
     if (menuitm->id == MENUITEM_REMOTESHUTTER_NOW) {
         time_delay = 0;
     }
@@ -85,9 +92,12 @@ void remotes_shutter(void* mip)
     if (camera.isOperating() == false)
     {
         bool can_still_shoot = false;
-        // no camera connected via wifi so use infrared if possible
+        // no camera connected via wifi so use infrared or GPIO if possible
         if (config_settings.infrared_enabled && time_delay <= 2)
         {
+            ledblink_setMode(LEDMODE_OFF);
+            ledblink_on();
+
             if (time_delay == 2) {
                 dbg_ser.println("IR - shoot 2s");
                 SonyCamIr_Shoot2S();
@@ -96,12 +106,16 @@ void remotes_shutter(void* mip)
                 dbg_ser.println("IR - shoot");
                 SonyCamIr_Shoot();
             }
+
+            ledblink_off();
+
             can_still_shoot = true;
         }
 
         if (config_settings.gpio_enabled)
         {
             dbg_ser.print("GPIO rmt ");
+            ledblink_setMode(LEDMODE_OFF);
             if (time_delay > 0)
             {
                 dbg_ser.print("wait ");
@@ -128,11 +142,13 @@ void remotes_shutter(void* mip)
 
         if (can_still_shoot == false) {
             // show user that the camera isn't connected
-            dbg_ser.println("remotes_shutter but no camera connected");
+            dbg_ser.println("remote_shutter but no camera connected");
             app_waitAllReleaseConnecting(BTN_DEBOUNCE);
         }
         return;
     }
+
+    ledblink_setMode(LEDMODE_OFF);
 
 #ifdef APP_DOES_NOTHING
     app_waitAllRelease(BTN_DEBOUNCE);
@@ -142,64 +158,86 @@ void remotes_shutter(void* mip)
 
     // start focusing at the beginning of the countdown
     if (starting_mf == false) {
+        dbg_ser.printf("rmtshutter AF\r\n");
         camera.cmd_AutoFocus(true);
     }
 
     tstart = millis();
     now = tstart;
     quit = false;
-    // wait the countdown time
-    while (((tdiff = ((now = millis()) - tstart)) < (time_delay * 1000)) && camera.isOperating()) {
-        if (app_poll()) {
-            if (time_delay > 2) {
-                gui_drawVerticalDots(0, 20, -1, 3, time_delay, tdiff / 1000, false, TFT_GREEN, TFT_RED);
+    if (time_delay > 0)
+    {
+        dbg_ser.printf("rmtshutter wait delay %u... ", time_delay);
+        // wait the countdown time
+        while (((tdiff = ((now = millis()) - tstart)) < (time_delay * 1000)) && camera.isOperating()) {
+            if (app_poll()) {
+                if (time_delay > 2) {
+                    gui_drawVerticalDots(0, 20, -1, 3, time_delay, tdiff / 1000, false, TFT_DARKGREEN, TFT_RED);
+                }
+            }
+            if (btnSide_hasPressed(true)) {
+                quit = true;
+                break;
             }
         }
-        if (btnSide_hasPressed(true)) {
-            quit = true;
-            break;
-        }
-    }
 
-    // if user cancelled
-    if (quit) {
+        // if user cancelled
+        if (quit) {
+            dbg_ser.printf(" user cancelled\r\n");
             // end autofocus
-        if (starting_mf == false) {
-            camera.cmd_AutoFocus(false);
+            if (starting_mf == false) {
+                camera.cmd_AutoFocus(false);
+            }
+            ledblink_off();
+            app_waitAllRelease(BTN_DEBOUNCE);
+            return;
+        }
+        else {
+            dbg_ser.printf(" done\r\n");
         }
     }
 
     bool fail_shown = false;
 
     tstart = millis();
+    ledblink_on();
+    app_poll();
     if (camera.is_focused || starting_mf)
     {
         // if the camera is focused or MF, then the shutter should immediately take the picture
         camera.cmd_Shoot(config_settings.shutter_press_time_ms);
-        // TODO: implement shutter holding open in bulb mode
+        dbg_ser.printf("rmtshutter shoot\r\n");
     }
-    else if (btnBig_isPressed())
+    else if (btnBig_isPressed() || time_delay == 0)
     {
         // if the camera is not focused, we try to take the shot anyways if the user is holding the button
         camera.cmd_Shutter(true);
-        while ((btnBig_isPressed() || (starting_mf == false && camera.is_focused == false && ((now = millis()) - tstart) < 5000)) && camera.isOperating())
+        dbg_ser.printf("rmtshutter shutter open\r\n");
+        while ((btnBig_isPressed() || (starting_mf == false && camera.is_focused == false && ((now = millis()) - tstart) < 2000)) && camera.isOperating())
         {
             app_poll();
         }
         if (camera.is_focused) {
+            dbg_ser.printf("rmtshutter got focus\r\n");
             camera.wait_while_busy(config_settings.shutter_press_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
         }
         camera.cmd_Shutter(false);
+        dbg_ser.printf("rmtshutter shutter close\r\n");
     }
     else
     {
         // TODO: in this case, the camera didn't take a photo! what should we do?
         gui_drawVerticalDots(0, 20, -1, 3, time_delay > 2 ? time_delay : 5, 0, false, TFT_RED, TFT_RED);
+        dbg_ser.printf("rmtshutter cannot shoot\r\n");
+        fail_shown = true;
     }
 
     if (starting_mf == false) {
         camera.cmd_AutoFocus(false);
+        dbg_ser.printf("rmtshutter disable AF\r\n");
     }
+
+    ledblink_off();
 
     if (fail_shown) {
         app_sleep(300, true);
@@ -210,11 +248,15 @@ void remotes_shutter(void* mip)
 
 void focus_stack(void* mip)
 {
+    dbg_ser.println("focus_stack");
+
     if (camera.isOperating() == false) {
         // show user that the camera isn't connected
         app_waitAllReleaseConnecting(BTN_DEBOUNCE);
         return;
     }
+
+    ledblink_setMode(LEDMODE_OFF);
 
     menuitem_t* menuitm = (menuitem_t*)mip;
 
@@ -290,7 +332,9 @@ void focus_stack(void* mip)
         gui_drawVerticalDots(0, 20, -1, 3, 5, dot_idx, step_size > 0, TFT_GREEN, TFT_RED);
         if (is_contshoot == false)
         {
+            ledblink_on();
             camera.cmd_Shoot(config_settings.shutter_press_time_ms);
+            ledblink_off();
         }
         camera.cmd_ManualFocusStep(step_size);
         camera.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
@@ -348,11 +392,15 @@ void focus_stack(void* mip)
 
 void focus_9point(void* mip)
 {
+    dbg_ser.println("focus_9point");
+
     if (camera.isOperating() == false) {
         dbg_ser.println("focus_9point but no camera connected");
         app_waitAllReleaseConnecting(BTN_DEBOUNCE);
         return;
     }
+
+    ledblink_setMode(LEDMODE_OFF);
 
 #ifdef APP_DOES_NOTHING
     app_waitAllRelease(BTN_DEBOUNCE);
@@ -371,10 +419,10 @@ void focus_9point(void* mip)
         return;
     }
 
-    int dot_rad = 2;
-    int dot_space = 25;
-    int dot_y_start = M5Lcd.height() / 2;
-    int dot_x_start = M5Lcd.width() / 2;
+    int dot_rad = 5;
+    int dot_space = 30;
+    int dot_y_start = (M5Lcd.height() / 2) + 28;
+    int dot_x_start = (M5Lcd.width() / 2);
     // TODO:
     // the starting points of the dots need to be adjusted according to what the JPG looks like
 
@@ -412,7 +460,9 @@ void focus_9point(void* mip)
             M5Lcd.fillCircle(dot_x, dot_y, dot_rad, TFT_GREEN);
         }
         // set the point
+        dbg_ser.printf("9point x %u y %u\r\n", x, y);
         camera.cmd_FocusPointSet(x, y);
+        ledblink_on();
         camera.cmd_AutoFocus(true);
         camera.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
 
@@ -428,6 +478,7 @@ void focus_9point(void* mip)
         // take the photo
         camera.cmd_Shoot(config_settings.shutter_press_time_ms);
         camera.cmd_AutoFocus(false);
+        ledblink_off();
         camera.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
 
         if (btnBig_isPressed() == false) {
@@ -442,7 +493,62 @@ void focus_9point(void* mip)
 void shutter_step(void* mip)
 {
     dbg_ser.println("shutter_step");
+
+    if (camera.isOperating() == false) {
+        // show user that the camera isn't connected
+        app_waitAllReleaseConnecting(BTN_DEBOUNCE);
+        return;
+    }
+
+    #ifdef APP_DOES_NOTHING
     app_waitAllRelease(BTN_DEBOUNCE);
+    #endif
+
+    ledblink_setMode(LEDMODE_OFF);
+
+    bool starting_mf = camera.is_manuallyfocused();
+
+    if (starting_mf == false && camera.isOperating())
+    {
+        // use manual focus mode to avoid the complexity of waiting for autofocus
+        // assume the user has obtained focus already
+        camera.cmd_ManualFocusMode(true);
+    }
+
+    config_settings.shutter_speed_step_cnt = config_settings.shutter_speed_step_cnt <= 0 ? 1 : config_settings.shutter_speed_step_cnt; // enforce a minimum
+
+    int dot_idx = 0;
+
+    do
+    {
+        app_poll();
+        if (camera.isOperating() == false) {
+            break;
+        }
+        ledblink_on();
+        camera.cmd_Shoot(config_settings.shutter_press_time_ms);
+        ledblink_off();
+        gui_drawVerticalDots(0, 20, -1, 3, 5, dot_idx, false, TFT_GREEN, TFT_RED);
+        dot_idx++;
+        camera.wait_while_busy(config_settings.shutter_step_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+        camera.cmd_ShutterSpeedStep(config_settings.shutter_speed_step_cnt);
+        camera.wait_while_busy(config_settings.shutter_step_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+    }
+    while (btnBig_isPressed() && camera.isOperating());
+
+    uint32_t t_end_1 = millis();
+
+    if (starting_mf == false && camera.isOperating()) {
+        // restore AF state
+        camera.wait_while_busy(config_settings.shutter_step_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+        camera.cmd_ManualFocusMode(true);
+    }
+
+    // this kinda imposes a minimum button release time
+    uint32_t t_end_2 = millis();
+    if ((t_end_2 - t_end_1) < 50) {
+        app_sleep(50, true);
+    }
 }
 
 void wifi_info(void* mip)
@@ -479,6 +585,8 @@ void wifi_info(void* mip)
 
 void record_movie(void* mip)
 {
+    dbg_ser.println("record_movie");
+
     if (camera.isOperating() == false)
     {
         if (config_settings.infrared_enabled) {
@@ -498,5 +606,12 @@ void record_movie(void* mip)
 #endif
 
     camera.cmd_MovieRecordToggle();
+
+    // slight delay, for debouncing, and a chance for the movie recording status to change so we can indicate on-screen
+    uint32_t t = millis();
+    if ((millis() - t) < 300) {
+        app_sleep(50, true);
+        gui_drawMovieRecStatus();
+    }
     app_waitAllRelease(BTN_DEBOUNCE);
 }

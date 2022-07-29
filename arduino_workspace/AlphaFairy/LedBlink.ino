@@ -4,7 +4,7 @@
 
 #ifdef LEDBLINK_USE_PWM
 
-#define LEDBLINK_PWM_CHAN 1
+#define LEDBLINK_PWM_CHAN 1 // channel 0 is occupied for buzzer
 #define LEDBLINK_PWM_RESO 8
 #define LEDBLINK_PWM_FREQ 5000
 
@@ -16,9 +16,11 @@ uint8_t ledblink_mode = LEDMODE_NORMAL;
 void ledblink_on()
 {
     #ifndef LEDBLINK_USE_PWM
-    digitalWrite(PIN_CORNER_LED, LOW);
+    if (config_settings.led_enabled != 0) {
+        digitalWrite(PIN_CORNER_LED, LOW);
+    }
     #else
-    ledcWrite(LEDBLINK_PWM_CHAN, LEDBLINK_PWM_DUTY_ON);
+    ledcWrite(LEDBLINK_PWM_CHAN, (config_settings.led_enabled != 0) ? LEDBLINK_PWM_DUTY_ON : LEDBLINK_PWM_DUTY_OFF);
     #endif
     led_is_on = true;
 }
@@ -56,6 +58,12 @@ void ledblink_init()
 void ledblink_setMode(uint8_t x)
 {
     ledblink_mode = x;
+    if (x == LEDMODE_OFF) {
+        // turn off the LED here
+        // we don't want to do this in a loop
+        // this way, OFF mode can still have the application control the LED
+        ledblink_off();
+    }
 }
 
 void ledblink_task()
@@ -65,7 +73,7 @@ void ledblink_task()
     {
         ledblink_on();
     }
-    else
+    else if (ledblink_mode != LEDMODE_OFF)
     {
         uint32_t now = millis();
         if (ledblink_mode == LEDMODE_BLINK) // application wants a rapid blink (for stuff like user held down the button)

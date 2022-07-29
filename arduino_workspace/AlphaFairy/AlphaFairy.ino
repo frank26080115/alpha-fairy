@@ -9,7 +9,7 @@
 
 PtpIpSonyAlphaCamera camera((char*)"Alpha-Fairy", NULL);
 
-void remotes_shutter(void* mip);
+void remote_shutter (void* mip);
 void focus_stack    (void* mip);
 void focus_9point   (void* mip);
 void shutter_step   (void* mip);
@@ -33,10 +33,10 @@ const menuitem_t menu_items_main[] = {
 
 const menuitem_t menu_items_remote[] = {
     // ID                       , FILE-NAME               , FUNCTION POINTER
-    { MENUITEM_REMOTESHUTTER_NOW, "/remoteshutter.png"    , remotes_shutter },
-    { MENUITEM_REMOTESHUTTER_2S , "/remoteshutter_2s.png" , remotes_shutter },
-    { MENUITEM_REMOTESHUTTER_5S , "/remoteshutter_5s.png" , remotes_shutter },
-    { MENUITEM_REMOTESHUTTER_10S, "/remoteshutter_10.png" , remotes_shutter },
+    { MENUITEM_REMOTESHUTTER_NOW, "/remoteshutter.png"    , remote_shutter },
+    { MENUITEM_REMOTESHUTTER_2S , "/remoteshutter_2s.png" , remote_shutter },
+    { MENUITEM_REMOTESHUTTER_5S , "/remoteshutter_5s.png" , remote_shutter },
+    { MENUITEM_REMOTESHUTTER_10S, "/remoteshutter_10.png" , remote_shutter },
     { MENUITEM_RECORDMOVIE      , "/recordmovie.png"      , record_movie    },
     { MENUITEM_BACK             , "/back.png"             , NULL            },
     { MENUITEM_END_OF_TABLE     , ""                      , NULL            }, // menu length is counted at run-time
@@ -93,7 +93,17 @@ void setup()
         delay(500);
     }
     cmdline.print_prompt();
-    NetMgr_begin((char*)"afairywifi", (char*)"1234567890", on_got_client);
+    #ifdef WIFI_AP_UNIQUE_NAME
+        char wifi_ap_name[64];
+        uint8_t wifi_ap_mac[16];
+        WiFi.macAddress(wifi_ap_mac);
+        sprintf(wifi_ap_name, "fairy-%u%u%u", wifi_ap_mac[0], wifi_ap_mac[1], wifi_ap_mac[2]);
+        Serial.print("WiFi AP Name: ");
+        Serial.println(wifi_ap_name);
+        NetMgr_begin((char*)wifi_ap_name, (char*)"1234567890", on_got_client);
+    #else
+        NetMgr_begin((char*)"afairywifi", (char*)"1234567890", on_got_client);
+    #endif
 
     guimenu_init(MENUITEM_MAIN  , &menustate_main  , (menuitem_t*)menu_items_main  );
     guimenu_init(MENUITEM_REMOTE, &menustate_remote, (menuitem_t*)menu_items_remote);
@@ -101,6 +111,10 @@ void setup()
     guimenu_init(MENUITEM_UTILS , &menustate_utils , (menuitem_t*)menu_items_utils );
 
     dbg_ser.printf("finished setup() at %u ms\r\n", millis());
+
+    // clear the button flags
+    btnBig_hasPressed(true);
+    btnSide_hasPressed(true);
 
     welcome(); // splash screen for a few seconds
 }
@@ -134,7 +148,9 @@ bool app_poll()
         uint32_t telapsed = millis() - gpio_time;
         int32_t tlimit = config_settings.intv_bulb;
         tlimit = (tlimit <= 0) ? config_settings.astro_bulb : tlimit;
-        if (tlimit > 0 && (telapsed >= (tlimit * 1000))) {
+        tlimit *= 1000; // previous units were in seconds, next unit is in milliseconds
+        tlimit = (tlimit <= 0) ? config_settings.shutter_press_time_ms : tlimit;
+        if (tlimit > 0 && (telapsed >= tlimit)) {
             pinMode(SHUTTER_GPIO, INPUT);
             gpio_time = 0;
         }
@@ -185,6 +201,8 @@ void app_waitAnyPress()
 
 void app_waitAllRelease(uint32_t debounce)
 {
+    btnBig_hasPressed(true);
+    btnSide_hasPressed(true);
     if (btnSide_isPressed() == false && btnBig_isPressed() == false)
     {
         return;
@@ -204,6 +222,8 @@ void app_waitAllRelease(uint32_t debounce)
 
 void app_waitAllReleaseConnecting(uint32_t debounce)
 {
+    btnBig_hasPressed(true);
+    btnSide_hasPressed(true);
     if (btnSide_isPressed() == false && btnBig_isPressed() == false)
     {
         return;
@@ -218,11 +238,12 @@ void app_waitAllReleaseConnecting(uint32_t debounce)
         if (app_poll()) {
             gui_drawConnecting(false);
         }
-        if (btnSide_isPressed() || btnBig_isPressed()) {
-            last_time = millis();
-        }
         if (camera.isOperating()) {
             return;
+        }
+        if (btnSide_isPressed() || btnBig_isPressed()) {
+            last_time = millis();
+            continue;
         }
     }
     while ((last_time - (now = millis())) < debounce);

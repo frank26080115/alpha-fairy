@@ -50,6 +50,7 @@ enum
   LEDMODE_NORMAL,
   LEDMODE_BLINK,
   LEDMODE_ON,
+  LEDMODE_OFF,
 };
 
 enum

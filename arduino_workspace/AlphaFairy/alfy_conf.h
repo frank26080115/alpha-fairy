@@ -1,6 +1,8 @@
 #ifndef _ALFY_CONF_H_
 #define _ALFY_CONF_H_
 
+//#define WIFI_AP_UNIQUE_NAME
+
 #define LEDBLINK_USE_PWM
 #define LEDBLINK_PWM_DUTY_ON  (0xFF - 16)
 #define LEDBLINK_PWM_DUTY_OFF 0xFF

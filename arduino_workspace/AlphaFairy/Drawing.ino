@@ -82,10 +82,19 @@ void gui_drawVerticalDots(int x_offset, int y_margin, int y_offset, int dot_radi
     }
 }
 
+void gui_drawMovieRecStatus()
+{
+    uint16_t colour = TFT_WHITE;
+    if (camera.isOperating() && camera.is_movierecording()) {
+        colour = TFT_RED;
+    }
+    uint32_t x = 11, r = 5, y = 47;
+    M5Lcd.fillCircle(x, y, r, colour);
+}
+
 void guimenu_drawScreen(menuitem_t* menu)
 {
     M5Lcd.setRotation(0);
-    Serial.println(menu->fname);
     M5Lcd.drawPngFile(SPIFFS, menu->fname, 0, 0);
 }
 
@@ -151,8 +160,11 @@ void gui_blankRestOfLine()
 
 void gui_formatSecondsTime(int32_t x, char* str, bool shorten)
 {
+    // format time in 00:00:00 format when provided in seconds
+    // optionally shortens to 0H:00 format when the time is very long
     int i = 0;
     if (x < 0) {
+        // negative sign
         i += sprintf(&(str[i]), "-");
         x *= -1;
     }
@@ -163,6 +175,7 @@ void gui_formatSecondsTime(int32_t x, char* str, bool shorten)
     if (hrs > 0) {
         i += sprintf(&(str[i]), "%u", hrs);
         if (shorten) {
+            // add a H just so we understand it's HH:MM instead of MM:SS
             i += sprintf(&(str[i]), "H");
         }
         i += sprintf(&(str[i]), ":");
@@ -191,6 +204,7 @@ void gui_showVal(int32_t x, uint8_t cfgfmt, Print* printer)
     }
     else if ((cfgfmt & CFGFMT_BULB) != 0) {
         if (x == 0) {
+            // when bulb = 0, the shutter speed setting on the camera is used
             i += sprintf(&(str[i]), "(Tv)");
         }
         else {
@@ -204,10 +218,13 @@ void gui_showVal(int32_t x, uint8_t cfgfmt, Print* printer)
         gui_formatSecondsTime(x, str, false);
     }
     else if ((cfgfmt & CFGFMT_TIMEMS) != 0) {
+        // if time is provided in milliseconds
+        // print the time as usual (after calculating the whole seconds)
         x = x < 0 ? 0 : x;
         uint32_t tsec = x / 1000;
-        uint32_t tsubsec = (x / 100) % 10;
+        uint32_t tsubsec = (x / 100) % 10; // get one decimal place
         gui_formatSecondsTime(tsec, str, false);
+        // add one decimal place
         sprintf(&(str[strlen(str)]), ".%d", tsubsec);
     }
     else {
@@ -220,13 +237,13 @@ void gui_showVal(int32_t x, uint8_t cfgfmt, Print* printer)
 
 void gui_showValOnLcd(int32_t val, uint8_t cfgfmt, int lcdx, int lcdy, int8_t dir, bool blank_rest)
 {
-    M5Lcd.setCursor(lcdx, lcdy);
-    gui_showVal(val, cfgfmt, (Print*)&M5Lcd);
+    M5Lcd.setCursor(lcdx, lcdy); // important to keep the coordinate for quick overwriting
+    gui_showVal(val, cfgfmt, (Print*)&M5Lcd); // show the value
     if (dir != 0) {
-        M5Lcd.print((dir > 0) ? " + " : " - ");
+        M5Lcd.print((dir > 0) ? " + " : " - "); // indicate if button press will increment or decrement
     }
     else {
-        M5Lcd.print("   ");
+        M5Lcd.print("   "); // blanks the indicator
     }
     if (blank_rest) {
         gui_blankRestOfLine();
@@ -294,9 +311,9 @@ void gui_valIncDec(configitem_t* cfgitm)
         press_time = millis();
         gui_showValOnLcd((*val_ptr), cfgfmt, lcdx, lcdy, next_step, true);
         uint32_t dly = 500; // press-and-hold repeating delay
-        int step_cnt = 0; // used to
-        int tens = 10 * next_step * ((next_step < 0) ? (-1) : (1));
-        while (btnBig_isPressed())
+        int step_cnt = 0; // used to make sure at least some steps are done at minimum step size
+        int tens = 10 * next_step * ((next_step < 0) ? (-1) : (1)); // if the step size starts at 1 or 10, these cases are handled
+        while (btnBig_isPressed()) // is press-and-hold
         {
             app_poll();
             uint32_t now = millis();
@@ -354,9 +371,14 @@ void welcome()
     }
     if (btn_quit)
     {
+        dbg_ser.printf("welcome exit via button\r\n");
         app_waitAllRelease(BTN_DEBOUNCE);
         return;
     }
+    dbg_ser.printf("welcome ended due to timeout\r\n");
+
+    dbg_ser.printf("conn-wait-screen... ");
+
     // show camera is still connecting
     if (camera.isOperating() == false)
     {
@@ -369,9 +391,11 @@ void welcome()
             if (btnBig_hasPressed(true) || btnSide_hasPressed(true) || camera.isOperating())
             {
                 // exit on any button press, or successful connection
+                dbg_ser.printf("event! ");
                 break;
             }
         }
     }
+    dbg_ser.printf(" done.\r\n");
     app_waitAllRelease(BTN_DEBOUNCE);
 }

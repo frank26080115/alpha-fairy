@@ -38,17 +38,17 @@ bool btnSide_hasPressed(bool clr) {
     {
         if ((millis() - btnSide_downTime) > BTN_DEBOUNCE)
         {
-            if (btnSide_isPressed())
+            //if (btnSide_isPressed())
             {
                 if (clr) {
                     btnSide_flag = false;
                 }
                 return true;
             }
-            else
-            {
-                btnSide_flag = false;
-            }
+            //else
+            //{
+            //    btnSide_flag = false;
+            //}
         }
     }
     return false;
@@ -59,17 +59,17 @@ bool btnBig_hasPressed(bool clr) {
     {
         if ((millis() - btnBig_downTime) > BTN_DEBOUNCE)
         {
-            if (btnBig_isPressed())
+            //if (btnBig_isPressed())
             {
                 if (clr) {
                     btnBig_flag = false;
                 }
                 return true;
             }
-            else
-            {
-                btnBig_flag = false;
-            }
+            //else
+            //{
+            //    btnBig_flag = false;
+            //}
         }
     }
     return false;

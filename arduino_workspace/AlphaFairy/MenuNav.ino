@@ -48,6 +48,11 @@ bool guimenu_task(menustate_t* m)
         imu_hasChange = false;
     }
 
+    if (m->items[m->idx].id == MENUITEM_RECORDMOVIE) {
+        // indicate a tally light on the screen
+        gui_drawMovieRecStatus();
+    }
+
     if (btnBig_hasPressed(true))
     {
         menuitem_t* menuitm = (menuitem_t*)&(m->items[m->idx]);

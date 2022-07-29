@@ -33,9 +33,13 @@ typedef struct
   int32_t focus_pause_time_ms;
   int32_t shutter_press_time_ms;
   int32_t manual_focus_return;
-  int32_t infrared_enabled;
   int32_t nine_point_dist;
+  int32_t shutter_speed_step_cnt;
+  int32_t shutter_step_time_ms;
+  int32_t infrared_enabled;
   int32_t gpio_enabled;
+
+  int32_t led_enabled;
 
   int32_t intv_bulb;
   int32_t intv_intval;

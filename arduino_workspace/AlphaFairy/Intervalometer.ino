@@ -155,7 +155,9 @@ void intervalometer_config(void* mip)
             if (btnBig_hasPressed(true))
             {
                 settings_save();
+                ledblink_setMode(LEDMODE_OFF);
                 intervalometer_run(menuitm->id);
+                ledblink_setMode(LEDMODE_NORMAL);
                 gui_startPrint();
                 M5Lcd.fillScreen(TFT_BLACK);
                 interval_drawIcon(menuitm->id);
@@ -272,7 +274,7 @@ void intervalometer_run(uint8_t id)
     t = now;
 
     // for the number of frames we want (or infinite if negative)
-    for (; cnt != 0 && stop_flag == false; cnt--)
+    for (; cnt != 0 && stop_flag == false; )
     {
         app_poll();
         if (btnSide_hasPressed(true))
@@ -299,6 +301,7 @@ void intervalometer_run(uint8_t id)
             stop_flag |= intervalometer_wait(bulb, t, cnt, "Shutter Open", true, total_period);
             cam_shootClose();
         }
+        cnt--;
 
         if (stop_flag) {
             break;
