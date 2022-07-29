@@ -46,6 +46,9 @@ class PtpIpSonyAlphaCamera : public PtpIpCamera
         bool cmd_MovieRecordToggle();
         bool cmd_ManualFocusMode(bool onoff);
         bool cmd_ManualFocusToggle(bool onoff);
+        bool cmd_ShutterSpeedStep(int8_t step);
+        bool cmd_ShutterSpeedSet(int16_t numerator, int16_t denominator);
+        bool cmd_ShutterSpeedSet32(uint32_t x);
 
         bool need_check_properties;
         bool properties_pending;
@@ -54,6 +57,8 @@ class PtpIpSonyAlphaCamera : public PtpIpCamera
 
         bool propdecode_weird_string;
         bool propdecode_weird_form;
+
+        uint32_t* table_shutter_speed;
 };
 
 #endif

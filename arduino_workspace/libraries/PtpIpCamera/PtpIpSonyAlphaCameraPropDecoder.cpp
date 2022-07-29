@@ -187,6 +187,15 @@ void PtpIpSonyAlphaCamera::decode_properties()
             {
                 uint16_t enumcnt = *(uint16_t*)(&(p[i]));
                 i += 2;
+                if (table_shutter_speed == NULL && propcode == SONYALPHA_PROPCODE_ShutterSpeed && dsz == 4 && enumcnt != 0) {
+                    table_shutter_speed = (uint32_t*)malloc((enumcnt * dsz) + sizeof(uint32_t));
+                    memcpy((void*)&(table_shutter_speed[1]), (void*)&(p[i]), enumcnt * dsz);
+                    table_shutter_speed[0] = enumcnt;
+                    dbgser_events->printf("tbl_shutter_speed created %u\r\n", enumcnt);
+                }
+                else if (table_shutter_speed != NULL && propcode == SONYALPHA_PROPCODE_ShutterSpeed && dsz == 4) {
+                    dbgser_devprop_dump->printf(" tbl_shutter_speed ready %u\r\n", enumcnt);
+                }
                 i += enumcnt * dsz;
                 dbgser_devprop_dump->printf(" [FRM ENUM %d]", enumcnt);
                 continue;
@@ -196,9 +205,27 @@ void PtpIpSonyAlphaCamera::decode_properties()
                 // weird form, seems to have two forms
                 uint16_t enumcnt = *(uint16_t*)(&(p[i]));
                 i += 2;
+                if (table_shutter_speed == NULL && propcode == SONYALPHA_PROPCODE_ShutterSpeed && dsz == 4 && enumcnt != 0) {
+                    table_shutter_speed = (uint32_t*)malloc((enumcnt * dsz) + sizeof(uint32_t));
+                    memcpy((void*)&(table_shutter_speed[1]), (void*)&(p[i]), enumcnt * dsz);
+                    table_shutter_speed[0] = enumcnt;
+                    dbgser_events->printf("tbl_shutter_speed created %u\r\n", enumcnt);
+                }
+                else if (table_shutter_speed != NULL && propcode == SONYALPHA_PROPCODE_ShutterSpeed && dsz == 4) {
+                    dbgser_devprop_dump->printf(" tbl_shutter_speed ready %u\r\n", enumcnt);
+                }
                 i += enumcnt * dsz;
                 uint16_t enumcnt2 = *(uint16_t*)(&(p[i]));
                 i += 2;
+                if (table_shutter_speed == NULL && propcode == SONYALPHA_PROPCODE_ShutterSpeed && dsz == 4 && enumcnt2 != 0) {
+                    table_shutter_speed = (uint32_t*)malloc((enumcnt2 * dsz) + sizeof(uint32_t));
+                    memcpy((void*)&(table_shutter_speed[1]), (void*)&(p[i]), enumcnt2 * dsz);
+                    table_shutter_speed[0] = enumcnt2;
+                    dbgser_events->printf("tbl_shutter_speed created %u\r\n", enumcnt2);
+                }
+                else if (table_shutter_speed != NULL && propcode == SONYALPHA_PROPCODE_ShutterSpeed && dsz == 4) {
+                    dbgser_devprop_dump->printf(" tbl_shutter_speed ready %u\r\n", enumcnt2);
+                }
                 i += enumcnt2 * dsz;
                 dbgser_devprop_dump->printf(" [FRM ENUMx2 %d]", (enumcnt + enumcnt2));
             }

@@ -8,7 +8,7 @@
 #define PTPIP_PACKET_TIMEOUT 5000
 #define PTPIP_ERROR_THRESH 10
 
-#define PTPIP_DEBUG_RX
+//#define PTPIP_DEBUG_RX
 
 PtpIpCamera::PtpIpCamera(char* name) {
     strcpy(my_name, name);
@@ -36,7 +36,7 @@ PtpIpCamera::PtpIpCamera(char* name) {
     #endif
     dbgser_tx->enabled = false;
     dbgser_devprop_dump->  enabled = false;
-    dbgser_devprop_change->enabled = false;
+    dbgser_devprop_change->enabled = true;
 }
 
 void PtpIpCamera::begin(uint32_t ip) {
