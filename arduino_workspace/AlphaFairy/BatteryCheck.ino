@@ -2,43 +2,118 @@
 #include <M5StickCPlus.h>
 #include <M5DisplayExt.h>
 
-bool batt_need_recheck = false;
+uint8_t batt_status = BATTSTAT_NONE;
 
-bool is_low_batt()
+float batt_vbus  = -1;
+float batt_vbatt = -1;
+float batt_ibatt = -1;
+float batt_ibatt_max = -1;
+
+void gui_drawStatusBar(bool is_black)
 {
-    static uint32_t last_time = 0;
+    static uint8_t li = 0;
+    static uint32_t batt_last_time = 0;
     uint32_t now;
+    static const char* txt_white = "_white";
+    static const char* txt_black = "_black";
+    static const char* txt_prefix = "/status_";
+    static const char* txt_suffix = ".png";
+    char fpath[64];
 
-    static bool is_low = false;
-
-    if (((now = millis()) - last_time) > 1000 || last_time == 0)
+    if (((now = millis()) - batt_last_time) > 300 || batt_last_time == 0)
     {
-        last_time = now;
-        float vbus = M5.Axp.GetVBusVoltage();
-        float vbatt = M5.Axp.GetVBusVoltage();
-        if (vbus > 3 || vbatt > 3.4) {
-            if (is_low) {
-                batt_need_recheck = true;
-            }
-            is_low = false;
+        // only do once in a while, these are I2C transactions, could cause slowdowns
+        // I'll admit that file reading, decoding, and LCD transactions are also very slow
+        batt_last_time = now;
+        if (li == 0 || batt_vbus < 0) {
+            batt_vbus  = M5.Axp.GetVBusVoltage();
         }
-        else if (vbatt < 3.2) {
-            if (is_low == false) {
-                batt_need_recheck = true;
+        if (li == 1 || batt_vbatt < 0) {
+            batt_vbatt = M5.Axp.GetBatVoltage();
+        }
+        if (li == 2 || batt_ibatt < 0) {
+            batt_ibatt = M5.Axp.GetBatCurrent();
+        }
+        li = (li + 1) % 3;
+
+        // the PMIC gives us a lot of data to use
+        if (batt_vbus > batt_vbatt && batt_ibatt >= 0) // check if USB power is available
+        {
+            if (batt_vbatt > 4.1 && batt_ibatt >= 0)
+            {
+                // high vbatt and no in-flow current means battery is full
+                // but there's a case when there's a constant trickle into the battery that never stops (I don't know why)
+                // so we track what the maximum in-flow current is and see if it drops
+
+                batt_status = BATTSTAT_CHARGING;
+                batt_ibatt_max = (batt_ibatt > batt_ibatt_max) ? batt_ibatt : batt_ibatt_max;
+
+                if (batt_ibatt <= 20) {
+                    batt_status = BATTSTAT_FULL;
+                }
+                else {
+                    if (batt_ibatt < (batt_ibatt_max * 0.8)) {
+                        batt_status = BATTSTAT_FULL;
+                    }
+                }
             }
-            is_low = true;
+        }
+        else
+        {
+            // not charging, check if battery is low
+
+            if (batt_status == BATTSTAT_LOW) {
+                // already low, see if it magically recharged itself
+                if (batt_vbatt > 3.4) {
+                    batt_status = BATTSTAT_NONE;
+                }
+            }
+            else {
+                // just became low
+                if (batt_vbatt < 3.2) {
+                    batt_status = BATTSTAT_LOW;
+                }
+                else if (batt_vbatt < 4.1) {
+                    batt_status = BATTSTAT_NONE;
+                }
+            }
         }
     }
 
-    return is_low;
-}
+    static uint32_t max_x = 0;
+    uint32_t icon_width  = 32;
+    uint32_t icon_height = 14; // should be 12, but 14 looks better
+    uint32_t x = 0;
+    uint32_t y = M5Lcd.height() - icon_height;
 
-void battlow_draw(bool is_black)
-{
-    if (is_black) {
-        M5Lcd.drawPngFile(SPIFFS, "/lowbatt_black.png", 0, M5Lcd.height() - 12);
+    // draw required status icons from left to right
+
+    if (batt_status != BATTSTAT_NONE) {
+        if (batt_status == BATTSTAT_LOW) {
+            sprintf(fpath, "%slowbatt%s%s", txt_prefix, is_black ? txt_black : txt_white, txt_suffix);
+        }
+        else if (batt_status == BATTSTAT_FULL) {
+            sprintf(fpath, "%sfullbatt%s%s", txt_prefix, is_black ? txt_black : txt_white, txt_suffix);
+        }
+        else if (batt_status == BATTSTAT_CHARGING) {
+            sprintf(fpath, "%scharging%s%s", txt_prefix, is_black ? txt_black : txt_white, txt_suffix);
+        }
+        M5Lcd.drawPngFile(SPIFFS, fpath, x, y);
+        x += icon_width;
     }
-    else {
-        M5Lcd.drawPngFile(SPIFFS, "/lowbatt_white.png", 0, M5Lcd.height() - 12);
+    if (camera.isOperating() == false) {
+        sprintf(fpath, "%snocam%s%s", txt_prefix, is_black ? txt_black : txt_white, txt_suffix);
+        M5Lcd.drawPngFile(SPIFFS, fpath, x, y);
+        x += icon_width;
+    }
+
+    if (x > max_x) {
+        // track the largest status bar we've made so we can clear it
+        max_x = x;
+    }
+
+    if (x < max_x) {
+        // clear the blank space of the status bar
+        M5Lcd.fillRect(x, y, max_x - x, icon_height, is_black ? TFT_BLACK : TFT_WHITE);
     }
 }

@@ -40,18 +40,6 @@ void conf_settings(void* mip)
       menustate_confsettings.idx = (menustate_confsettings.idx >= menustate_confsettings.cnt) ? 0 : (menustate_confsettings.idx + 1);
       M5Lcd.fillScreen(TFT_BLACK); // item has changed so clear the screen
       conf_drawIcon();
-      if (batt_need_recheck && is_low_batt()) {
-        batt_need_recheck = false;
-        battlow_draw(true);
-      }
-    }
-
-    if (batt_need_recheck) {
-      batt_need_recheck = false;
-      if (is_low_batt() == false) {
-        M5Lcd.fillScreen(TFT_BLACK);
-        conf_drawIcon();
-      }
     }
 
     configitem_t* cfgitm = (configitem_t*)&(config_items[menustate_confsettings.idx]);
@@ -84,15 +72,12 @@ void conf_settings(void* mip)
       gui_setCursorNextLine();
       gui_valIncDec(cfgitm);
     }
-    if (batt_need_recheck && is_low_batt()) {
-      batt_need_recheck = false;
-      battlow_draw(true);
-    }
     conf_drawIcon();
   }
 }
 
 void conf_drawIcon()
 {
+    gui_drawStatusBar(true);
     M5Lcd.drawPngFile(SPIFFS, "/config_icon.png", M5Lcd.width() - 60, M5Lcd.height() - 60);
 }

@@ -97,6 +97,8 @@ class PtpIpCamera
         uint32_t stats_pkts;
 #endif
 
+        uint8_t critical_error_cnt;
+
     protected:
         int state;
         int substate;

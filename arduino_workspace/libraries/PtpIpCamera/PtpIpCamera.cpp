@@ -18,6 +18,7 @@ PtpIpCamera::PtpIpCamera(char* name) {
     stats_acks = 0;
     stats_tx = 0;
     #endif
+    critical_error_cnt = 0;
 
     dbgser_important       = new DebuggingSerial(&Serial);
     dbgser_states          = new DebuggingSerial(&Serial);
@@ -106,6 +107,7 @@ void PtpIpCamera::task()
         else if ((now - last_rx_time) > PTPIP_CONN_TIMEOUT) {
             dbgser_important->printf("PTP connection timed out\r\n");
             state = PTPSTATE_DISCONNECTED;
+            critical_error_cnt++;
             return;
         }
     }

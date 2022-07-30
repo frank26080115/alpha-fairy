@@ -24,20 +24,12 @@ bool guimenu_task(menustate_t* m)
         }
     }
 
-    if (batt_need_recheck) {
-        // if battery state changed, force a redraw
-        batt_need_recheck = false;
-        m->last_idx = -1;
-    }
-
     if (m->last_idx != m->idx) { // prevent unnecessary re-draws
         guimenu_drawScreen(&(m->items[m->idx]));
         if ((m->flags & MENUFLAG_DRAW_PAGES) != 0) {
             guimenu_drawPages();
         }
-        if (is_low_batt()) {
-            battlow_draw(false);
-        }
+        gui_drawStatusBar(false);
         m->last_idx = m->idx;
         app_sleep(50, true); // kinda sorta a debounce and rate limit, don't think I need this here
     }

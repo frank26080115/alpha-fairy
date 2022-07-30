@@ -163,6 +163,11 @@ bool app_poll()
         yield();
         return true; // can do more low priority tasks
     }
+
+    if (camera.critical_error_cnt > 2) {
+        critical_error();
+    }
+
     return false; // should not do more low priority tasks
 }
 
@@ -247,4 +252,27 @@ void app_waitAllReleaseConnecting(uint32_t debounce)
         }
     }
     while ((last_time - (now = millis())) < debounce);
+}
+
+void critical_error()
+{
+    uint32_t t = millis(), now = t;
+    esp_wifi_disconnect();
+    esp_wifi_stop();
+    esp_wifi_deinit();
+    M5Lcd.setRotation(0);
+    M5Lcd.drawPngFile(SPIFFS, "/crit_error.png", 0, 0);
+    while (true)
+    {
+        if (btnBig_hasPressed(true) || btnSide_hasPressed(true)) {
+            delay(100);
+            while (btnBig_isPressed() || btnSide_isPressed()) {
+                delay(100);
+            }
+            ESP.restart();
+        }
+        if (((now = millis()) - t) > 2000) {
+            Serial.println("CRITICAL ERROR");
+        }
+    }
 }

@@ -354,6 +354,9 @@ void gui_valIncDec(configitem_t* cfgitm)
 
 void welcome()
 {
+    return; // welcome screen disabled
+
+#if 0
     // show a splash screen first
     M5Lcd.setRotation(0);
     M5Lcd.drawPngFile(SPIFFS, "/welcome.png", 0, 0);
@@ -398,4 +401,5 @@ void welcome()
     }
     dbg_ser.printf(" done.\r\n");
     app_waitAllRelease(BTN_DEBOUNCE);
+#endif
 }

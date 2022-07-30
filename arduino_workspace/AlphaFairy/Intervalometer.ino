@@ -52,23 +52,10 @@ void intervalometer_config(void* mip)
     {
         app_poll();
 
-        if (batt_need_recheck) {
-            // if battery state changed, force a redraw
-            batt_need_recheck = false;
-            M5Lcd.fillScreen(TFT_BLACK); // item has changed so clear the screen
-            if (is_low_batt()) {
-                battlow_draw(true);
-            }
-            interval_drawIcon(menuitm->id);
-        }
-
         if (btnSide_hasPressed(true))
         {
             m->idx = (m->idx >= m->cnt) ? 0 : (m->idx + 1);
             M5Lcd.fillScreen(TFT_BLACK); // item has changed so clear the screen
-            if (is_low_batt()) {
-                battlow_draw(true);
-            }
             interval_drawIcon(menuitm->id);
         }
 
@@ -189,9 +176,6 @@ void intervalometer_config(void* mip)
                 gui_blankRestOfLine();
             }
         }
-        if (is_low_batt()) {
-            battlow_draw(true);
-        }
         interval_drawIcon(menuitm->id);
     }
 }
@@ -204,6 +188,7 @@ void interval_drawIcon(uint8_t id)
     else if (id == MENUITEM_ASTRO) {
         M5Lcd.drawPngFile(SPIFFS, "/galaxy_icon.png", M5Lcd.width() - 60, M5Lcd.height() - 60);
     }
+    gui_drawStatusBar(true);
 }
 
 void interval_drawTimer(int8_t x)
@@ -219,6 +204,9 @@ void interval_drawTimer(int8_t x)
     i %= 12;
     sprintf(fname, "/timer_%u.png", i);
     M5Lcd.drawPngFile(SPIFFS, fname, M5Lcd.width() - 60, M5Lcd.height() - 60);
+    if (i == 0) {
+        gui_drawStatusBar(true);
+    }
 }
 
 uint32_t interval_calcTotal(uint8_t menu_id)
@@ -417,5 +405,17 @@ bool intervalometer_wait(int32_t twait, uint32_t tstart, int32_t cnt, const char
         }
         interval_drawTimer(-1);
     }
+
+    // make sure 0 is the last number shown
+    if (stop_request == false)
+    {
+        M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);
+        M5Lcd.print(msg);
+        M5Lcd.println();
+        gui_setCursorNextLine();
+        gui_showVal(0, CFGFMT_TIMEMS, (Print*)&M5Lcd); // show remaining time of zero
+        gui_blankRestOfLine();
+    }
+
     return stop_flag;
 }

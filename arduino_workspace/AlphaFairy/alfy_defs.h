@@ -64,4 +64,12 @@ enum
   CFGFMT_BYTENS = 0x80,
 };
 
+enum
+{
+  BATTSTAT_NONE,
+  BATTSTAT_LOW,
+  BATTSTAT_CHARGING,
+  BATTSTAT_FULL,
+};
+
 #endif
