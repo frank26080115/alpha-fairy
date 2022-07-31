@@ -51,12 +51,22 @@ void intervalometer_config(void* mip)
     while (true)
     {
         app_poll();
+        pwr_sleepCheck();
+
+        if (redraw_flag) {
+            redraw_flag = false;
+            gui_startPrint();
+            M5Lcd.fillScreen(TFT_BLACK);
+            conf_drawIcon();
+        }
 
         if (btnSide_hasPressed(true))
         {
             m->idx = (m->idx >= m->cnt) ? 0 : (m->idx + 1);
             M5Lcd.fillScreen(TFT_BLACK); // item has changed so clear the screen
             interval_drawIcon(menuitm->id);
+            redraw_flag = false;
+            pwr_tick();
         }
 
         configitem_t* cfgitm = (configitem_t*)&(config_items[m->idx]);
@@ -68,6 +78,7 @@ void intervalometer_config(void* mip)
             M5Lcd.drawPngFile(SPIFFS, "/back_icon.png", M5Lcd.width() - 60, 0);
             if (btnBig_hasPressed(true))
             {
+                pwr_tick();
                 settings_save();
                 return;
             }
@@ -141,6 +152,7 @@ void intervalometer_config(void* mip)
 
             if (btnBig_hasPressed(true))
             {
+                pwr_tick();
                 settings_save();
                 ledblink_setMode(LEDMODE_OFF);
                 intervalometer_run(menuitm->id);
@@ -149,6 +161,7 @@ void intervalometer_config(void* mip)
                 M5Lcd.fillScreen(TFT_BLACK);
                 interval_drawIcon(menuitm->id);
                 app_waitAllRelease(BTN_DEBOUNCE);
+                pwr_tick();
             }
         }
         else
@@ -265,6 +278,14 @@ void intervalometer_run(uint8_t id)
     for (; cnt != 0 && stop_flag == false; )
     {
         app_poll();
+
+        if (redraw_flag) {
+            redraw_flag = false;
+            gui_startPrint();
+            M5Lcd.fillScreen(TFT_BLACK);
+            M5Lcd.setTextFont(4);
+        }
+
         if (btnSide_hasPressed(true))
         {
             stop_flag = true;
@@ -331,6 +352,14 @@ bool intervalometer_wait(int32_t twait, uint32_t tstart, int32_t cnt, const char
     while ((telapsed = ((now = millis()) - tstart)) < twait)
     {
         app_poll();
+
+        if (redraw_flag) {
+            redraw_flag = false;
+            gui_startPrint();
+            M5Lcd.fillScreen(TFT_BLACK);
+            M5Lcd.setTextFont(4);
+        }
+
         if (btnSide_hasPressed(true))
         {
             if (pausable)

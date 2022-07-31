@@ -22,6 +22,7 @@ void settings_default() {
   config_settings.infrared_enabled       = 1;
   config_settings.gpio_enabled           = 0;
 
+  config_settings.pwr_save_secs          = 60;
   config_settings.led_enabled            = 0;
 
   config_settings.intv_bulb    = 0;

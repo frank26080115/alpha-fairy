@@ -4,6 +4,8 @@
 
 void PtpIpSonyAlphaCamera::decode_properties()
 {
+    critical_error_cnt = 0;
+
     properties_pending = false;
     need_check_properties = false;
     if (databuff_idx <= 0) {

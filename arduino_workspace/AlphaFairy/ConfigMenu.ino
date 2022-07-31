@@ -10,6 +10,7 @@ const configitem_t config_items[] = {
   { (int32_t*)&(config_settings.nine_point_dist        ),  240,    0,    10, "9-pt dist"              , CFGFMT_BYTENS },
   { (int32_t*)&(config_settings.shutter_speed_step_cnt ),    9,    1,     1, "Tv step size"           , CFGFMT_BYTENS },
   { (int32_t*)&(config_settings.shutter_step_time_ms   ), 1000,    0,    10, "Tv step delay"          , CFGFMT_BYTENS },
+  { (int32_t*)&(config_settings.pwr_save_secs          ), 1000,    0,    10, "power save time (s)"    , CFGFMT_BYTENS },
   { (int32_t*)&(config_settings.led_enabled            ),    1,    0,     1, "LED en"                 , CFGFMT_BOOL   },
   { (int32_t*)&(config_settings.infrared_enabled       ),    1,    0,     1, "IR en"                  , CFGFMT_BOOL   },
   { (int32_t*)&(config_settings.gpio_enabled           ),    1,    0,     1, "GPIO en"                , CFGFMT_BOOL   },
@@ -34,12 +35,22 @@ void conf_settings(void* mip)
   while (true)
   {
     app_poll();
+    pwr_sleepCheck();
+
+    if (redraw_flag) {
+        redraw_flag = false;
+        gui_startPrint();
+        M5Lcd.fillScreen(TFT_BLACK);
+        conf_drawIcon();
+    }
 
     if (btnSide_hasPressed(true))
     {
       menustate_confsettings.idx = (menustate_confsettings.idx >= menustate_confsettings.cnt) ? 0 : (menustate_confsettings.idx + 1);
       M5Lcd.fillScreen(TFT_BLACK); // item has changed so clear the screen
       conf_drawIcon();
+      pwr_tick();
+      redraw_flag = false;
     }
 
     configitem_t* cfgitm = (configitem_t*)&(config_items[menustate_confsettings.idx]);
@@ -51,6 +62,7 @@ void conf_settings(void* mip)
       M5Lcd.drawPngFile(SPIFFS, "/back_icon.png", M5Lcd.width() - 60, 0);
       if (btnBig_hasPressed(true))
       {
+        pwr_tick();
         settings_save();
         return;
       }

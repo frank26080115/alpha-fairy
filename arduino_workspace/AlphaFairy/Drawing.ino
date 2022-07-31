@@ -352,6 +352,25 @@ void gui_valIncDec(configitem_t* cfgitm)
     app_waitAllRelease(BTN_DEBOUNCE);
 }
 
+int8_t gui_drawFocusPullState()
+{
+    int ang = lroundf(imu_pitch);
+    int aang = (ang < 0) ? (-ang) : (ang);
+    int8_t n = 0;
+    char s = (ang < 0) ? 'n' : 'p';
+    static const char* prefix = "/fpull_";
+    static const char* suffix = ".png";
+    char fname[32];
+    int x = 0, y = 108;
+    if (aang >= 7) {
+        n = aang / 15;
+        n = n > 3 ? 3 : n;
+    }
+    sprintf(fname, "%s%c%d%s", prefix, s, n, suffix);
+    M5Lcd.drawPngFile(SPIFFS, fname, x, y);
+    return (ang < 0) ? (-n) : (n);
+}
+
 void welcome()
 {
     return; // welcome screen disabled

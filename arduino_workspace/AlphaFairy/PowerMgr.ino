@@ -11,6 +11,10 @@ float batt_ibatt_max = -1;
 
 void gui_drawStatusBar(bool is_black)
 {
+    #ifdef DISABLE_STATUS_BAR
+    return;
+    #endif
+
     static uint8_t li = 0;
     static uint32_t batt_last_time = 0;
     uint32_t now;
@@ -34,18 +38,24 @@ void gui_drawStatusBar(bool is_black)
         if (li == 2 || batt_ibatt < 0) {
             batt_ibatt = M5.Axp.GetBatCurrent();
         }
-        li = (li + 1) % 3;
+        if (li == 3) {
+            uint8_t b = M5.Axp.GetBtnPress();
+            if (b != 0) {
+                pwr_tick();
+            }
+        }
+        li = (li + 1) % 4;
 
         // the PMIC gives us a lot of data to use
-        if (batt_vbus > batt_vbatt && batt_ibatt >= 0) // check if USB power is available
+        if (batt_vbus > 3) // check if USB power is available
         {
+            batt_status = BATTSTAT_CHARGING;
+            pwr_tick(); // do not sleep if USB is available
             if (batt_vbatt > 4.1 && batt_ibatt >= 0)
             {
                 // high vbatt and no in-flow current means battery is full
                 // but there's a case when there's a constant trickle into the battery that never stops (I don't know why)
                 // so we track what the maximum in-flow current is and see if it drops
-
-                batt_status = BATTSTAT_CHARGING;
                 batt_ibatt_max = (batt_ibatt > batt_ibatt_max) ? batt_ibatt : batt_ibatt_max;
 
                 if (batt_ibatt <= 20) {
@@ -57,6 +67,9 @@ void gui_drawStatusBar(bool is_black)
                     }
                 }
             }
+            else if (batt_vbatt < 3.7) {
+                batt_status = BATTSTAT_CHARGING_LOW;
+            }
         }
         else
         {
@@ -64,13 +77,13 @@ void gui_drawStatusBar(bool is_black)
 
             if (batt_status == BATTSTAT_LOW) {
                 // already low, see if it magically recharged itself
-                if (batt_vbatt > 3.4) {
+                if (batt_vbatt > 3.6) {
                     batt_status = BATTSTAT_NONE;
                 }
             }
             else {
                 // just became low
-                if (batt_vbatt < 3.2) {
+                if (batt_vbatt < 3.5) {
                     batt_status = BATTSTAT_LOW;
                 }
                 else if (batt_vbatt < 4.1) {
@@ -98,6 +111,9 @@ void gui_drawStatusBar(bool is_black)
         else if (batt_status == BATTSTAT_CHARGING) {
             sprintf(fpath, "%scharging%s%s", txt_prefix, is_black ? txt_black : txt_white, txt_suffix);
         }
+        else if (batt_status == BATTSTAT_CHARGING_LOW) {
+            sprintf(fpath, "%schglow%s%s", txt_prefix, is_black ? txt_black : txt_white, txt_suffix);
+        }
         M5Lcd.drawPngFile(SPIFFS, fpath, x, y);
         x += icon_width;
     }
@@ -116,4 +132,38 @@ void gui_drawStatusBar(bool is_black)
         // clear the blank space of the status bar
         M5Lcd.fillRect(x, y, max_x - x, icon_height, is_black ? TFT_BLACK : TFT_WHITE);
     }
+}
+
+uint32_t pwr_last_tick = 0;
+
+void pwr_sleepCheck()
+{
+    #ifdef DISABLE_POWER_SAVE
+    return;
+    #else
+    if (config_settings.pwr_save_secs == 0) {
+        // feature disabled
+        return;
+    }
+
+    if (batt_vbus > 3) {
+        // no shutdown while USB is plugged
+        return;
+    }
+
+    // enforce a minimum
+    if (config_settings.pwr_save_secs < 30) {
+        config_settings.pwr_save_secs = 30;
+    }
+
+    uint32_t now = millis();
+    if ((now - pwr_last_tick) > (config_settings.pwr_save_secs * 1000)) {
+        M5.Axp.PowerOff();
+    }
+    #endif
+}
+
+void pwr_tick()
+{
+    pwr_last_tick = millis();
 }

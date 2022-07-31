@@ -551,6 +551,58 @@ void shutter_step(void* mip)
     }
 }
 
+void focus_pull(void* mip)
+{
+    dbg_ser.println("focus_pull");
+
+    if (camera.isOperating() == false) {
+        // show user that the camera isn't connected
+        app_waitAllReleaseConnecting(BTN_DEBOUNCE);
+        return;
+    }
+
+    #ifdef APP_DOES_NOTHING
+    app_waitAllRelease(BTN_DEBOUNCE);
+    #endif
+
+    ledblink_setMode(LEDMODE_OFF);
+
+    bool starting_mf = camera.is_manuallyfocused();
+
+    if (starting_mf == false && camera.isOperating()) {
+        // force into manual focus mode
+        camera.cmd_ManualFocusMode(true);
+        camera.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+    }
+
+    bool do_one = true;
+
+    while ((btnBig_isPressed() || do_one) && camera.isOperating())
+    {
+        do_one = false;
+
+        app_poll();
+        int8_t n = gui_drawFocusPullState(); // return is -3 to +3
+        // translate n into Sony's focus step sizes
+        if (n >= 0) {
+            n = (n ==  2) ?  3 : ((n ==  3) ?  7 : n);
+        }
+        else {
+            n = (n == -2) ? -3 : ((n == -3) ? -7 : n);
+        }
+        if (n != 0) {
+            camera.cmd_ManualFocusStep(n);
+            camera.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+        }
+    }
+
+    if (starting_mf == false && camera.isOperating()) {
+        // restore AF state
+        camera.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+        camera.cmd_ManualFocusMode(false);
+    }
+}
+
 void wifi_info(void* mip)
 {
     dbg_ser.println("wifi_info");

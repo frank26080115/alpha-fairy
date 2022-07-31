@@ -432,6 +432,7 @@ bool PtpIpCamera::decode_pkt(uint8_t buff[], uint32_t buff_len)
     {
         send_probe_resp();
         dbgser_events->printf("PTPIP probe request\r\n");
+        critical_error_cnt++;
     }
     else
     {

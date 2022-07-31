@@ -50,6 +50,15 @@ void NetMgr_reset()
     last_client = 0;
 }
 
+void NetMgr_reboot()
+{
+    last_client = 0;
+    esp_wifi_disconnect();
+    esp_wifi_stop();
+    esp_wifi_deinit();
+    WiFi.softAP(NetMgr_ssid, NetMgr_password);
+}
+
 char* NetMgr_getSSID() {
     return NetMgr_ssid;
 }

@@ -3,6 +3,9 @@
 
 bool guimenu_task(menustate_t* m)
 {
+    static uint32_t last_time = 0;
+    uint32_t now = millis();
+
     if (btnSide_hasPressed(true))
     {
         // side-button press means go to another menu item
@@ -22,9 +25,11 @@ bool guimenu_task(menustate_t* m)
             }
             dbg_ser.printf("menu[%u] next idx %u\r\n", m->id, m->idx);
         }
+        pwr_tick();
     }
 
-    if (m->last_idx != m->idx) { // prevent unnecessary re-draws
+    if (m->last_idx != m->idx || redraw_flag) { // prevent unnecessary re-draws
+        redraw_flag = false;
         guimenu_drawScreen(&(m->items[m->idx]));
         if ((m->flags & MENUFLAG_DRAW_PAGES) != 0) {
             guimenu_drawPages();
@@ -40,13 +45,22 @@ bool guimenu_task(menustate_t* m)
         imu_hasChange = false;
     }
 
+    if ((now - last_time) > 1000) {
+        last_time = now;
+        gui_drawStatusBar(false);
+    }
+
     if (m->items[m->idx].id == MENUITEM_RECORDMOVIE) {
         // indicate a tally light on the screen
         gui_drawMovieRecStatus();
     }
+    else if (m->items[m->idx].id == MENUITEM_FOCUS_PULL) {
+        gui_drawFocusPullState();
+    }
 
     if (btnBig_hasPressed(true))
     {
+        pwr_tick();
         menuitem_t* menuitm = (menuitem_t*)&(m->items[m->idx]);
         if (menuitm->id == MENUITEM_BACK)
         {
@@ -55,9 +69,15 @@ bool guimenu_task(menustate_t* m)
         }
         dbg_ser.printf("menu[%u] idx %u - %u calling func\r\n", m->id, m->idx, menuitm->id);
         menuitm->func((void*)menuitm);
-        m->last_idx = -1; // force redraw
+
+
+        if (m->items[m->idx].id != MENUITEM_FOCUS_PULL) { // do not redraw items that require faster response
+            m->last_idx = -1; // force redraw
+        }
+
         ledblink_setMode(LEDMODE_NORMAL);
         app_sleep(50, true); // kinda sorta a debounce and rate limit, don't think I need this here
+        pwr_tick();
     }
 
     return false;
@@ -97,6 +117,7 @@ void submenu_enter(void* mip)
                 {
                     return;
                 }
+                pwr_sleepCheck();
             }
         }
 

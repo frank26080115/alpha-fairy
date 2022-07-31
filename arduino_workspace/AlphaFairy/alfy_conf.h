@@ -2,6 +2,8 @@
 #define _ALFY_CONF_H_
 
 //#define WIFI_AP_UNIQUE_NAME
+//#define DISABLE_STATUS_BAR
+//#define DISABLE_POWER_SAVE
 
 #define LEDBLINK_USE_PWM
 #define LEDBLINK_PWM_DUTY_ON  (0xFF - 16)

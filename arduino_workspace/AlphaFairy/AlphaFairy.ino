@@ -12,6 +12,7 @@ PtpIpSonyAlphaCamera camera((char*)"Alpha-Fairy", NULL);
 void remote_shutter (void* mip);
 void focus_stack    (void* mip);
 void focus_9point   (void* mip);
+void focus_pull     (void* mip);
 void shutter_step   (void* mip);
 void wifi_info      (void* mip);
 void record_movie   (void* mip);
@@ -37,18 +38,20 @@ const menuitem_t menu_items_remote[] = {
     { MENUITEM_REMOTESHUTTER_2S , "/remoteshutter_2s.png" , remote_shutter },
     { MENUITEM_REMOTESHUTTER_5S , "/remoteshutter_5s.png" , remote_shutter },
     { MENUITEM_REMOTESHUTTER_10S, "/remoteshutter_10.png" , remote_shutter },
-    { MENUITEM_RECORDMOVIE      , "/recordmovie.png"      , record_movie    },
-    { MENUITEM_BACK             , "/back.png"             , NULL            },
-    { MENUITEM_END_OF_TABLE     , ""                      , NULL            }, // menu length is counted at run-time
+    { MENUITEM_RECORDMOVIE      , "/recordmovie.png"      , record_movie   },
+    { MENUITEM_FOCUS_PULL       , "/focus_pull.png"       , focus_pull     },
+    { MENUITEM_BACK             , "/back.png"             , NULL           },
+    { MENUITEM_END_OF_TABLE     , ""                      , NULL           }, // menu length is counted at run-time
 };
 
 const menuitem_t menu_items_focus[] = {
     // ID                       , FILE-NAME               , FUNCTION POINTER
     { MENUITEM_FOCUSSTACK_FAR_1 , "/focusstack_far_1.png" , focus_stack     },
     { MENUITEM_FOCUSSTACK_FAR_2 , "/focusstack_far_2.png" , focus_stack     },
-    { MENUITEM_FOCUSSTACK_FAR_3 , "/focusstack_far_3.png" , focus_stack     },
+    //{ MENUITEM_FOCUSSTACK_FAR_3 , "/focusstack_far_3.png" , focus_stack     },
     { MENUITEM_FOCUS_9POINT     , "/focus_9point.png"     , focus_9point    },
     { MENUITEM_SHUTTERSTEP      , "/shutter_step.png"     , shutter_step    },
+    { MENUITEM_FOCUS_PULL       , "/focus_pull.png"       , focus_pull     },
     { MENUITEM_BACK             , "/back.png"             , NULL            },
     { MENUITEM_END_OF_TABLE     , ""                      , NULL            }, // menu length is counted at run-time
 };
@@ -74,6 +77,8 @@ menustate_t* curmenu = &menustate_main;
 DebuggingSerial dbg_ser(&Serial);
 
 uint32_t gpio_time = 0; // keeps track of the GPIO shutter activation time so it doesn't get stuck
+
+bool redraw_flag = false; // forces menu redraw
 
 void setup()
 {
@@ -117,6 +122,7 @@ void setup()
     btnSide_hasPressed(true);
 
     welcome(); // splash screen for a few seconds
+    pwr_tick();
 }
 
 void loop()
@@ -128,6 +134,7 @@ void loop()
 
         guimenu_task(&menustate_main);
     }
+    pwr_sleepCheck();
 }
 
 bool app_poll()
@@ -256,6 +263,8 @@ void app_waitAllReleaseConnecting(uint32_t debounce)
 
 void critical_error()
 {
+    pwr_tick();
+    M5.Axp.GetBtnPress();
     uint32_t t = millis(), now = t;
     esp_wifi_disconnect();
     esp_wifi_stop();
@@ -264,11 +273,17 @@ void critical_error()
     M5Lcd.drawPngFile(SPIFFS, "/crit_error.png", 0, 0);
     while (true)
     {
+        pwr_sleepCheck();
         if (btnBig_hasPressed(true) || btnSide_hasPressed(true)) {
             delay(100);
             while (btnBig_isPressed() || btnSide_isPressed()) {
                 delay(100);
             }
+            NetMgr_reboot();
+            redraw_flag = true;
+            return;
+        }
+        if (M5.Axp.GetBtnPress() != 0) {
             ESP.restart();
         }
         if (((now = millis()) - t) > 2000) {
