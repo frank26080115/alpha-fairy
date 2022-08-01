@@ -114,12 +114,24 @@ void gui_drawStatusBar(bool is_black)
         else if (batt_status == BATTSTAT_CHARGING_LOW) {
             sprintf(fpath, "%schglow%s%s", txt_prefix, is_black ? txt_black : txt_white, txt_suffix);
         }
+
+        #ifndef USE_SPRITE_MANAGER
         M5Lcd.drawPngFile(SPIFFS, fpath, x, y);
+        #else
+        sprites->draw(fpath, x, y, icon_width, 12);
+        #endif
+
         x += icon_width;
     }
     if (camera.isOperating() == false) {
         sprintf(fpath, "%snocam%s%s", txt_prefix, is_black ? txt_black : txt_white, txt_suffix);
+
+        #ifndef USE_SPRITE_MANAGER
         M5Lcd.drawPngFile(SPIFFS, fpath, x, y);
+        #else
+        sprites->draw(fpath, x, y, icon_width, 12);
+        #endif
+
         x += icon_width;
     }
 
@@ -168,9 +180,16 @@ void pwr_sleepCheck()
 
         // yes USB voltage -> pretend power off but keep charging the battery
         Serial.println("Power Save Screen Saver");
+        esp_wifi_disconnect();
+        esp_wifi_stop();
+        esp_wifi_deinit();
         M5Lcd.fillScreen(TFT_BLACK);
         M5.Axp.ScreenBreath(0);
-        while (true) {
+        while (true)
+        {
+            cmdline.task();
+            yield();
+
             batt_vbus = M5.Axp.GetVBusVoltage();
             // no USB voltage -> power off
             if (batt_vbus < 3) {

@@ -20,15 +20,19 @@ uint32_t read32(fs::File &f) {
   return result;
 }
 
-// Bodmers BMP image rendering function
 void M5DisplayExt::drawBmpFile(fs::FS &fs, const char *path, uint16_t x, uint16_t y) {
+    drawBmpFileSprite(this, fs, path, x, y);
+}
+
+// Bodmers BMP image rendering function
+void M5DisplayExt::drawBmpFileSprite(TFT_eSPI* sprite, fs::FS &fs, const char *path, uint16_t x, uint16_t y) {
   if ((x >= width()) || (y >= height())) return;
 
   // Open requested file on SD card
   File bmpFS = fs.open(path, "r");
 
   if (!bmpFS) {
-    Serial.print("File not found");
+    log_e("File not found");
     return;
   }
 
@@ -49,7 +53,7 @@ void M5DisplayExt::drawBmpFile(fs::FS &fs, const char *path, uint16_t x, uint16_
     if ((read16(bmpFS) == 1) && (read16(bmpFS) == 24) && (read32(bmpFS) == 0)) {
       y += h - 1;
 
-      setSwapBytes(true);
+      sprite->setSwapBytes(true);
       bmpFS.seek(seekOffset);
 
       uint16_t padding = (4 - ((w * 3) & 3)) & 3;
@@ -69,19 +73,18 @@ void M5DisplayExt::drawBmpFile(fs::FS &fs, const char *path, uint16_t x, uint16_
 
         // Push the pixel row to screen, pushImage will crop the line if needed
         // y is decremented as the BMP image is drawn bottom up
-        pushImage(x, y--, w, 1, (uint16_t*)lineBuffer);
+        sprite->pushImage(x, y--, w, 1, (uint16_t*)lineBuffer);
       }
-      Serial.print("Loaded in "); Serial.print(millis() - startTime);
-      Serial.println(" ms");
+      //Serial.print("Loaded in "); Serial.print(millis() - startTime);
+      //Serial.println(" ms");
     }
-    else Serial.println("BMP format not recognized.");
+    else {
+        log_e("BMP format not recognized.");
+    }
   }
   bmpFS.close();
 }
 
-// void M5DisplayExt::drawBmp(fs::FS &fs, const char *path, uint16_t x, uint16_t y) {
-//   drawBmpFile(fs, path, x, y);
-// }
 /***************************************************
   This library is written to be compatible with Adafruit's ILI9341
   library and automatically detects the display type on ESP_WROVER_KITs
@@ -314,7 +317,7 @@ typedef struct _png_draw_params {
   double scale;
   uint8_t alphaThreshold;
 
-  M5DisplayExt *tft;
+  TFT_eSPI *tft;
 } png_file_decoder_t;
 
 static void pngle_draw_callback(pngle_t *pngle, uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint8_t rgba[4])
@@ -353,6 +356,13 @@ void M5DisplayExt::drawPngFile(fs::FS &fs, const char *path, uint16_t x, uint16_
                             uint16_t maxWidth, uint16_t maxHeight, uint16_t offX,
                             uint16_t offY, double scale, uint8_t alphaThreshold)
 {
+  drawPngFileSprite(this, fs, path, x, y, maxWidth, maxHeight, offX, offY, scale, alphaThreshold);
+}
+
+void M5DisplayExt::drawPngFileSprite(TFT_eSPI* sprite, fs::FS &fs, const char *path, uint16_t x, uint16_t y,
+                            uint16_t maxWidth, uint16_t maxHeight, uint16_t offX,
+                            uint16_t offY, double scale, uint8_t alphaThreshold)
+{
   File file = fs.open(path);
   if (!file) {
     log_e("Failed to open file for reading");
@@ -378,7 +388,7 @@ void M5DisplayExt::drawPngFile(fs::FS &fs, const char *path, uint16_t x, uint16_
   png.offY = offY;
   png.scale = scale;
   png.alphaThreshold = alphaThreshold;
-  png.tft = this;
+  png.tft = sprite;
 
   pngle_set_user_data(pngle, &png);
   pngle_set_draw_callback(pngle, pngle_draw_callback);

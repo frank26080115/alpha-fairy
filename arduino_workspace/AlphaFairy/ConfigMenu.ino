@@ -60,7 +60,7 @@ void conf_settings(void* mip)
       M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);
       M5Lcd.setTextFont(4);
       M5Lcd.print("Save + Exit");
-      M5Lcd.drawPngFile(SPIFFS, "/back_icon.png", M5Lcd.width() - 60, 0);
+      gui_drawBackIcon();
       if (btnBig_hasPressed(true))
       {
         pwr_tick();
@@ -93,5 +93,14 @@ void conf_settings(void* mip)
 void conf_drawIcon()
 {
     gui_drawStatusBar(true);
-    M5Lcd.drawPngFile(SPIFFS, "/config_icon.png", M5Lcd.width() - 60, M5Lcd.height() - 60);
+    #ifdef USE_SPRITE_MANAGER
+    sprites->draw(
+    #else
+    M5Lcd.drawPngFile(SPIFFS,
+    #endif
+        "/config_icon.png", M5Lcd.width() - 60, M5Lcd.height() - 60
+    #ifdef USE_SPRITE_MANAGER
+        , 60, 60
+    #endif
+        );
 }

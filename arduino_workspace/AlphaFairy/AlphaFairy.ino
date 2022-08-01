@@ -1,6 +1,7 @@
 #include "AlphaFairy.h"
 #include <M5StickCPlus.h>
 #include <M5DisplayExt.h>
+#include <SpriteMgr.h>
 #include <PtpIpCamera.h>
 #include <PtpIpSonyAlphaCamera.h>
 #include <AlphaFairy_NetMgr.h>
@@ -79,6 +80,9 @@ DebuggingSerial dbg_ser(&Serial);
 uint32_t gpio_time = 0; // keeps track of the GPIO shutter activation time so it doesn't get stuck
 
 bool redraw_flag = false; // forces menu redraw
+#ifdef USE_SPRITE_MANAGER
+SpriteMgr* sprites;
+#endif
 
 void setup()
 {
@@ -115,6 +119,10 @@ void setup()
     guimenu_init(MENUITEM_REMOTE, &menustate_remote, (menuitem_t*)menu_items_remote);
     guimenu_init(MENUITEM_FOCUS , &menustate_focus , (menuitem_t*)menu_items_focus );
     guimenu_init(MENUITEM_UTILS , &menustate_utils , (menuitem_t*)menu_items_utils );
+
+    #ifdef USE_SPRITE_MANAGER
+    sprites = new SpriteMgr(&M5Lcd);
+    #endif
 
     dbg_ser.printf("finished setup() at %u ms\r\n", millis());
 

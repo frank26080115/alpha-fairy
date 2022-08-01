@@ -75,4 +75,10 @@ enum
   BATTSTAT_FULL,
 };
 
+enum
+{
+  SPRITESHOLDER_FOCUSPULL = 0x01,
+  SPRITESHOLDER_INTERVAL  = 0x02,
+};
+
 #endif

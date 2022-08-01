@@ -372,15 +372,55 @@ int8_t gui_drawFocusPullState()
         n = n > 3 ? 3 : n;
     }
     sprintf(fname, "%s%c%d%s", prefix, s, n, suffix);
+    #if defined(USE_SPRITE_MANAGER) && false
+    // NOTE: using the quicker sprite drawing seems to make the IMU calculation too sensitive and jittery
+    // this code is disabled so the animation isn't jittery
+    if ((sprites->holder_flag & SPRITESHOLDER_INTERVAL) == 0) {
+        sprites->draw(fname, x, y, 135, 24);
+        sprites->holder_flag |= SPRITESHOLDER_FOCUSPULL;
+    }
+    else {
+        M5Lcd.drawPngFile(SPIFFS, fname, x, y);
+    }
+    #else
     M5Lcd.drawPngFile(SPIFFS, fname, x, y);
+    #endif
     return (ang < 0) ? (-n) : (n);
+}
+
+void gui_drawBackIcon()
+{
+    #ifdef USE_SPRITE_MANAGER
+    sprites->draw(
+    #else
+    M5Lcd.drawPngFile(SPIFFS,
+    #endif
+        "/back_icon.png", M5Lcd.width() - 60, 0
+    #ifdef USE_SPRITE_MANAGER
+        , 60, 60
+    #endif
+        );
+}
+
+void gui_drawGoIcon()
+{
+    #ifdef USE_SPRITE_MANAGER
+    sprites->draw(
+    #else
+    M5Lcd.drawPngFile(SPIFFS,
+    #endif
+        "/go_icon.png", M5Lcd.width() - 60, 0
+    #ifdef USE_SPRITE_MANAGER
+        , 60, 60
+    #endif
+        );
 }
 
 void welcome()
 {
-    return; // welcome screen disabled
-
-#if 0
+#ifdef DISABLE_WELCOME
+    return;
+#else
     // show a splash screen first
     M5Lcd.setRotation(0);
     M5Lcd.drawPngFile(SPIFFS, "/welcome.png", 0, 0);

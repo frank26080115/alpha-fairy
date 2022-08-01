@@ -75,7 +75,7 @@ void intervalometer_config(void* mip)
             M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);
             M5Lcd.setTextFont(4);
             M5Lcd.print("Exit");
-            M5Lcd.drawPngFile(SPIFFS, "/back_icon.png", M5Lcd.width() - 60, 0);
+            gui_drawBackIcon();
             if (btnBig_hasPressed(true))
             {
                 pwr_tick();
@@ -90,7 +90,7 @@ void intervalometer_config(void* mip)
             M5Lcd.print("Start");
             M5Lcd.println();
             gui_setCursorNextLine();
-            M5Lcd.drawPngFile(SPIFFS, "/go_icon.png", M5Lcd.width() - 60, 0);
+            gui_drawGoIcon();
             M5Lcd.setTextFont(4);
 
             if (menuitm->id == MENUITEM_INTERVAL)
@@ -196,10 +196,28 @@ void intervalometer_config(void* mip)
 void interval_drawIcon(uint8_t id)
 {
     if (id == MENUITEM_INTERVAL) {
-        M5Lcd.drawPngFile(SPIFFS, "/intervalometer_icon.png", M5Lcd.width() - 60, M5Lcd.height() - 60);
+        #ifdef USE_SPRITE_MANAGER
+        sprites->draw(
+        #else
+        M5Lcd.drawPngFile(SPIFFS,
+        #endif
+            "/intervalometer_icon.png", M5Lcd.width() - 60, M5Lcd.height() - 60
+        #ifdef USE_SPRITE_MANAGER
+            , 60, 60
+        #endif
+            );
     }
     else if (id == MENUITEM_ASTRO) {
-        M5Lcd.drawPngFile(SPIFFS, "/galaxy_icon.png", M5Lcd.width() - 60, M5Lcd.height() - 60);
+        #ifdef USE_SPRITE_MANAGER
+        sprites->draw(
+        #else
+        M5Lcd.drawPngFile(SPIFFS,
+        #endif
+            "/galaxy_icon.png", M5Lcd.width() - 60, M5Lcd.height() - 60
+        #ifdef USE_SPRITE_MANAGER
+            , 60, 60
+        #endif
+            );
     }
     gui_drawStatusBar(true);
 }
@@ -208,15 +226,27 @@ void interval_drawTimer(int8_t x)
 {
     static uint8_t i = 0;
     char fname[24];
-    if (x < 0) {
+    if (x < 0) { // negative arg means auto-increment
         i++;
     }
     else {
-        i = x;
+        i = x; // otherwise, assign
     }
     i %= 12;
     sprintf(fname, "/timer_%u.png", i);
+
+    #ifdef USE_SPRITE_MANAGER
+    if ((sprites->holder_flag & SPRITESHOLDER_FOCUSPULL) == 0) {
+        sprites->draw(fname, M5Lcd.width() - 60, M5Lcd.height() - 60, 60, 60);
+        sprites->holder_flag |= SPRITESHOLDER_INTERVAL;
+    }
+    else {
+        M5Lcd.drawPngFile(SPIFFS, fname, M5Lcd.width() - 60, M5Lcd.height() - 60);
+    }
+    #else
     M5Lcd.drawPngFile(SPIFFS, fname, M5Lcd.width() - 60, M5Lcd.height() - 60);
+    #endif
+
     if (i == 0) {
         gui_drawStatusBar(true);
     }
