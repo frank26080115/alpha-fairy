@@ -111,14 +111,28 @@ int guimenu_getIdx(int x)
     return -1;
 }
 
-void gui_startPrint()
+void gui_startAppPrint()
 {
+    // setup for printing text for a specific application
+    // all black screen, rotated landscape, white text
     M5Lcd.fillScreen(TFT_BLACK);
     M5Lcd.setRotation(1);
     M5Lcd.setTextFont(2);
     M5Lcd.highlight(true);
     M5Lcd.setTextWrap(true);
     M5Lcd.setHighlightColor(TFT_BLACK); // there's no frame buffer, so use the highlight function to prevent messy overlapping text
+    M5Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+}
+
+void gui_startMenuPrint()
+{
+    // setup for printing text on a menu screen
+    // white text, large font
+    M5Lcd.setTextFont(4);
+    M5Lcd.highlight(true);
+    M5Lcd.setTextWrap(true);
+    M5Lcd.setTextColor(TFT_BLACK, TFT_WHITE);
+    M5Lcd.setHighlightColor(TFT_WHITE);
 }
 
 void gui_drawConnecting(bool first)

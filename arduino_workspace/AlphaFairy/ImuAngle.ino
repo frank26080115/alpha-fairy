@@ -90,6 +90,13 @@ void app_anglePoll()
     imu_pitch_prev = imu_pitchi;
 }
 
+void spin_reset()
+{
+    spin_has_home = false;
+    spin_cnt = 0;
+    imu_pitch_accum = 0;
+}
+
 void imu_showSpinDebug()
 {
     M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);

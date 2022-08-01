@@ -43,7 +43,7 @@ void intervalometer_config(void* mip)
     }
     m->cnt++; // one more for the back option
 
-    gui_startPrint();
+    gui_startAppPrint();
     M5Lcd.fillScreen(TFT_BLACK);
     interval_drawIcon(menuitm->id);
     app_waitAllRelease(BTN_DEBOUNCE);
@@ -55,7 +55,7 @@ void intervalometer_config(void* mip)
 
         if (redraw_flag) {
             redraw_flag = false;
-            gui_startPrint();
+            gui_startAppPrint();
             M5Lcd.fillScreen(TFT_BLACK);
             conf_drawIcon();
         }
@@ -157,7 +157,7 @@ void intervalometer_config(void* mip)
                 ledblink_setMode(LEDMODE_OFF);
                 intervalometer_run(menuitm->id);
                 ledblink_setMode(LEDMODE_NORMAL);
-                gui_startPrint();
+                gui_startAppPrint();
                 M5Lcd.fillScreen(TFT_BLACK);
                 interval_drawIcon(menuitm->id);
                 app_waitAllRelease(BTN_DEBOUNCE);
@@ -287,7 +287,7 @@ void intervalometer_run(uint8_t id)
     int32_t  intv_time    = (id == MENUITEM_ASTRO) ?  config_settings.astro_pause                               : config_settings.intv_intval;
     int32_t  total_period = (id == MENUITEM_ASTRO) ? (config_settings.astro_bulb + config_settings.astro_pause) : config_settings.intv_intval;
 
-    gui_startPrint();
+    gui_startAppPrint();
     M5Lcd.fillScreen(TFT_BLACK);
     interval_drawTimer(0); // reset the icon
     app_waitAllRelease(BTN_DEBOUNCE);
@@ -311,7 +311,7 @@ void intervalometer_run(uint8_t id)
 
         if (redraw_flag) {
             redraw_flag = false;
-            gui_startPrint();
+            gui_startAppPrint();
             M5Lcd.fillScreen(TFT_BLACK);
             M5Lcd.setTextFont(4);
         }
@@ -385,7 +385,7 @@ bool intervalometer_wait(int32_t twait, uint32_t tstart, int32_t cnt, const char
 
         if (redraw_flag) {
             redraw_flag = false;
-            gui_startPrint();
+            gui_startAppPrint();
             M5Lcd.fillScreen(TFT_BLACK);
             M5Lcd.setTextFont(4);
         }

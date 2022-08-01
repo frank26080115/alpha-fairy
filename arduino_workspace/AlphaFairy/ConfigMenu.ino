@@ -31,7 +31,7 @@ void conf_settings(void* mip)
     }
   }
 
-  gui_startPrint();
+  gui_startAppPrint();
 
   while (true)
   {
@@ -40,7 +40,7 @@ void conf_settings(void* mip)
 
     if (redraw_flag) {
         redraw_flag = false;
-        gui_startPrint();
+        gui_startAppPrint();
         M5Lcd.fillScreen(TFT_BLACK);
         conf_drawIcon();
     }

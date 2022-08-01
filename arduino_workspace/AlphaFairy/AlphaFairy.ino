@@ -36,9 +36,7 @@ const menuitem_t menu_items_main[] = {
 const menuitem_t menu_items_remote[] = {
     // ID                       , FILE-NAME               , FUNCTION POINTER
     { MENUITEM_REMOTESHUTTER_NOW, "/remoteshutter.png"    , remote_shutter },
-    { MENUITEM_REMOTESHUTTER_2S , "/remoteshutter_2s.png" , remote_shutter },
-    { MENUITEM_REMOTESHUTTER_5S , "/remoteshutter_5s.png" , remote_shutter },
-    { MENUITEM_REMOTESHUTTER_10S, "/remoteshutter_10.png" , remote_shutter },
+    { MENUITEM_REMOTESHUTTER_DLY, "/remoteshutter_d.png"  , remote_shutter },
     { MENUITEM_RECORDMOVIE      , "/recordmovie.png"      , record_movie   },
     { MENUITEM_FOCUS_PULL       , "/focus_pull.png"       , focus_pull     },
     { MENUITEM_BACK             , "/back.png"             , NULL           },

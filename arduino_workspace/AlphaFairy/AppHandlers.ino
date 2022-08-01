@@ -2,6 +2,8 @@
 
 //#define APP_DOES_NOTHING // this is only used for testing purposes
 
+uint8_t remoteshutter_delay = 2;
+
 void cam_shootQuick()
 {
     // convenience function for quickly taking a photo without complicated connectivity checks
@@ -79,14 +81,8 @@ void remote_shutter(void* mip)
     if (menuitm->id == MENUITEM_REMOTESHUTTER_NOW) {
         time_delay = 0;
     }
-    else if (menuitm->id == MENUITEM_REMOTESHUTTER_2S) {
-        time_delay = 2;
-    }
-    else if (menuitm->id == MENUITEM_REMOTESHUTTER_5S) {
-        time_delay = 5;
-    }
-    else if (menuitm->id == MENUITEM_REMOTESHUTTER_10S) {
-        time_delay = 10;
+    else if (menuitm->id == MENUITEM_REMOTESHUTTER_DLY) {
+        time_delay = remoteshutter_delay;
     }
 
     if (camera.isOperating() == false)
@@ -410,7 +406,7 @@ void focus_9point(void* mip)
         // the camera must be in one of the many spot focus modes
         // we can't pick one for them
         // show user the error message
-        gui_startPrint();
+        gui_startAppPrint();
         M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);
         M5Lcd.println("ERROR:");
         gui_setCursorNextLine();
@@ -607,7 +603,7 @@ void wifi_info(void* mip)
 {
     dbg_ser.println("wifi_info");
 
-    gui_startPrint();
+    gui_startAppPrint();
 
     M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);
     M5Lcd.println("Wi-Fi SSID:");

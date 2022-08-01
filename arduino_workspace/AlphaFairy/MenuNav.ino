@@ -1,6 +1,8 @@
 #include "AlphaFairy.h"
 #include <M5DisplayExt.h>
 
+extern uint8_t remoteshutter_delay;
+
 bool guimenu_task(menustate_t* m)
 {
     static uint32_t last_time = 0;
@@ -37,6 +39,7 @@ bool guimenu_task(menustate_t* m)
         gui_drawStatusBar(false);
         m->last_idx = m->idx;
         app_sleep(50, true); // kinda sorta a debounce and rate limit, don't think I need this here
+        spin_reset();
     }
     else if (imu_hasChange) { // prevent unneccessary re-draws
         if ((m->flags & MENUFLAG_DRAW_PAGES) != 0) {
@@ -50,12 +53,38 @@ bool guimenu_task(menustate_t* m)
         gui_drawStatusBar(false);
     }
 
+    // draw live updates to the screen
+
     if (m->items[m->idx].id == MENUITEM_RECORDMOVIE) {
         // indicate a tally light on the screen
         gui_drawMovieRecStatus();
     }
     else if (m->items[m->idx].id == MENUITEM_FOCUS_PULL) {
         gui_drawFocusPullState();
+    }
+    else if (m->items[m->idx].id == MENUITEM_REMOTESHUTTER_DLY) {
+        // change the time delay for the remote shutter by spinning
+        if (spin_cnt > 0) {
+            if (remoteshutter_delay == 2) {
+                remoteshutter_delay = 5;
+            }
+            else if (remoteshutter_delay == 5) {
+                remoteshutter_delay = 10;
+            }
+            spin_cnt = 0;
+        }
+        else if (spin_cnt < 0) {
+            if (remoteshutter_delay == 10) {
+                remoteshutter_delay = 5;
+            }
+            else if (remoteshutter_delay == 5) {
+                remoteshutter_delay = 2;
+            }
+            spin_cnt = 0;
+        }
+        gui_startMenuPrint();
+        M5Lcd.setCursor(80, 188);
+        M5Lcd.printf("%us   ", remoteshutter_delay);
     }
 
     if (btnBig_hasPressed(true))
