@@ -130,7 +130,7 @@ void gui_startMenuPrint()
     // white text, large font
     M5Lcd.setTextFont(4);
     M5Lcd.highlight(true);
-    M5Lcd.setTextWrap(true);
+    M5Lcd.setTextWrap(false);
     M5Lcd.setTextColor(TFT_BLACK, TFT_WHITE);
     M5Lcd.setHighlightColor(TFT_WHITE);
 }
@@ -166,7 +166,8 @@ void gui_setCursorNextLine()
 
 void gui_blankRestOfLine()
 {
-    uint32_t lim = M5Lcd.width() - 65;
+    uint32_t margin = (M5Lcd.getRotation() == 0) ? 8 : 65;
+    uint32_t lim = M5Lcd.width() - margin;
     while (M5Lcd.getCursorX() < lim) {
         M5Lcd.print(" ");
     }
@@ -205,10 +206,55 @@ void gui_formatSecondsTime(int32_t x, char* str, bool shorten)
     }
 }
 
-void gui_showVal(int32_t x, uint8_t cfgfmt, Print* printer)
+void gui_formatShutterSpeed(uint32_t x, char* str)
+{
+    uint16_t* p16 = (uint16_t*)&x;
+    if (x == 0 || x == 0xFFFFFFFF) {
+        sprintf(str, "BULB");
+        return;
+    }
+    uint16_t nn = p16[1];
+    uint16_t dd = p16[0];
+    float n = nn;
+    float d = dd;
+    float y = d != 0 ? (n/d) : 0;
+    sprintf(str, "%0.1f\"", y);
+    if (y >= 4 || nn == dd || y == 2.0 || y == 3.0) {
+        sprintf(str, "%u\"", lroundf(y));
+        return;
+    }
+    if (y >= 0.35) {
+        return;
+    }
+    if (nn >= 10 && dd > 10) {
+        return;
+    }
+    if (nn == 1) {
+        sprintf(str, "1/%u", dd);
+    }
+    return;
+}
+
+void gui_formatISO(uint32_t x, char* str)
+{
+    uint16_t* p16 = (uint16_t*)&x;
+    if (x == 0) {
+        sprintf(str, "???");
+        return;
+    }
+    if (x == 0xFFFFFF) {
+        sprintf(str, "AUTO");
+        return;
+    }
+    x &= 0xFFFFFF;
+    sprintf(str, "%u", x);
+    return;
+}
+
+void gui_showVal(int32_t x, uint16_t txtfmt, Print* printer)
 {
     char str[16]; int i = 0;
-    if ((cfgfmt & CFGFMT_BOOL) != 0) {
+    if ((txtfmt & TXTFMT_BOOL) != 0) {
         if (x == 0) {
             i += sprintf(&(str[i]), "NO");
         }
@@ -216,7 +262,7 @@ void gui_showVal(int32_t x, uint8_t cfgfmt, Print* printer)
             i += sprintf(&(str[i]), "YES");
         }
     }
-    else if ((cfgfmt & CFGFMT_BULB) != 0) {
+    else if ((txtfmt & TXTFMT_BULB) != 0) {
         if (x == 0) {
             // when bulb = 0, the shutter speed setting on the camera is used
             i += sprintf(&(str[i]), "(Tv)");
@@ -225,13 +271,13 @@ void gui_showVal(int32_t x, uint8_t cfgfmt, Print* printer)
             gui_formatSecondsTime(x, str, false);
         }
     }
-    else if ((cfgfmt & CFGFMT_TIMELONG) != 0) {
+    else if ((txtfmt & TXTFMT_TIMELONG) != 0) {
         gui_formatSecondsTime(x, str, true);
     }
-    else if ((cfgfmt & CFGFMT_TIME) != 0) {
+    else if ((txtfmt & TXTFMT_TIME) != 0) {
         gui_formatSecondsTime(x, str, false);
     }
-    else if ((cfgfmt & CFGFMT_TIMEMS) != 0) {
+    else if ((txtfmt & TXTFMT_TIMEMS) != 0) {
         // if time is provided in milliseconds
         // print the time as usual (after calculating the whole seconds)
         x = x < 0 ? 0 : x;
@@ -241,11 +287,17 @@ void gui_showVal(int32_t x, uint8_t cfgfmt, Print* printer)
         // add one decimal place
         sprintf(&(str[strlen(str)]), ".%d", tsubsec);
     }
+    else if ((txtfmt & TXTFMT_SHUTTER) != 0) {
+        gui_formatShutterSpeed(x, str);
+    }
+    else if ((txtfmt & TXTFMT_ISO) != 0) {
+        gui_formatISO(x, str);
+    }
     else {
         i += sprintf(&(str[i]), "%d", x);
     }
 
-    if ((cfgfmt & CFGFMT_LCDBRITE) != 0) {
+    if ((txtfmt & TXTFMT_LCDBRITE) != 0) {
         M5.Axp.ScreenBreath(x);
     }
 
@@ -254,10 +306,10 @@ void gui_showVal(int32_t x, uint8_t cfgfmt, Print* printer)
     }
 }
 
-void gui_showValOnLcd(int32_t val, uint8_t cfgfmt, int lcdx, int lcdy, int8_t dir, bool blank_rest)
+void gui_showValOnLcd(int32_t val, uint16_t txtfmt, int lcdx, int lcdy, int8_t dir, bool blank_rest)
 {
     M5Lcd.setCursor(lcdx, lcdy); // important to keep the coordinate for quick overwriting
-    gui_showVal(val, cfgfmt, (Print*)&M5Lcd); // show the value
+    gui_showVal(val, txtfmt, (Print*)&M5Lcd); // show the value
     if (dir != 0) {
         M5Lcd.print((dir > 0) ? " + " : " - "); // indicate if button press will increment or decrement
     }
@@ -272,19 +324,19 @@ void gui_showValOnLcd(int32_t val, uint8_t cfgfmt, int lcdx, int lcdy, int8_t di
 void gui_valIncDec(configitem_t* cfgitm)
 {
     int32_t* val_ptr = cfgitm->ptr_val;
-    uint8_t cfgfmt = cfgitm->flags;
+    uint8_t txtfmt = cfgitm->flags;
     int32_t next_step = 0;
     uint32_t press_time = 0;
     int lcdx, lcdy;
 
-    if (cfgfmt == 0xFF) // use auto config
+    if (txtfmt == 0xFF) // use auto config
     {
-        cfgfmt = 0;
+        txtfmt = 0;
         if (cfgitm->val_min == 0 && cfgitm->val_max == 1 && cfgitm->step_size == 1) {
-            cfgfmt |= CFGFMT_BOOL;
+            txtfmt |= TXTFMT_BOOL;
         }
         else if (cfgitm->val_min <= 1 && cfgitm->val_max >= 1000 && cfgitm->step_size == 1) {
-            cfgfmt |= CFGFMT_BYTENS;
+            txtfmt |= TXTFMT_BYTENS;
         }
     }
 
@@ -302,7 +354,7 @@ void gui_valIncDec(configitem_t* cfgitm)
             }
         }
         else {
-            gui_showValOnLcd((*val_ptr), cfgfmt, lcdx, lcdy, cfgitm->step_size, true);
+            gui_showValOnLcd((*val_ptr), txtfmt, lcdx, lcdy, cfgitm->step_size, true);
         }
     }
     else if (imu_angle == ANGLE_IS_DOWN)
@@ -318,17 +370,17 @@ void gui_valIncDec(configitem_t* cfgitm)
             }
         }
         else {
-            gui_showValOnLcd((*val_ptr), cfgfmt, lcdx, lcdy, -cfgitm->step_size, true);
+            gui_showValOnLcd((*val_ptr), txtfmt, lcdx, lcdy, -cfgitm->step_size, true);
         }
     }
     else {
-        gui_showValOnLcd((*val_ptr), cfgfmt, lcdx, lcdy, 0, true);
+        gui_showValOnLcd((*val_ptr), txtfmt, lcdx, lcdy, 0, true);
     }
 
-    if (next_step != 0 && (cfgfmt & CFGFMT_BOOL) == 0) // has pressed
+    if (next_step != 0 && (txtfmt & TXTFMT_BOOL) == 0) // has pressed
     {
         press_time = millis();
-        gui_showValOnLcd((*val_ptr), cfgfmt, lcdx, lcdy, next_step, true);
+        gui_showValOnLcd((*val_ptr), txtfmt, lcdx, lcdy, next_step, true);
         uint32_t dly = 500; // press-and-hold repeating delay
         int step_cnt = 0; // used to make sure at least some steps are done at minimum step size
         int tens = 10 * next_step * ((next_step < 0) ? (-1) : (1)); // if the step size starts at 1 or 10, these cases are handled
@@ -344,7 +396,7 @@ void gui_valIncDec(configitem_t* cfgitm)
                 dly *= 3;
                 dly /= 4;
                 // impose a limit on the delay
-                if ((cfgfmt & CFGFMT_BYTENS) != 0) {
+                if ((txtfmt & TXTFMT_BYTENS) != 0) {
                     dly = (dly < 100) ? 100 : dly;
                 }
                 step_cnt++;
@@ -357,15 +409,15 @@ void gui_valIncDec(configitem_t* cfgitm)
                     (*val_ptr) = cfgitm->val_min;
                     break;
                 }
-                if ((*val_ptr) >= 10 && ((*val_ptr) % tens) == 0 && step_cnt > 5 && (cfgfmt & CFGFMT_BYTENS) != 0) {
+                if ((*val_ptr) >= 10 && ((*val_ptr) % tens) == 0 && step_cnt > 5 && (txtfmt & TXTFMT_BYTENS) != 0) {
                     step_cnt = 0;
                     tens *= 10;
                     next_step *= 10;
                 }
-                gui_showValOnLcd((*val_ptr), cfgfmt, lcdx, lcdy, next_step, true);
+                gui_showValOnLcd((*val_ptr), txtfmt, lcdx, lcdy, next_step, true);
             }
         }
-        gui_showValOnLcd((*val_ptr), cfgfmt, lcdx, lcdy, next_step, true);
+        gui_showValOnLcd((*val_ptr), txtfmt, lcdx, lcdy, next_step, true);
     }
 
     app_waitAllRelease(BTN_DEBOUNCE);
@@ -400,6 +452,11 @@ int8_t gui_drawFocusPullState()
     M5Lcd.drawPngFile(SPIFFS, fname, x, y);
     #endif
     return (ang < 0) ? (-n) : (n);
+}
+
+void gui_drawTopThickLine(uint16_t thickness, uint16_t colour)
+{
+    M5Lcd.fillRect(0, 0, M5Lcd.width(), thickness, colour);
 }
 
 void gui_drawBackIcon()

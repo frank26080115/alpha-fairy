@@ -25,6 +25,7 @@ static const uint16_t interested_properties_default[] = {
     SONYALPHA_PROPCODE_ManualFocusDist,
     SONYALPHA_PROPCODE_ShutterSpeed,
     SONYALPHA_PROPCODE_DriveMode,
+    SONYALPHA_PROPCODE_ISO,
     0x0000, // end of table
 };
 

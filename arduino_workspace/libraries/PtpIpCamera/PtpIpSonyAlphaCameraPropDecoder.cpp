@@ -189,15 +189,20 @@ void PtpIpSonyAlphaCamera::decode_properties()
             {
                 uint16_t enumcnt = *(uint16_t*)(&(p[i]));
                 i += 2;
-                if (table_shutter_speed == NULL && propcode == SONYALPHA_PROPCODE_ShutterSpeed && dsz == 4 && enumcnt != 0) {
-                    table_shutter_speed = (uint32_t*)malloc((enumcnt * dsz) + sizeof(uint32_t));
-                    memcpy((void*)&(table_shutter_speed[1]), (void*)&(p[i]), enumcnt * dsz);
-                    table_shutter_speed[0] = enumcnt;
-                    dbgser_events->printf("tbl_shutter_speed created %u\r\n", enumcnt);
-                }
-                else if (table_shutter_speed != NULL && propcode == SONYALPHA_PROPCODE_ShutterSpeed && dsz == 4) {
-                    dbgser_devprop_dump->printf(" tbl_shutter_speed ready %u\r\n", enumcnt);
-                }
+
+#define PROP_TRYPOPULATETABLE(_tbl, _propcode, _dsz, _enumcnt, _txt) do \
+                {\
+                    if ((_tbl) == NULL && propcode == (_propcode) && dsz == (_dsz) && (_enumcnt) != 0) {\
+                        (_tbl) = (uint32_t*)malloc(((_enumcnt) * dsz) + sizeof(uint32_t));\
+                        memcpy((void*)&((_tbl)[1]), (void*)&(p[i]), (_enumcnt) * dsz);\
+                        (_tbl)[0] = (_enumcnt);\
+                        dbgser_events->printf(_txt " created %u\r\n", (_enumcnt));\
+                    }\
+                } while (0)\
+
+                PROP_TRYPOPULATETABLE(table_shutter_speed, SONYALPHA_PROPCODE_ShutterSpeed, 4, enumcnt, "table_shutter_speed");
+                PROP_TRYPOPULATETABLE(table_iso          , SONYALPHA_PROPCODE_ISO         , 4, enumcnt, "table_iso");
+
                 i += enumcnt * dsz;
                 dbgser_devprop_dump->printf(" [FRM ENUM %d]", enumcnt);
                 continue;
@@ -207,27 +212,15 @@ void PtpIpSonyAlphaCamera::decode_properties()
                 // weird form, seems to have two forms
                 uint16_t enumcnt = *(uint16_t*)(&(p[i]));
                 i += 2;
-                if (table_shutter_speed == NULL && propcode == SONYALPHA_PROPCODE_ShutterSpeed && dsz == 4 && enumcnt != 0) {
-                    table_shutter_speed = (uint32_t*)malloc((enumcnt * dsz) + sizeof(uint32_t));
-                    memcpy((void*)&(table_shutter_speed[1]), (void*)&(p[i]), enumcnt * dsz);
-                    table_shutter_speed[0] = enumcnt;
-                    dbgser_events->printf("tbl_shutter_speed created %u\r\n", enumcnt);
-                }
-                else if (table_shutter_speed != NULL && propcode == SONYALPHA_PROPCODE_ShutterSpeed && dsz == 4) {
-                    dbgser_devprop_dump->printf(" tbl_shutter_speed ready %u\r\n", enumcnt);
-                }
+
+                PROP_TRYPOPULATETABLE(table_shutter_speed, SONYALPHA_PROPCODE_ShutterSpeed, 4, enumcnt, "table_shutter_speed");
+                PROP_TRYPOPULATETABLE(table_iso          , SONYALPHA_PROPCODE_ISO         , 4, enumcnt, "table_iso");
+
                 i += enumcnt * dsz;
                 uint16_t enumcnt2 = *(uint16_t*)(&(p[i]));
                 i += 2;
-                if (table_shutter_speed == NULL && propcode == SONYALPHA_PROPCODE_ShutterSpeed && dsz == 4 && enumcnt2 != 0) {
-                    table_shutter_speed = (uint32_t*)malloc((enumcnt2 * dsz) + sizeof(uint32_t));
-                    memcpy((void*)&(table_shutter_speed[1]), (void*)&(p[i]), enumcnt2 * dsz);
-                    table_shutter_speed[0] = enumcnt2;
-                    dbgser_events->printf("tbl_shutter_speed created %u\r\n", enumcnt2);
-                }
-                else if (table_shutter_speed != NULL && propcode == SONYALPHA_PROPCODE_ShutterSpeed && dsz == 4) {
-                    dbgser_devprop_dump->printf(" tbl_shutter_speed ready %u\r\n", enumcnt2);
-                }
+                PROP_TRYPOPULATETABLE(table_shutter_speed, SONYALPHA_PROPCODE_ShutterSpeed, 4, enumcnt2, "table_shutter_speed");
+                PROP_TRYPOPULATETABLE(table_iso          , SONYALPHA_PROPCODE_ISO         , 4, enumcnt2, "table_iso");
                 i += enumcnt2 * dsz;
                 dbgser_devprop_dump->printf(" [FRM ENUMx2 %d]", (enumcnt + enumcnt2));
             }
@@ -317,6 +310,44 @@ bool PtpIpSonyAlphaCamera::has_property(uint16_t prop_code)
         }
     }
     return false;
+}
+
+uint32_t PtpIpSonyAlphaCamera::get_property_enum(uint16_t prop_code, uint32_t cur_val, int32_t step)
+{
+    uint32_t* tbl = NULL;
+    if (prop_code == SONYALPHA_PROPCODE_ShutterSpeed) {
+        tbl = this->table_shutter_speed;
+    }
+    else if (prop_code == SONYALPHA_PROPCODE_ISO) {
+        tbl = this->table_iso;
+    }
+    if (tbl == NULL) {
+        return 0xFFFFFFFF;
+    }
+    uint32_t cnt = tbl[0];
+    int32_t i, j;
+    for (i = 1; i <= cnt; i++)
+    {
+        uint32_t x = tbl[i], y;
+        if (x == cur_val)
+        {
+            j = i + step;
+            y = tbl[j];
+            if (j >= cnt || j <= 1)
+            {
+                j = (j >= cnt) ? cnt : j;
+                j = (j <=   1) ?   1 : j;
+                y = tbl[j];
+                if (y == 0 || y == 0xFFFFFFFF) {
+                    j += (j >= cnt) ? (-1) : j;
+                    j += (j <=   1) ? ( 1) : j;
+                    y = tbl[j];
+                }
+            }
+            return y;
+        }
+    }
+    return 0xFFFFFFFF;
 }
 
 void PtpIpSonyAlphaCamera::test_prop_decode(uint8_t* data, uint32_t len)

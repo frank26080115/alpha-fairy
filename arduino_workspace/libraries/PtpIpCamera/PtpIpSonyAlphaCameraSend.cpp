@@ -52,27 +52,18 @@ bool PtpIpSonyAlphaCamera::cmd_ShutterSpeedStep(int8_t dir) {
         return false;
     }
     uint32_t x = get_property(prop_code); // get current shutter speed
-    int32_t i, j;
-    uint32_t c = table_shutter_speed[0]; // the count is in the first table element
-    // search all elements of the table
-    for (i = 1; i <= c; i++)
-    {
-        uint32_t y = table_shutter_speed[i];
-        if (y == x) // matches current shutter speed
-        {
-            j = i - dir; // find the adjacent entry
-            // dir being positive should mean +exposure, but the table is flipped, so we use a subtraction
-            // keep within limits of table
-            if (j <= 1) {
-                j = 1;
-            }
-            else if (j >= c) {
-                j = c;
-            }
-            return cmd_ShutterSpeedSet32(table_shutter_speed[j]);
-        }
+    uint32_t ss = get_property_enum(prop_code, x, dir);
+    if (ss != 0 && ss != 0xFFFFFFFF) {
+        return cmd_ShutterSpeedSet32(ss);
     }
     return false;
+}
+
+bool PtpIpSonyAlphaCamera::cmd_IsoSet(uint32_t x)
+{
+    wait_while_busy(0, DEFAULT_BUSY_TIMEOUT, NULL);
+    uint32_t propcode = SONYALPHA_PROPCODE_ISO;
+    return send_oper_req((uint32_t)SONYALPHA_OPCODE_SetControlDeviceA, &propcode, 1, (uint8_t*)&x, sizeof(uint32_t));
 }
 
 bool PtpIpSonyAlphaCamera::cmd_FocusPointSet(int16_t x, int16_t y)

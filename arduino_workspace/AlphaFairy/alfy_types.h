@@ -59,12 +59,12 @@ configsettings_t;
 
 typedef struct
 {
-  int32_t*      ptr_val;
-  const int32_t val_max;
-  const int32_t val_min;
-  const int32_t step_size;
-  const char    text[64];
-  const uint8_t flags;
+  int32_t*       ptr_val;
+  const int32_t  val_max;
+  const int32_t  val_min;
+  const int32_t  step_size;
+  const char     text[64];
+  const uint16_t flags;
 }
 configitem_t;
 

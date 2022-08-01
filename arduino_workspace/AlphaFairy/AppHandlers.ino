@@ -3,6 +3,10 @@
 //#define APP_DOES_NOTHING // this is only used for testing purposes
 
 uint8_t remoteshutter_delay = 2;
+uint32_t dual_shutter_next = 0;
+uint32_t dual_shutter_iso = 0;
+uint32_t dual_shutter_last_tv = 0;
+uint32_t dual_shutter_last_iso = 0;
 
 void cam_shootQuick()
 {
@@ -146,9 +150,10 @@ void remote_shutter(void* mip)
 
     ledblink_setMode(LEDMODE_OFF);
 
-#ifdef APP_DOES_NOTHING
+    #ifdef APP_DOES_NOTHING
     app_waitAllRelease(BTN_DEBOUNCE);
-#endif
+    return;
+    #endif
 
     bool starting_mf = camera.is_manuallyfocused();
 
@@ -253,6 +258,11 @@ void focus_stack(void* mip)
     }
 
     ledblink_setMode(LEDMODE_OFF);
+
+    #ifdef APP_DOES_NOTHING
+    app_waitAllRelease(BTN_DEBOUNCE);
+    return;
+    #endif
 
     menuitem_t* menuitm = (menuitem_t*)mip;
 
@@ -400,6 +410,7 @@ void focus_9point(void* mip)
 
 #ifdef APP_DOES_NOTHING
     app_waitAllRelease(BTN_DEBOUNCE);
+    return;
 #endif
 
     if (camera.is_spotfocus() == false) {
@@ -498,6 +509,7 @@ void shutter_step(void* mip)
 
     #ifdef APP_DOES_NOTHING
     app_waitAllRelease(BTN_DEBOUNCE);
+    return;
     #endif
 
     ledblink_setMode(LEDMODE_OFF);
@@ -559,6 +571,7 @@ void focus_pull(void* mip)
 
     #ifdef APP_DOES_NOTHING
     app_waitAllRelease(BTN_DEBOUNCE);
+    return;
     #endif
 
     ledblink_setMode(LEDMODE_OFF);
@@ -635,6 +648,8 @@ void record_movie(void* mip)
 {
     dbg_ser.println("record_movie");
 
+    ledblink_setMode(LEDMODE_OFF);
+
     if (camera.isOperating() == false)
     {
         if (config_settings.infrared_enabled) {
@@ -649,9 +664,10 @@ void record_movie(void* mip)
         }
     }
 
-#ifdef APP_DOES_NOTHING
+    #ifdef APP_DOES_NOTHING
     app_waitAllRelease(BTN_DEBOUNCE);
-#endif
+    return;
+    #endif
 
     camera.cmd_MovieRecordToggle();
 
@@ -662,4 +678,183 @@ void record_movie(void* mip)
         gui_drawMovieRecStatus();
     }
     app_waitAllRelease(BTN_DEBOUNCE);
+}
+
+void dual_shutter(void* mip)
+{
+    dbg_ser.println("dual_shutter");
+
+    if (camera.isOperating() == false) {
+        // show user that the camera isn't connected
+        app_waitAllReleaseConnecting(BTN_DEBOUNCE);
+        return;
+    }
+
+    #ifdef APP_DOES_NOTHING
+    app_waitAllRelease(BTN_DEBOUNCE);
+    return;
+    #endif
+
+    ledblink_setMode(LEDMODE_OFF);
+
+    menuitem_t* menuitm = (menuitem_t*)mip;
+
+    if (menuitm->id == MENUITEM_DUALSHUTTER_REG)
+    {
+        if (camera.has_property(SONYALPHA_PROPCODE_ShutterSpeed) && camera.has_property(SONYALPHA_PROPCODE_ISO))
+        {
+            dual_shutter_next = camera.get_property(SONYALPHA_PROPCODE_ShutterSpeed);
+            dual_shutter_iso = camera.get_property(SONYALPHA_PROPCODE_ISO);
+            dbg_ser.printf("dualshutter 0x%08X %u\r\n", dual_shutter_next, dual_shutter_iso);
+        }
+        else
+        {
+            dbg_ser.println("dualshutter no data from camera");
+        }
+        app_waitAllRelease(BTN_DEBOUNCE);
+        return;
+    }
+
+    // if (menuitm->id == MENUITEM_DUALSHUTTER_SHOOT)
+    gui_drawTopThickLine(8, TFT_RED);
+    dual_shutter_shoot(false, true, dual_shutter_last_tv, dual_shutter_last_iso);
+    gui_drawTopThickLine(8, TFT_WHITE);
+
+    app_waitAllRelease(BTN_DEBOUNCE);
+}
+
+uint32_t shutter_to_millis(uint32_t x)
+{
+    uint16_t* p16 = (uint16_t*)&x;
+    if (x == 0 || x == 0xFFFFFFFF) {
+        return 0;
+    }
+    uint32_t nn = p16[1];
+    uint32_t dd = p16[0];
+    nn *= 1000;
+    float n = nn;
+    float d = dd;
+    float y = d != 0 ? (n/d) : 0;
+    return lroundf(y);
+}
+
+void dual_shutter_shoot(bool already_focused, bool read_button, uint32_t restore_shutter, uint32_t restore_iso)
+{
+    bool starting_mf = false;
+    bool need_restore_af = false;
+    bool need_restore_ss = false;
+    bool need_restore_iso = false;
+
+    if (already_focused == false) {
+        // only care about MF if we are not already focused
+        starting_mf = camera.is_manuallyfocused();
+    }
+
+    if (already_focused == false && starting_mf == false) {
+        // the camera won't actually take a photo if it's not focused (when shutter tries to open, it'll lag to focus)
+        // so we turn on AF
+        camera.cmd_AutoFocus(true);
+        need_restore_af = true;
+    }
+
+    camera.cmd_Shutter(true);
+    uint32_t t = millis(), now = t;
+    uint32_t shutter_ms = shutter_to_millis(restore_shutter == 0 ? camera.get_property(SONYALPHA_PROPCODE_ShutterSpeed) : restore_shutter);
+    // first wait is for minimum press time
+    while (((now = millis()) - t) < shutter_ms && (now - t) < config_settings.shutter_press_time_ms) {
+        camera.poll();
+    }
+    // release button and wait for the rest of the time
+    camera.cmd_Shutter(false);
+    while (((now = millis()) - t) < shutter_ms && camera.isOperating()) {
+        camera.poll();
+        if (read_button) {
+            if (btnBig_isPressed() == false) {
+                break;
+            }
+        }
+    }
+
+    // opportunity for early pause
+    if (read_button && btnBig_isPressed() == false) {
+        goto last_step;
+    }
+
+    // set the shutter speed for second shot
+    need_restore_ss = true;
+    camera.cmd_ShutterSpeedSet32(dual_shutter_next);
+    camera.wait_while_busy(config_settings.shutter_step_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+
+    if (dual_shutter_iso != restore_iso) {
+        // change ISO if required
+        need_restore_iso = true;
+        camera.cmd_IsoSet(dual_shutter_iso);
+        camera.wait_while_busy(config_settings.shutter_step_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+    }
+
+    // start second shot
+    camera.cmd_Shutter(true);
+    t = millis(); now = t;
+    shutter_ms = shutter_to_millis(dual_shutter_next);
+    while (((now = millis()) - t) < shutter_ms && (now - t) < config_settings.shutter_press_time_ms) {
+        camera.poll();
+    }
+    camera.cmd_Shutter(false);
+    while (((now = millis()) - t) < shutter_ms && camera.isOperating()) {
+        camera.poll();
+        if (read_button) {
+            if (btnBig_isPressed() == false) {
+                break;
+            }
+        }
+    }
+
+    last_step:
+    // attempt to restore camera to original state if needed
+    // this sends the commands over and over again until the change is effective
+    t = millis(); now = t;
+    uint32_t timeout = 800;
+    if (restore_shutter != 0 && need_restore_ss) {
+        uint32_t cur_ss;
+        do {
+            camera.cmd_ShutterSpeedSet32(restore_shutter);
+            camera.wait_while_busy(100, DEFAULT_BUSY_TIMEOUT, NULL);
+            cur_ss = camera.get_property(SONYALPHA_PROPCODE_ShutterSpeed);
+            if (cur_ss == restore_shutter) {
+                break;
+            }
+        }
+        while (((now = millis()) - t) < timeout || btnBig_isPressed());
+    }
+    t = millis(); now = t;
+    if (need_restore_iso) {
+        uint32_t cur_iso;
+        do {
+            camera.cmd_IsoSet(restore_iso);
+            camera.wait_while_busy(100, DEFAULT_BUSY_TIMEOUT, NULL);
+            cur_iso = camera.get_property(SONYALPHA_PROPCODE_ISO);
+            if (cur_iso == need_restore_iso) {
+                break;
+            }
+        }
+        while (((now = millis()) - t) < timeout || btnBig_isPressed());
+    }
+    if (already_focused) {
+        // wait for user to let go of button
+        t = millis(); now = t;
+        do
+        {
+            app_poll();
+            if (camera.get_property(SONYALPHA_PROPCODE_FocusFound) == SONYALPHA_FOCUSSTATUS_NONE) {
+                break;
+            }
+        }
+        while (((now = millis()) - t) < timeout);
+    }
+    if (need_restore_af) {
+        camera.wait_while_busy(config_settings.shutter_step_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+        camera.cmd_AutoFocus(false);
+    }
+    app_waitAllRelease(BTN_DEBOUNCE);
+    return;
 }

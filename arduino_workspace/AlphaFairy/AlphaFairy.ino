@@ -17,6 +17,7 @@ void focus_pull     (void* mip);
 void shutter_step   (void* mip);
 void wifi_info      (void* mip);
 void record_movie   (void* mip);
+void dual_shutter   (void* mip);
 void conf_settings  (void* mip);
 void submenu_enter  (void* mip);
 void intervalometer_config(void* mip);
@@ -39,6 +40,8 @@ const menuitem_t menu_items_remote[] = {
     { MENUITEM_REMOTESHUTTER_DLY, "/remoteshutter_d.png"  , remote_shutter },
     { MENUITEM_RECORDMOVIE      , "/recordmovie.png"      , record_movie   },
     { MENUITEM_FOCUS_PULL       , "/focus_pull.png"       , focus_pull     },
+    { MENUITEM_DUALSHUTTER_REG  , "/dualshutter_reg.png"  , dual_shutter   },
+    { MENUITEM_DUALSHUTTER_SHOOT, "/dualshutter_shoot.png", dual_shutter   },
     { MENUITEM_BACK             , "/back.png"             , NULL           },
     { MENUITEM_END_OF_TABLE     , ""                      , NULL           }, // menu length is counted at run-time
 };
@@ -47,7 +50,6 @@ const menuitem_t menu_items_focus[] = {
     // ID                       , FILE-NAME               , FUNCTION POINTER
     { MENUITEM_FOCUSSTACK_FAR_1 , "/focusstack_far_1.png" , focus_stack     },
     { MENUITEM_FOCUSSTACK_FAR_2 , "/focusstack_far_2.png" , focus_stack     },
-    //{ MENUITEM_FOCUSSTACK_FAR_3 , "/focusstack_far_3.png" , focus_stack     },
     { MENUITEM_FOCUS_9POINT     , "/focus_9point.png"     , focus_9point    },
     { MENUITEM_SHUTTERSTEP      , "/shutter_step.png"     , shutter_step    },
     { MENUITEM_FOCUS_PULL       , "/focus_pull.png"       , focus_pull     },

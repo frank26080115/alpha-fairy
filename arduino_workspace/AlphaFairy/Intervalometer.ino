@@ -3,19 +3,19 @@
 
 const configitem_t intval_config_generic[] = {
   // item pointer                           ,  max , min , step , text           , flags
-  { (int32_t*)&(config_settings.intv_bulb  ), 10000,    0,     1, "Bulb Time"    , CFGFMT_TIME | CFGFMT_BULB },
-  { (int32_t*)&(config_settings.intv_intval), 10000,    0,     1, "Interval"     , CFGFMT_TIME               },
-  { (int32_t*)&(config_settings.intv_delay ), 10000,    0,     1, "Start Delay"  , CFGFMT_TIME               },
-  { (int32_t*)&(config_settings.intv_limit ), 10000,    1,     1, "Num of Shots" , CFGFMT_BYTENS             },
+  { (int32_t*)&(config_settings.intv_bulb  ), 10000,    0,     1, "Bulb Time"    , TXTFMT_TIME | TXTFMT_BULB },
+  { (int32_t*)&(config_settings.intv_intval), 10000,    0,     1, "Interval"     , TXTFMT_TIME               },
+  { (int32_t*)&(config_settings.intv_delay ), 10000,    0,     1, "Start Delay"  , TXTFMT_TIME               },
+  { (int32_t*)&(config_settings.intv_limit ), 10000,    1,     1, "Num of Shots" , TXTFMT_BYTENS             },
   { NULL, 0, 0, 0, "" }, // end of table
 };
 
 const configitem_t intval_config_astro[] = {
   // item pointer                            ,  max , min , step , text           , flags
-  { (int32_t*)&(config_settings.astro_bulb  ), 10000,    0,     5, "Bulb Time"    , CFGFMT_TIME | CFGFMT_BULB },
-  { (int32_t*)&(config_settings.astro_pause ), 10000,    0,     1, "Pause Gap"    , CFGFMT_TIME               },
-  { (int32_t*)&(config_settings.intv_delay  ), 10000,    0,     1, "Start Delay"  , CFGFMT_TIME               },
-  { (int32_t*)&(config_settings.intv_limit  ), 10000,    1,     1, "Num of Shots" , CFGFMT_BYTENS             },
+  { (int32_t*)&(config_settings.astro_bulb  ), 10000,    0,     5, "Bulb Time"    , TXTFMT_TIME | TXTFMT_BULB },
+  { (int32_t*)&(config_settings.astro_pause ), 10000,    0,     1, "Pause Gap"    , TXTFMT_TIME               },
+  { (int32_t*)&(config_settings.intv_delay  ), 10000,    0,     1, "Start Delay"  , TXTFMT_TIME               },
+  { (int32_t*)&(config_settings.intv_limit  ), 10000,    1,     1, "Num of Shots" , TXTFMT_BYTENS             },
   { NULL, 0, 0, 0, "" }, // end of table
 };
 
@@ -97,12 +97,12 @@ void intervalometer_config(void* mip)
             {
                 if (config_settings.intv_bulb != 0) {
                     M5Lcd.print("Bulb: ");
-                    gui_showVal(config_settings.intv_bulb, CFGFMT_TIME, (Print*)&M5Lcd);
+                    gui_showVal(config_settings.intv_bulb, TXTFMT_TIME, (Print*)&M5Lcd);
                     M5Lcd.println();
                     gui_setCursorNextLine();
                     M5Lcd.print("Intv: ");
                 }
-                gui_showVal(config_settings.intv_intval, CFGFMT_TIME, (Print*)&M5Lcd);
+                gui_showVal(config_settings.intv_intval, TXTFMT_TIME, (Print*)&M5Lcd);
                 if (config_settings.intv_limit != 0 && config_settings.intv_limit < 1000) {
                     M5Lcd.println();
                     gui_setCursorNextLine();
@@ -146,7 +146,7 @@ void intervalometer_config(void* mip)
             }
             else {
                 M5Lcd.print("T: ");
-                gui_showVal(total_time, CFGFMT_TIMELONG, (Print*)&M5Lcd);
+                gui_showVal(total_time, TXTFMT_TIMELONG, (Print*)&M5Lcd);
                 gui_blankRestOfLine();
             }
 
@@ -185,7 +185,7 @@ void intervalometer_config(void* mip)
             }
             else {
                 M5Lcd.print("Total: ");
-                gui_showVal(total_time, CFGFMT_TIMELONG, (Print*)&M5Lcd);
+                gui_showVal(total_time, TXTFMT_TIMELONG, (Print*)&M5Lcd);
                 gui_blankRestOfLine();
             }
         }
@@ -428,7 +428,7 @@ bool intervalometer_wait(int32_t twait, uint32_t tstart, int32_t cnt, const char
 
         M5Lcd.println();
         gui_setCursorNextLine();
-        gui_showVal(twait - telapsed, CFGFMT_TIMEMS, (Print*)&M5Lcd); // show remaining time
+        gui_showVal(twait - telapsed, TXTFMT_TIMEMS, (Print*)&M5Lcd); // show remaining time
         gui_blankRestOfLine();
 
         if (cnt > 0 && stop_request == false) {
@@ -444,7 +444,7 @@ bool intervalometer_wait(int32_t twait, uint32_t tstart, int32_t cnt, const char
                 gui_setCursorNextLine();
                 if (total_time > 120 && cnt > 5) { // this counter isn't live, so don't show it if it needs to be precise
                     M5Lcd.print("T Rem: ");
-                    gui_showVal(total_time, CFGFMT_TIMELONG, (Print*)&M5Lcd);
+                    gui_showVal(total_time, TXTFMT_TIMELONG, (Print*)&M5Lcd);
                 }
                 gui_blankRestOfLine();
             }
@@ -472,7 +472,7 @@ bool intervalometer_wait(int32_t twait, uint32_t tstart, int32_t cnt, const char
         M5Lcd.print(msg);
         M5Lcd.println();
         gui_setCursorNextLine();
-        gui_showVal(0, CFGFMT_TIMEMS, (Print*)&M5Lcd); // show remaining time of zero
+        gui_showVal(0, TXTFMT_TIMEMS, (Print*)&M5Lcd); // show remaining time of zero
         gui_blankRestOfLine();
     }
 

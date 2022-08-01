@@ -4,17 +4,17 @@ extern configsettings_t config_settings;
 
 const configitem_t config_items[] = {
   // item pointer                                       , max , min , step , text                     , flags
-  { (int32_t*)&(config_settings.focus_pause_time_ms    ), 1000,    0,    10, "focus pause"            , CFGFMT_BYTENS   },
-  { (int32_t*)&(config_settings.shutter_press_time_ms  ), 1000,    0,    10, "shutter press duration" , CFGFMT_BYTENS   },
-  { (int32_t*)&(config_settings.manual_focus_return    ),    1,    0,     1, "MF return"              , CFGFMT_BOOL     },
-  { (int32_t*)&(config_settings.nine_point_dist        ),  240,    0,    10, "9-pt dist"              , CFGFMT_BYTENS   },
-  { (int32_t*)&(config_settings.shutter_speed_step_cnt ),    9,    1,     1, "Tv step size"           , CFGFMT_BYTENS   },
-  { (int32_t*)&(config_settings.shutter_step_time_ms   ), 1000,    0,    10, "Tv step delay"          , CFGFMT_BYTENS   },
-  { (int32_t*)&(config_settings.pwr_save_secs          ), 1000,    0,    10, "power save time (s)"    , CFGFMT_BYTENS   },
-  { (int32_t*)&(config_settings.lcd_brightness         ),   12,    7,     1, "LCD bright"             , CFGFMT_LCDBRITE },
-  { (int32_t*)&(config_settings.led_enabled            ),    1,    0,     1, "LED en"                 , CFGFMT_BOOL     },
-  { (int32_t*)&(config_settings.infrared_enabled       ),    1,    0,     1, "IR en"                  , CFGFMT_BOOL     },
-  { (int32_t*)&(config_settings.gpio_enabled           ),    1,    0,     1, "GPIO en"                , CFGFMT_BOOL     },
+  { (int32_t*)&(config_settings.focus_pause_time_ms    ), 1000,    0,    10, "focus pause"            , TXTFMT_BYTENS   },
+  { (int32_t*)&(config_settings.shutter_press_time_ms  ), 1000,    0,    10, "shutter press duration" , TXTFMT_BYTENS   },
+  { (int32_t*)&(config_settings.manual_focus_return    ),    1,    0,     1, "MF return"              , TXTFMT_BOOL     },
+  { (int32_t*)&(config_settings.nine_point_dist        ),  240,    0,    10, "9-pt dist"              , TXTFMT_BYTENS   },
+  { (int32_t*)&(config_settings.shutter_speed_step_cnt ),    9,    1,     1, "Tv step size"           , TXTFMT_BYTENS   },
+  { (int32_t*)&(config_settings.shutter_step_time_ms   ), 1000,    0,    10, "Tv step delay"          , TXTFMT_BYTENS   },
+  { (int32_t*)&(config_settings.pwr_save_secs          ), 1000,    0,    10, "power save time (s)"    , TXTFMT_BYTENS   },
+  { (int32_t*)&(config_settings.lcd_brightness         ),   12,    7,     1, "LCD bright"             , TXTFMT_LCDBRITE },
+  { (int32_t*)&(config_settings.led_enabled            ),    1,    0,     1, "LED en"                 , TXTFMT_BOOL     },
+  { (int32_t*)&(config_settings.infrared_enabled       ),    1,    0,     1, "IR en"                  , TXTFMT_BOOL     },
+  { (int32_t*)&(config_settings.gpio_enabled           ),    1,    0,     1, "GPIO en"                , TXTFMT_BOOL     },
   { NULL, 0, 0, 0, "" }, // end of table
 };
 

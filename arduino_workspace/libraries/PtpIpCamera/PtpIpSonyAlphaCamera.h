@@ -24,6 +24,7 @@ class PtpIpSonyAlphaCamera : public PtpIpCamera
 
         bool update_property(uint16_t prop_code, uint16_t data_type, uint8_t* data_chunk, uint8_t data_size);
         int32_t get_property(uint16_t prop_code);
+        uint32_t get_property_enum(uint16_t prop_code, uint32_t cur_val, int32_t step = 0);
         bool has_property(uint16_t prop_code);
         bool check_dev_props(void);
         void decode_properties(void);
@@ -49,6 +50,7 @@ class PtpIpSonyAlphaCamera : public PtpIpCamera
         bool cmd_ShutterSpeedStep(int8_t step);
         bool cmd_ShutterSpeedSet(int16_t numerator, int16_t denominator);
         bool cmd_ShutterSpeedSet32(uint32_t x);
+        bool cmd_IsoSet(uint32_t x);
 
         bool need_check_properties;
         bool properties_pending;
@@ -59,6 +61,7 @@ class PtpIpSonyAlphaCamera : public PtpIpCamera
         bool propdecode_weird_form;
 
         uint32_t* table_shutter_speed;
+        uint32_t* table_iso;
 };
 
 #endif
