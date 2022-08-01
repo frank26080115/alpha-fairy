@@ -92,6 +92,7 @@ void setup()
     M5.begin(false); // do not initialize the LCD, we have our own extended M5Lcd class to initialize later
     M5.IMU.Init();
     M5.Axp.begin();
+    M5.Axp.ScreenBreath(config_settings.lcd_brightness);
     M5Lcd.begin(); // our own extended LCD object
     while (!SPIFFS.begin(true)){
         Serial.println("SPIFFS Mount Failed");
@@ -123,6 +124,11 @@ void setup()
 
     welcome(); // splash screen for a few seconds
     pwr_tick();
+
+    #ifdef DISABLE_ALL_MSG
+    dbg_ser.enabled = false;
+    camera.set_debugflags(0);
+    #endif
 }
 
 void loop()

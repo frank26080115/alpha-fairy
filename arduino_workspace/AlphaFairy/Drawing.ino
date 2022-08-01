@@ -230,6 +230,11 @@ void gui_showVal(int32_t x, uint8_t cfgfmt, Print* printer)
     else {
         i += sprintf(&(str[i]), "%d", x);
     }
+
+    if ((cfgfmt & CFGFMT_LCDBRITE) != 0) {
+        M5.Axp.ScreenBreath(x);
+    }
+
     if (printer != NULL) {
         printer->print(str);
     }

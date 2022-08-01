@@ -41,6 +41,7 @@ void gui_drawStatusBar(bool is_black)
         if (li == 3) {
             uint8_t b = M5.Axp.GetBtnPress();
             if (b != 0) {
+                dbg_ser.printf("user pressed power button\r\n");
                 pwr_tick();
             }
         }
@@ -50,7 +51,6 @@ void gui_drawStatusBar(bool is_black)
         if (batt_vbus > 3) // check if USB power is available
         {
             batt_status = BATTSTAT_CHARGING;
-            pwr_tick(); // do not sleep if USB is available
             if (batt_vbatt > 4.1 && batt_ibatt >= 0)
             {
                 // high vbatt and no in-flow current means battery is full
@@ -141,24 +141,46 @@ void pwr_sleepCheck()
     #ifdef DISABLE_POWER_SAVE
     return;
     #else
-    if (config_settings.pwr_save_secs == 0) {
-        // feature disabled
-        return;
-    }
-
-    if (batt_vbus > 3) {
-        // no shutdown while USB is plugged
-        return;
-    }
 
     // enforce a minimum
     if (config_settings.pwr_save_secs < 30) {
         config_settings.pwr_save_secs = 30;
+        dbg_ser.printf("pwr_save_secs too low, reset to 30 seconds\r\n");
     }
 
     uint32_t now = millis();
-    if ((now - pwr_last_tick) > (config_settings.pwr_save_secs * 1000)) {
-        M5.Axp.PowerOff();
+    if ((now - pwr_last_tick) > (config_settings.pwr_save_secs * 1000))
+    {
+        if (config_settings.pwr_save_secs == 0) {
+            // feature disabled
+            pwr_tick();
+            dbg_ser.printf("pwr save disabled by user\r\n");
+            return;
+        }
+
+        // no USB voltage -> power off
+        if (batt_vbus < 3) {
+            Serial.println("Power Save Shutdown");
+            while (true) {
+                M5.Axp.PowerOff();
+            }
+        }
+
+        // yes USB voltage -> pretend power off but keep charging the battery
+        Serial.println("Power Save Screen Saver");
+        M5Lcd.fillScreen(TFT_BLACK);
+        M5.Axp.ScreenBreath(0);
+        while (true) {
+            batt_vbus = M5.Axp.GetVBusVoltage();
+            // no USB voltage -> power off
+            if (batt_vbus < 3) {
+                Serial.println("Power Save Screen Saver Shutdown");
+                while (true) {
+                    M5.Axp.PowerOff();
+                }
+            }
+            delay(1000);
+        }
     }
     #endif
 }

@@ -41,6 +41,7 @@ typedef struct
 
   int32_t pwr_save_secs;
   int32_t led_enabled;
+  int32_t lcd_brightness;
 
   int32_t intv_bulb;
   int32_t intv_intval;

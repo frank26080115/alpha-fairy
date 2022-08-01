@@ -4,6 +4,7 @@
 //#define WIFI_AP_UNIQUE_NAME
 //#define DISABLE_STATUS_BAR
 //#define DISABLE_POWER_SAVE
+//#define DISABLE_ALL_MSG
 
 #define LEDBLINK_USE_PWM
 #define LEDBLINK_PWM_DUTY_ON  (0xFF - 16)
