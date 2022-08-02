@@ -33,3 +33,11 @@ The fun part about this project for me is to create a usable user interface on a
  * auto power save
  * configurable options
  * serial port debugging and command line interface
+
+## Known Problems
+
+The camera does not re-establish a broken connection. If the remote is turned off (or disconnected for other reasons), you need to turn off the camera and turn it back on (after the remote is turned back on).
+
+The features that can change shutter speed are not reliable. The camera takes a long (and variable) time to register a remote command to change the shutter speed.
+
+Battery life is a bit short. Do not use it for intervalometer purposes without an external power source. Also, using Wi-Fi for intervalometer is ill-advised, use a real shutter release cable if possible.
