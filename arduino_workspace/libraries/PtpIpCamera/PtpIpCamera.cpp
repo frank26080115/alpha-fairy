@@ -442,12 +442,18 @@ bool PtpIpCamera::decode_pkt(uint8_t buff[], uint32_t buff_len)
     return pkt_valid;
 }
 
+bool PtpIpCamera::check_name()
+{
+    return false;
+}
+
 void PtpIpCamera::parse_cmd_ack(uint8_t* data)
 {
     ptpip_pkt_cmdack_t* pktstruct = (ptpip_pkt_cmdack_t*)data;
     conn_id = pktstruct->conn_id;
     copy_utf16_to_bytes(cam_name, pktstruct->name);
     dbgser_states->printf("PTP recv'ed CMD-ACK, conn-ID 0x%08X, name: %s\r\n", conn_id, cam_name);
+    check_name();
 }
 
 void PtpIpCamera::wait_while_busy(uint32_t min_time, uint32_t max_time, volatile bool* exit_signal)

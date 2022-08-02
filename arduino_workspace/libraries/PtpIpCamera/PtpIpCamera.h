@@ -123,6 +123,7 @@ class PtpIpCamera
                 );
         virtual bool decode_pkt    (uint8_t buff[], uint32_t buff_len);
         bool         try_decode_pkt(uint8_t buff[], uint32_t* buff_idx, uint32_t buff_max, bool can_force);
+        virtual bool check_name    (void);
 
         uint32_t last_rx_time;
         uint32_t pending_data; // technically this should be 64 bits

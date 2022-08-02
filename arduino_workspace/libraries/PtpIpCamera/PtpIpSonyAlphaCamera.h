@@ -8,8 +8,16 @@
 
 enum
 {
-    SONYALPHAMODEL_NONE = 0,
-    SONYALPHAMODEL_A1   = 1,
+    SONYALPHAMODEL_NONE    = 0,
+    SONYALPHAMODEL_A1      = 1,
+    SONYALPHAMODEL_A7SM3,
+    SONYALPHAMODEL_A9M2,
+    SONYALPHAMODEL_A7M4A,
+    SONYALPHAMODEL_A7RM4,
+    SONYALPHAMODEL_A7C,
+    SONYALPHAMODEL_A7M4,
+    SONYALPHAMODEL_ZVE10,
+    SONYALPHAMODEL_ZV1,
 };
 
 class PtpIpSonyAlphaCamera : public PtpIpCamera
@@ -31,6 +39,7 @@ class PtpIpSonyAlphaCamera : public PtpIpCamera
         void test_prop_decode(uint8_t* data, uint32_t len);
 
         bool decode_pkt(uint8_t buff[], uint32_t buff_len);
+        bool check_name(void);
         void task(void);
 
         bool is_manuallyfocused(void);

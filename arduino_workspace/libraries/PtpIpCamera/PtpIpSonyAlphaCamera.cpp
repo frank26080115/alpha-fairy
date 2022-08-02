@@ -66,6 +66,13 @@ PtpIpSonyAlphaCamera::PtpIpSonyAlphaCamera(char* host_name, uint16_t* interested
     properties_pending = false;
 }
 
+bool PtpIpSonyAlphaCamera::check_name()
+{
+    this->cam_model = SONYALPHAMODEL_A1;
+    // TODO: assign model number according to name string
+    return true;
+}
+
 bool PtpIpSonyAlphaCamera::decode_pkt(uint8_t buff[], uint32_t buff_len)
 {
     ptpip_pkthdr_t* hdr = (ptpip_pkthdr_t*)buff;
