@@ -198,7 +198,9 @@ void pwr_sleepCheck()
                     M5.Axp.PowerOff();
                 }
             }
-            delay(1000);
+            if (M5.Axp.GetBtnPress() != 0) {
+                ESP.restart();
+            }
         }
     }
     #endif
