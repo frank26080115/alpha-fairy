@@ -172,6 +172,9 @@ bool app_poll()
         tlimit *= 1000; // previous units were in seconds, next unit is in milliseconds
         tlimit = (tlimit <= 0) ? config_settings.shutter_press_time_ms : tlimit;
         if (tlimit > 0 && (telapsed >= tlimit)) {
+            #ifdef SHUTTER_GPIO_ACTIVE_HIGH
+            digitalWrite(SHUTTER_GPIO, LOW);
+            #endif
             pinMode(SHUTTER_GPIO, INPUT);
             gpio_time = 0;
         }

@@ -25,11 +25,18 @@ void cam_shootQuick()
 void cam_shootQuickGpio()
 {
     // convenience function for quickly taking a photo without complicated connectivity checks
+    #ifdef SHUTTER_GPIO_ACTIVE_HIGH
+    pinMode(SHUTTER_GPIO, OUTPUT);
+    digitalWrite(SHUTTER_GPIO, HIGH);
+    app_sleep(config_settings.shutter_press_time_ms, false);
+    digitalWrite(SHUTTER_GPIO, LOW);
+    #else
     digitalWrite(SHUTTER_GPIO, LOW);
     pinMode(SHUTTER_GPIO, OUTPUT);
     digitalWrite(SHUTTER_GPIO, LOW);
     app_sleep(config_settings.shutter_press_time_ms, false);
     pinMode(SHUTTER_GPIO, INPUT);
+    #endif
 }
 
 void cam_shootOpen()
@@ -38,14 +45,22 @@ void cam_shootOpen()
     if (camera.isOperating()) {
         camera.cmd_Shutter(true);
         if (gpio_time != 0) {
+            #ifdef SHUTTER_GPIO_ACTIVE_HIGH
+            digitalWrite(SHUTTER_GPIO, LOW);
+            #endif
             pinMode(SHUTTER_GPIO, INPUT);
             gpio_time = 0;
         }
     }
     else if (config_settings.gpio_enabled) {
+        #ifdef SHUTTER_GPIO_ACTIVE_HIGH
+        pinMode(SHUTTER_GPIO, OUTPUT);
+        digitalWrite(SHUTTER_GPIO, HIGH);
+        #else
         digitalWrite(SHUTTER_GPIO, LOW);
         pinMode(SHUTTER_GPIO, OUTPUT);
         digitalWrite(SHUTTER_GPIO, LOW);
+        #endif
         gpio_time = millis();
     }
     else if (config_settings.infrared_enabled) {
@@ -59,13 +74,20 @@ void cam_shootClose()
     if (camera.isOperating()) {
         camera.cmd_Shutter(false);
         if (gpio_time != 0) {
+            #ifdef SHUTTER_GPIO_ACTIVE_HIGH
+            digitalWrite(SHUTTER_GPIO, LOW);
+            #endif
             pinMode(SHUTTER_GPIO, INPUT);
             gpio_time = 0;
         }
     }
     else if (config_settings.gpio_enabled) {
         gpio_time = 0; // stop the timer
+        #ifdef SHUTTER_GPIO_ACTIVE_HIGH
+        digitalWrite(SHUTTER_GPIO, LOW);
+        #else
         pinMode(SHUTTER_GPIO, INPUT);
+        #endif
     }
     else if (config_settings.infrared_enabled) {
         // do nothing
@@ -499,6 +521,8 @@ void focus_9point(void* mip)
 
 void shutter_step(void* mip)
 {
+    uint32_t t, now;
+
     dbg_ser.println("shutter_step");
 
     if (camera.isOperating() == false) {
@@ -525,6 +549,9 @@ void shutter_step(void* mip)
 
     config_settings.shutter_speed_step_cnt = config_settings.shutter_speed_step_cnt <= 0 ? 1 : config_settings.shutter_speed_step_cnt; // enforce a minimum
 
+    uint32_t cur_ss = camera.get_property(SONYALPHA_PROPCODE_ShutterSpeed);
+    uint32_t shutter_ms = shutter_to_millis(cur_ss);
+
     int dot_idx = 0;
 
     do
@@ -534,13 +561,26 @@ void shutter_step(void* mip)
             break;
         }
         ledblink_on();
-        camera.cmd_Shoot(config_settings.shutter_press_time_ms);
+
+        camera.cmd_Shutter(true);
+        t = millis(); now = t;
+        while (((now = millis()) - t) < shutter_ms && (now - t) < config_settings.shutter_press_time_ms) {
+            camera.poll();
+        }
+        camera.cmd_Shutter(false);
+        while (((now = millis()) - t) < shutter_ms && camera.isOperating() && btnBig_isPressed()) {
+            camera.poll();
+        }
+
         ledblink_off();
         gui_drawVerticalDots(0, 20, -1, 3, 5, dot_idx, false, TFT_GREEN, TFT_RED);
         dot_idx++;
-        camera.wait_while_busy(config_settings.shutter_step_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
-        camera.cmd_ShutterSpeedStep(config_settings.shutter_speed_step_cnt);
-        camera.wait_while_busy(config_settings.shutter_step_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+        cur_ss = camera.get_property_enum(SONYALPHA_PROPCODE_ShutterSpeed, cur_ss, -config_settings.shutter_speed_step_cnt);
+        shutter_ms = shutter_to_millis(cur_ss);
+        dbg_ser.printf("shutter_step next %u\r\n", shutter_ms);
+        camera.wait_while_busy(config_settings.shutter_step_time_ms / 2, DEFAULT_BUSY_TIMEOUT, NULL);
+        camera.cmd_ShutterSpeedSet32(cur_ss);
+        camera.wait_while_busy(config_settings.shutter_step_time_ms / 2, DEFAULT_BUSY_TIMEOUT, NULL);
     }
     while (btnBig_isPressed() && camera.isOperating());
 
