@@ -13,6 +13,7 @@ void memcheck_func  (void* cmd, char* argstr, Stream* stream);
 void statscheck_func(void* cmd, char* argstr, Stream* stream);
 void reboot_func    (void* cmd, char* argstr, Stream* stream);
 void imu_func       (void* cmd, char* argstr, Stream* stream);
+void imushow_func   (void* cmd, char* argstr, Stream* stream);
 void pwr_func       (void* cmd, char* argstr, Stream* stream);
 void debug_func     (void* cmd, char* argstr, Stream* stream);
 void camdebug_func  (void* cmd, char* argstr, Stream* stream);
@@ -21,14 +22,15 @@ void infrared_func  (void* cmd, char* argstr, Stream* stream);
 
 const cmd_def_t cmds[] = {
   #ifndef DISABLE_CMD_LINE
-  { "shoot" , shoot_func },
-  { "echo"  , echo_func },
-  { "mem"   , memcheck_func },
-  { "imu"   , imu_func },
-  { "pwr"   , pwr_func },
-  { "stats" , statscheck_func },
-  { "reboot", reboot_func },
-  { "debug" , debug_func },
+  { "shoot"    , shoot_func },
+  { "echo"     , echo_func },
+  { "mem"      , memcheck_func },
+  { "imu"      , imu_func },
+  { "imushow"  , imushow_func },
+  { "pwr"      , pwr_func },
+  { "stats"    , statscheck_func },
+  { "reboot"   , reboot_func },
+  { "debug"    , debug_func },
   { "camdebug" , camdebug_func },
   { "ir"       , infrared_func },
   #endif
@@ -81,11 +83,40 @@ void statscheck_func(void* cmd, char* argstr, Stream* stream)
   #endif
 }
 
-extern float imu_pitch, imu_roll, imu_yaw;
 void imu_func(void* cmd, char* argstr, Stream* stream)
 {
   pwr_tick();
-  stream->printf("imu:   %0.1f   %0.1f   %0.1f\r\n", imu_pitch, imu_roll, imu_yaw);
+  stream->printf("imu:   %0.1f   %0.1f   %0.1f\r\n", imu.pitch, imu.roll, imu.yaw);
+}
+
+void imushow_func(void* cmd, char* argstr, Stream* stream)
+{
+    gui_startAppPrint();
+    M5Lcd.setTextFont(4);
+    int spin_cnt = 0;
+    while (true)
+    {
+        app_poll();
+        pwr_tick();
+        stream->printf("imu:   %0.1f   %0.1f   %0.1f\r\n", imu.pitch, imu.roll, imu.yaw);
+        M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);
+        M5Lcd.printf("%0.1f  ,  %0.1f", imu.roll, imu.pitch); gui_blankRestOfLine(); M5Lcd.println(); gui_setCursorNextLine();
+        M5Lcd.printf("%d", imu.pitch_accum); gui_blankRestOfLine(); M5Lcd.println(); gui_setCursorNextLine();
+        int spin = imu.getSpin();
+        if (spin > 0) {
+            spin_cnt++;
+        }
+        else if (spin < 0) {
+            spin_cnt--;
+        }
+        M5Lcd.printf("spin  %d", spin_cnt); gui_blankRestOfLine();
+        if (spin != 0) {
+            imu.resetSpin();
+        }
+        if (btnBig_hasPressed(true) || btnSide_hasPressed(true) || M5.Axp.GetBtnPress() != 0) {
+            ESP.restart();
+        }
+    }
 }
 
 void pwr_func(void* cmd, char* argstr, Stream* stream)

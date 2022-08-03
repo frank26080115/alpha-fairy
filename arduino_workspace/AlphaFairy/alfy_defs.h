@@ -41,13 +41,6 @@ enum
 
 enum
 {
-  ANGLE_IS_FLAT = 0,
-  ANGLE_IS_UP,
-  ANGLE_IS_DOWN,
-};
-
-enum
-{
   LEDMODE_NORMAL,
   LEDMODE_BLINK,
   LEDMODE_ON,

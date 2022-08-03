@@ -14,7 +14,7 @@ bool guimenu_task(menustate_t* m)
     {
         // side-button press means go to another menu item
         // go to the previous item if the angle of the device is "down"
-        if (imu_angle == ANGLE_IS_DOWN && (m->flags & MENUFLAG_CAN_GO_DOWN) != 0) {
+        if (imu.getTilt() == TILT_IS_DOWN && (m->flags & MENUFLAG_CAN_GO_DOWN) != 0) {
             if (m->idx > 0) {
                 m->idx -= 1;
                 dbg_ser.printf("menu[%u] prev idx %u\r\n", m->id, m->idx);
@@ -41,13 +41,13 @@ bool guimenu_task(menustate_t* m)
         gui_drawStatusBar(false);
         m->last_idx = m->idx;
         app_sleep(50, true); // kinda sorta a debounce and rate limit, don't think I need this here
-        spin_reset();
+        imu.resetSpin();
     }
-    else if (imu_hasChange) { // prevent unneccessary re-draws
+    else if (imu.hasChange) { // prevent unneccessary re-draws
         if ((m->flags & MENUFLAG_DRAW_PAGES) != 0) {
             guimenu_drawPages();
         }
-        imu_hasChange = false;
+        imu.hasChange = false;
     }
 
     if ((now - last_time) > 1000) {
@@ -67,23 +67,23 @@ bool guimenu_task(menustate_t* m)
     else if (m->items[m->idx].id == MENUITEM_REMOTESHUTTER_DLY)
     {
         // change the time delay for the remote shutter by spinning
-        if (spin_cnt > 0) {
+        if (imu.getSpin() > 0) {
             if (remoteshutter_delay == 2) {
                 remoteshutter_delay = 5;
             }
             else if (remoteshutter_delay == 5) {
                 remoteshutter_delay = 10;
             }
-            spin_cnt = 0;
+            imu.resetSpin();
         }
-        else if (spin_cnt < 0) {
+        else if (imu.getSpin() < 0) {
             if (remoteshutter_delay == 10) {
                 remoteshutter_delay = 5;
             }
             else if (remoteshutter_delay == 5) {
                 remoteshutter_delay = 2;
             }
-            spin_cnt = 0;
+            imu.resetSpin();
         }
         gui_startMenuPrint();
         M5Lcd.setCursor(80, 188);

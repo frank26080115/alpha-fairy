@@ -5,6 +5,7 @@
 #include <PtpIpCamera.h>
 #include <PtpIpSonyAlphaCamera.h>
 #include <AlphaFairy_NetMgr.h>
+#include <AlphaFairyImu.h>
 #include <SerialCmdLine.h>
 #include <SonyCameraInfraredRemote.h>
 
@@ -84,6 +85,8 @@ bool redraw_flag = false; // forces menu redraw
 SpriteMgr* sprites;
 #endif
 
+AlphaFairyImu imu;
+
 void setup()
 {
     settings_init();
@@ -95,6 +98,8 @@ void setup()
     dbg_ser.enabled = true;
     M5.begin(false); // do not initialize the LCD, we have our own extended M5Lcd class to initialize later
     M5.IMU.Init();
+    M5.IMU.SetGyroFsr(M5.IMU.GFS_500DPS);
+    M5.IMU.SetAccelFsr(M5.IMU.AFS_4G);
     M5.Axp.begin();
     M5.Axp.ScreenBreath(config_settings.lcd_brightness);
     M5Lcd.begin(); // our own extended LCD object
@@ -129,6 +134,8 @@ void setup()
     // clear the button flags
     btnBig_hasPressed(true);
     btnSide_hasPressed(true);
+
+    imu.poll();
 
     welcome(); // splash screen for a few seconds
     pwr_tick();
@@ -182,7 +189,7 @@ bool app_poll()
 
     // do low priority tasks if the networking is not busy
     if (camera.isKindaBusy() == false) {
-        app_anglePoll();
+        imu.poll();
         cmdline.task();
         yield();
         return true; // can do more low priority tasks

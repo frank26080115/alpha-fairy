@@ -42,10 +42,10 @@ void guimenu_drawPages()
         }
 
         // draw a grey dot beside the current black dot, depending on if the user tilted the device angle
-        else if (i == (curmenu->idx - 1) && imu_angle == ANGLE_IS_DOWN) {
+        else if (i == (curmenu->idx - 1) && imu.getTilt() == TILT_IS_DOWN) {
             fill_color = TFT_LIGHTGREY;
         }
-        else if (i == (curmenu->idx + 1) && imu_angle != ANGLE_IS_DOWN) {
+        else if (i == (curmenu->idx + 1) && imu.getTilt() != TILT_IS_DOWN) {
             fill_color = TFT_LIGHTGREY;
         }
 
@@ -341,7 +341,7 @@ void gui_valIncDec(configitem_t* cfgitm)
     }
 
     lcdx = M5Lcd.getCursorX(); lcdy = M5Lcd.getCursorY(); // remember start of line position for quick redraw of values
-    if (imu_angle == ANGLE_IS_UP)
+    if (imu.getTilt() == TILT_IS_UP)
     {
         if (btnBig_hasPressed(true)) // change the value on button press
         {
@@ -357,7 +357,7 @@ void gui_valIncDec(configitem_t* cfgitm)
             gui_showValOnLcd((*val_ptr), txtfmt, lcdx, lcdy, cfgitm->step_size, true);
         }
     }
-    else if (imu_angle == ANGLE_IS_DOWN)
+    else if (imu.getTilt() == TILT_IS_DOWN)
     {
         if (btnBig_hasPressed(true)) // change the value on button press
         {
@@ -425,7 +425,7 @@ void gui_valIncDec(configitem_t* cfgitm)
 
 int8_t gui_drawFocusPullState()
 {
-    int ang = lroundf(imu_pitch);
+    int ang = lroundf(imu.getPitch());
     int aang = (ang < 0) ? (-ang) : (ang);
     int8_t n = 0;
     char s = (ang < 0) ? 'n' : 'p';

@@ -26,10 +26,6 @@ extern configsettings_t     config_settings;
 
 extern menustate_t* curmenu;
 
-extern uint8_t imu_angle;
-extern bool imu_hasChange;
-extern float imu_pitch;
-
 extern bool app_poll(void);
 
 #endif
