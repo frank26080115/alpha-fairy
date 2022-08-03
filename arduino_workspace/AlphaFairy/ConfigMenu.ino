@@ -31,7 +31,7 @@ void conf_settings(void* mip)
     }
   }
 
-  #ifdef USE_PWR_BTN_AS_BACK
+  #ifdef USE_PWR_BTN_AS_EXIT
   configsettings_t backup;
   memcpy(&backup, &config_settings, sizeof(configsettings_t)); // allows for changes to be undone
   #endif
@@ -58,6 +58,16 @@ void conf_settings(void* mip)
       pwr_tick();
       redraw_flag = false;
     }
+    #if defined(USE_PWR_BTN_AS_BACK) && !defined(USE_PWR_BTN_AS_EXIT)
+    if (btnPwr_hasPressed(true))
+    {
+      menustate_confsettings.idx = (menustate_confsettings.idx <= 0) ? menustate_confsettings.cnt : (menustate_confsettings.idx - 1);
+      M5Lcd.fillScreen(TFT_BLACK); // item has changed so clear the screen
+      conf_drawIcon();
+      pwr_tick();
+      redraw_flag = false;
+    }
+    #endif
 
     configitem_t* cfgitm = (configitem_t*)&(config_items[menustate_confsettings.idx]);
 
@@ -93,7 +103,7 @@ void conf_settings(void* mip)
       gui_valIncDec(cfgitm);
     }
 
-    #ifdef USE_PWR_BTN_AS_BACK
+    #ifdef USE_PWR_BTN_AS_EXIT
     if (btnPwr_hasPressed(true))
     {
         pwr_tick();

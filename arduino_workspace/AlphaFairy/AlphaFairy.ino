@@ -43,7 +43,7 @@ const menuitem_t menu_items_remote[] = {
     { MENUITEM_FOCUS_PULL       , "/focus_pull.png"       , focus_pull     },
     { MENUITEM_DUALSHUTTER_REG  , "/dualshutter_reg.png"  , dual_shutter   },
     { MENUITEM_DUALSHUTTER_SHOOT, "/dualshutter_shoot.png", dual_shutter   },
-    #ifndef USE_PWR_BTN_AS_BACK
+    #if !defined(USE_PWR_BTN_AS_EXIT) || defined(USE_PWR_BTN_AS_BACK)
     { MENUITEM_BACK             , "/back.png"             , NULL           },
     #endif
     { MENUITEM_END_OF_TABLE     , ""                      , NULL           }, // menu length is counted at run-time
@@ -56,7 +56,7 @@ const menuitem_t menu_items_focus[] = {
     { MENUITEM_FOCUS_9POINT     , "/focus_9point.png"     , focus_9point    },
     { MENUITEM_SHUTTERSTEP      , "/shutter_step.png"     , shutter_step    },
     { MENUITEM_FOCUS_PULL       , "/focus_pull.png"       , focus_pull      },
-    #ifndef USE_PWR_BTN_AS_BACK
+    #if !defined(USE_PWR_BTN_AS_EXIT) || defined(USE_PWR_BTN_AS_BACK)
     { MENUITEM_BACK             , "/back.png"             , NULL            },
     #endif
     { MENUITEM_END_OF_TABLE     , ""                      , NULL            }, // menu length is counted at run-time
@@ -66,7 +66,7 @@ const menuitem_t menu_items_utils[] = {
     // ID                       , FILE-NAME               , FUNCTION POINTER
     { MENUITEM_WIFIINFO         , "/wifiinfo.png"         , wifi_info       },
     { MENUITEM_CONFIG           , "/config.png"           , conf_settings   },
-    #ifndef USE_PWR_BTN_AS_BACK
+    #if !defined(USE_PWR_BTN_AS_EXIT) || defined(USE_PWR_BTN_AS_BACK)
     { MENUITEM_BACK             , "/back.png"             , NULL            },
     #endif
     { MENUITEM_END_OF_TABLE     , ""                      , NULL            }, // menu length is counted at run-time

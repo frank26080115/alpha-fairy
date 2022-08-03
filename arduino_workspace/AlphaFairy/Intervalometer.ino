@@ -68,6 +68,16 @@ void intervalometer_config(void* mip)
             redraw_flag = false;
             pwr_tick();
         }
+        #if defined(USE_PWR_BTN_AS_BACK) && !defined(USE_PWR_BTN_AS_EXIT)
+        if (btnPwr_hasPressed(true))
+        {
+            m->idx = (m->idx <= 0) ? m->cnt : (m->idx - 1);
+            M5Lcd.fillScreen(TFT_BLACK); // item has changed so clear the screen
+            interval_drawIcon(menuitm->id);
+            redraw_flag = false;
+            pwr_tick();
+        }
+        #endif
 
         configitem_t* cfgitm = (configitem_t*)&(config_items[m->idx]);
         if (m->idx == m->cnt) // last item is the exit item
@@ -190,7 +200,7 @@ void intervalometer_config(void* mip)
             }
         }
 
-        #ifdef USE_PWR_BTN_AS_BACK
+        #ifdef USE_PWR_BTN_AS_EXIT
         if (btnPwr_hasPressed(true))
         {
             pwr_tick();
@@ -333,7 +343,7 @@ void intervalometer_run(uint8_t id)
             break;
         }
 
-        #ifdef USE_PWR_BTN_AS_BACK
+        #ifdef USE_PWR_BTN_AS_EXIT
         if (btnPwr_hasPressed(true))
         {
             pwr_tick();
@@ -437,7 +447,7 @@ bool intervalometer_wait(int32_t twait, uint32_t tstart, int32_t cnt, const char
             stop_flag = true;
         }
 
-        #ifdef USE_PWR_BTN_AS_BACK
+        #ifdef USE_PWR_BTN_AS_EXIT
         if (btnPwr_hasPressed(true))
         {
             pwr_tick();

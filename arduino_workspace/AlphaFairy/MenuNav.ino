@@ -31,6 +31,19 @@ bool guimenu_task(menustate_t* m)
         }
         pwr_tick();
     }
+    #if defined(USE_PWR_BTN_AS_BACK) && !defined(USE_PWR_BTN_AS_EXIT)
+    if (btnPwr_hasPressed(true))
+    {
+        if (m->idx > 0) {
+            m->idx -= 1;
+        }
+        else {
+            m->idx = m->cnt - 1;
+        }
+        dbg_ser.printf("menu[%u] prev idx %u\r\n", m->id, m->idx);
+        pwr_tick();
+    }
+    #endif
 
     if (m->last_idx != m->idx || redraw_flag) { // prevent unnecessary re-draws
         redraw_flag = false;
@@ -159,7 +172,7 @@ bool guimenu_task(menustate_t* m)
         app_sleep(50, true); // kinda sorta a debounce and rate limit, don't think I need this here
         pwr_tick();
     }
-    #ifdef USE_PWR_BTN_AS_BACK
+    #if defined(USE_PWR_BTN_AS_EXIT) && !defined(USE_PWR_BTN_AS_BACK)
     if (btnPwr_hasPressed(true))
     {
         pwr_tick();
