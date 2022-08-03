@@ -163,40 +163,45 @@ void pwr_sleepCheck()
             return;
         }
 
+        pwr_shutdown();
+    }
+    #endif
+}
+
+void pwr_shutdown()
+{
+    // no USB voltage -> power off
+    if (batt_vbus < 3) {
+        Serial.println("Power Save Shutdown");
+        while (true) {
+            M5.Axp.PowerOff();
+        }
+    }
+
+    // yes USB voltage -> pretend power off but keep charging the battery
+    Serial.println("Power Save Screen Saver");
+    esp_wifi_disconnect();
+    esp_wifi_stop();
+    esp_wifi_deinit();
+    M5Lcd.fillScreen(TFT_BLACK);
+    M5.Axp.ScreenBreath(0);
+    while (true)
+    {
+        cmdline.task();
+        yield();
+
+        batt_vbus = M5.Axp.GetVBusVoltage();
         // no USB voltage -> power off
         if (batt_vbus < 3) {
-            Serial.println("Power Save Shutdown");
+            Serial.println("Power Save Screen Saver Shutdown");
             while (true) {
                 M5.Axp.PowerOff();
             }
         }
-
-        // yes USB voltage -> pretend power off but keep charging the battery
-        Serial.println("Power Save Screen Saver");
-        esp_wifi_disconnect();
-        esp_wifi_stop();
-        esp_wifi_deinit();
-        M5Lcd.fillScreen(TFT_BLACK);
-        M5.Axp.ScreenBreath(0);
-        while (true)
-        {
-            cmdline.task();
-            yield();
-
-            batt_vbus = M5.Axp.GetVBusVoltage();
-            // no USB voltage -> power off
-            if (batt_vbus < 3) {
-                Serial.println("Power Save Screen Saver Shutdown");
-                while (true) {
-                    M5.Axp.PowerOff();
-                }
-            }
-            if (M5.Axp.GetBtnPress() != 0) {
-                ESP.restart();
-            }
+        if (M5.Axp.GetBtnPress() != 0) {
+            ESP.restart();
         }
     }
-    #endif
 }
 
 void pwr_tick()
