@@ -143,9 +143,7 @@ void setup()
     dbg_ser.printf("finished setup() at %u ms\r\n", millis());
 
     // clear the button flags
-    btnBig_hasPressed(true);
-    btnSide_hasPressed(true);
-    btnPwr_hasPressed(true);
+    btnAll_clrPressed();
 
     imu.poll();
 
@@ -156,6 +154,8 @@ void setup()
     dbg_ser.enabled = false;
     camera.set_debugflags(0);
     #endif
+
+    btnAll_clrPressed();
 }
 
 void loop()
@@ -170,7 +170,7 @@ void loop()
     pwr_sleepCheck();
 }
 
-extern volatile bool btnPwr_flag;
+extern volatile uint32_t btnPwr_cnt;
 
 bool app_poll()
 {
@@ -179,6 +179,9 @@ bool app_poll()
 
     // high priority tasks
     ledblink_task();
+    #ifdef TRY_CATCH_MISSED_GPIO_ISR
+    btns_poll();
+    #endif
     NetMgr_task();
     camera.task();
     if (camera.getState() >= PTPSTATE_DISCONNECTED) {
@@ -211,7 +214,7 @@ bool app_poll()
             btn_last_time = now;
             uint8_t b = M5.Axp.GetBtnPress();
             if (b != 0) {
-                btnPwr_flag = true;
+                btnPwr_cnt++;
                 dbg_ser.printf("user pressed power button\r\n");
                 pwr_tick();
             }
@@ -236,7 +239,7 @@ void app_sleep(uint32_t x, bool forget_btns)
         app_poll();
     }
     if (forget_btns) {
-        btns_clear();
+        btnAll_clrPressed();
     }
 }
 
@@ -252,25 +255,18 @@ void app_waitAnyPress()
 {
     while (true)
     {
-        bool x;
         app_poll();
-        x |= btnSide_hasPressed(true); 
-        x |= btnBig_hasPressed(true);
-        x |= btnPwr_hasPressed(true);
-        if (x)
+        if (btnAll_hasPressed())
         {
             break;
         }
-        
     }
-    btns_clear();
+    btnAll_clrPressed();
 }
 
 void app_waitAllRelease(uint32_t debounce)
 {
-    btnBig_hasPressed(true);
-    btnSide_hasPressed(true);
-    btnPwr_hasPressed(true);
+    btnAll_clrPressed();
     if (btnSide_isPressed() == false && btnBig_isPressed() == false)
     {
         return;
@@ -290,9 +286,7 @@ void app_waitAllRelease(uint32_t debounce)
 
 void app_waitAllReleaseConnecting(uint32_t debounce)
 {
-    btnBig_hasPressed(true);
-    btnSide_hasPressed(true);
-    btnPwr_hasPressed(true);
+    btnAll_clrPressed();
     if (btnSide_isPressed() == false && btnBig_isPressed() == false)
     {
         return;
@@ -331,8 +325,9 @@ void critical_error()
     while (true)
     {
         pwr_sleepCheck();
-        if (btnBig_hasPressed(true) || btnSide_hasPressed(true)) {
+        if (btnBoth_hasPressed()) {
             delay(100);
+            btnBoth_clrPressed();
             while (btnBig_isPressed() || btnSide_isPressed()) {
                 delay(100);
             }

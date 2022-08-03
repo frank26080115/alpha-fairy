@@ -156,11 +156,12 @@ void remote_shutter(void* mip)
                             gui_drawVerticalDots(0, 20, -1, 3, time_delay, tdiff / 1000, false, TFT_GREEN, TFT_RED);
                         }
                     }
-                    if (btnSide_hasPressed(true)) {
+                    if (btnSide_hasPressed()) {
                         quit = true;
                         break;
                     }
                 }
+                btnSide_clrPressed();
             }
             dbg_ser.println("shoot");
             cam_shootQuickGpio();
@@ -203,11 +204,12 @@ void remote_shutter(void* mip)
                     gui_drawVerticalDots(0, 20, -1, 3, time_delay, tdiff / 1000, false, TFT_DARKGREEN, TFT_RED);
                 }
             }
-            if (btnSide_hasPressed(true)) {
+            if (btnSide_hasPressed()) {
                 quit = true;
                 break;
             }
         }
+        btnSide_clrPressed();
 
         // if user cancelled
         if (quit) {

@@ -60,22 +60,22 @@ void intervalometer_config(void* mip)
             interval_drawIcon(menuitm->id);
         }
 
-        if (btnSide_hasPressed(true))
+        if (btnSide_hasPressed())
         {
             m->idx = (m->idx >= m->cnt) ? 0 : (m->idx + 1);
             M5Lcd.fillScreen(TFT_BLACK); // item has changed so clear the screen
             interval_drawIcon(menuitm->id);
             redraw_flag = false;
-            pwr_tick();
+            btnSide_clrPressed();
         }
         #if defined(USE_PWR_BTN_AS_BACK) && !defined(USE_PWR_BTN_AS_EXIT)
-        if (btnPwr_hasPressed(true))
+        if (btnPwr_hasPressed())
         {
             m->idx = (m->idx <= 0) ? m->cnt : (m->idx - 1);
             M5Lcd.fillScreen(TFT_BLACK); // item has changed so clear the screen
             interval_drawIcon(menuitm->id);
             redraw_flag = false;
-            pwr_tick();
+            btnPwr_clrPressed();
         }
         #endif
 
@@ -86,10 +86,10 @@ void intervalometer_config(void* mip)
             M5Lcd.setTextFont(4);
             M5Lcd.print("Exit");
             gui_drawBackIcon();
-            if (btnBig_hasPressed(true))
+            if (btnBig_hasPressed())
             {
-                pwr_tick();
                 settings_save();
+                btnBig_clrPressed();
                 return;
             }
         }
@@ -160,11 +160,11 @@ void intervalometer_config(void* mip)
                 gui_blankRestOfLine();
             }
 
-            if (btnBig_hasPressed(true))
+            if (btnBig_hasPressed())
             {
-                pwr_tick();
                 settings_save();
                 ledblink_setMode(LEDMODE_OFF);
+                btnBig_clrPressed();
                 intervalometer_run(menuitm->id);
                 ledblink_setMode(LEDMODE_NORMAL);
                 gui_startAppPrint();
@@ -201,9 +201,9 @@ void intervalometer_config(void* mip)
         }
 
         #ifdef USE_PWR_BTN_AS_EXIT
-        if (btnPwr_hasPressed(true))
+        if (btnPwr_hasPressed())
         {
-            pwr_tick();
+            btnPwr_clrPressed();
             return;
         }
         #endif
@@ -336,17 +336,17 @@ void intervalometer_run(uint8_t id)
             M5Lcd.setTextFont(4);
         }
 
-        if (btnSide_hasPressed(true))
+        if (btnSide_hasPressed())
         {
-            pwr_tick();
             stop_flag = true;
+            btnSide_clrPressed();
             break;
         }
 
         #ifdef USE_PWR_BTN_AS_EXIT
-        if (btnPwr_hasPressed(true))
+        if (btnPwr_hasPressed())
         {
-            pwr_tick();
+            btnPwr_clrPressed();
             break;
         }
         #endif
@@ -422,8 +422,9 @@ bool intervalometer_wait(int32_t twait, uint32_t tstart, int32_t cnt, const char
             M5Lcd.setTextFont(4);
         }
 
-        if (btnSide_hasPressed(true))
+        if (btnSide_hasPressed())
         {
+            btnSide_clrPressed();
             if (pausable)
             {
                 if (stop_request == false) {
@@ -449,11 +450,11 @@ bool intervalometer_wait(int32_t twait, uint32_t tstart, int32_t cnt, const char
         }
 
         #ifdef USE_PWR_BTN_AS_EXIT
-        if (btnPwr_hasPressed(true))
+        if (btnPwr_hasPressed())
         {
-            pwr_tick();
             stop_flag = true;
             stop_request = true;
+            btnPwr_clrPressed();
             break;
         }
         #endif

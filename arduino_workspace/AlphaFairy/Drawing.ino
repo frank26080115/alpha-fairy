@@ -345,7 +345,7 @@ void gui_valIncDec(configitem_t* cfgitm)
     lcdx = M5Lcd.getCursorX(); lcdy = M5Lcd.getCursorY(); // remember start of line position for quick redraw of values
     if (imu.getTilt() == TILT_IS_UP)
     {
-        if (btnBig_hasPressed(true)) // change the value on button press
+        if (btnBig_hasPressed()) // change the value on button press
         {
             (*val_ptr) += cfgitm->step_size;
             if ((*val_ptr) >= cfgitm->val_max) { // limit the range
@@ -354,6 +354,7 @@ void gui_valIncDec(configitem_t* cfgitm)
             else {
                 next_step = cfgitm->step_size; // indicate that change has been made
             }
+            btnBig_clrPressed();
         }
         else {
             gui_showValOnLcd((*val_ptr), txtfmt, lcdx, lcdy, cfgitm->step_size, true);
@@ -362,7 +363,7 @@ void gui_valIncDec(configitem_t* cfgitm)
     }
     else if (imu.getTilt() == TILT_IS_DOWN)
     {
-        if (btnBig_hasPressed(true)) // change the value on button press
+        if (btnBig_hasPressed()) // change the value on button press
         {
             (*val_ptr) -= cfgitm->step_size;
             if ((*val_ptr) <= cfgitm->val_min) { // limit the range
@@ -371,6 +372,7 @@ void gui_valIncDec(configitem_t* cfgitm)
             else {
                 next_step = -cfgitm->step_size; // indicate that change has been made
             }
+            btnBig_clrPressed();
         }
         else {
             gui_showValOnLcd((*val_ptr), txtfmt, lcdx, lcdy, -cfgitm->step_size, true);
@@ -434,8 +436,6 @@ void gui_valIncDec(configitem_t* cfgitm)
         gui_showValOnLcd((*val_ptr), txtfmt, lcdx, lcdy, next_step, true);
         if (gui_microphoneActive) { mictrig_drawLevel(); }
     }
-
-    app_waitAllRelease(BTN_DEBOUNCE);
 }
 
 int8_t gui_drawFocusPullState()
@@ -515,10 +515,11 @@ void welcome()
     while ((now = millis()) < WELCOME_TIME_MS)
     {
         app_poll();
-        if (btnBig_hasPressed(true) || btnSide_hasPressed(true))
+        if (btnAll_hasPressed())
         {
             // exit on any button press
             btn_quit = true;
+            btnAll_clrPressed();
             break;
         }
     }
@@ -541,10 +542,11 @@ void welcome()
             {
                 gui_drawConnecting(false);
             }
-            if (btnBig_hasPressed(true) || btnSide_hasPressed(true) || camera.isOperating())
+            if (btnAll_hasPressed() || camera.isOperating())
             {
                 // exit on any button press, or successful connection
                 dbg_ser.printf("event! ");
+                btnAll_clrPressed();
                 break;
             }
         }

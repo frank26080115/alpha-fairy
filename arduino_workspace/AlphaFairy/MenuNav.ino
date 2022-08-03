@@ -10,7 +10,7 @@ bool guimenu_task(menustate_t* m)
     static uint32_t last_time = 0;
     uint32_t now = millis();
 
-    if (btnSide_hasPressed(true))
+    if (btnSide_hasPressed())
     {
         // side-button press means go to another menu item
         // go to the previous item if the angle of the device is "down"
@@ -29,10 +29,10 @@ bool guimenu_task(menustate_t* m)
             }
             dbg_ser.printf("menu[%u] next idx %u\r\n", m->id, m->idx);
         }
-        pwr_tick();
+        btnSide_clrPressed();
     }
     #if defined(USE_PWR_BTN_AS_BACK) && !defined(USE_PWR_BTN_AS_EXIT)
-    if (btnPwr_hasPressed(true))
+    if (btnPwr_hasPressed())
     {
         if (m->idx > 0) {
             m->idx -= 1;
@@ -41,7 +41,7 @@ bool guimenu_task(menustate_t* m)
             m->idx = m->cnt - 1;
         }
         dbg_ser.printf("menu[%u] prev idx %u\r\n", m->id, m->idx);
-        pwr_tick();
+        btnPwr_clrPressed();
     }
     #endif
 
@@ -54,6 +54,7 @@ bool guimenu_task(menustate_t* m)
         gui_drawStatusBar(false);
         m->last_idx = m->idx;
         app_sleep(50, true); // kinda sorta a debounce and rate limit, don't think I need this here
+        // note: above call clears buttons
         imu.resetSpin();
     }
     else if (imu.hasChange) { // prevent unneccessary re-draws
@@ -151,16 +152,17 @@ bool guimenu_task(menustate_t* m)
         }
     }
 
-    if (btnBig_hasPressed(true))
+    if (btnBig_hasPressed())
     {
-        pwr_tick();
         menuitem_t* menuitm = (menuitem_t*)&(m->items[m->idx]);
         if (menuitm->id == MENUITEM_BACK)
         {
+            btnBig_clrPressed();
             dbg_ser.printf("menu[%u] idx %u - %u return\r\n", m->id, m->idx, menuitm->id);
             return true;
         }
         dbg_ser.printf("menu[%u] idx %u - %u calling func\r\n", m->id, m->idx, menuitm->id);
+        btnBig_clrPressed();
         menuitm->func((void*)menuitm);
 
 
@@ -170,13 +172,13 @@ bool guimenu_task(menustate_t* m)
 
         ledblink_setMode(LEDMODE_NORMAL);
         app_sleep(50, true); // kinda sorta a debounce and rate limit, don't think I need this here
-        pwr_tick();
+        btnBig_clrPressed();
     }
     #if defined(USE_PWR_BTN_AS_EXIT) && !defined(USE_PWR_BTN_AS_BACK)
-    if (btnPwr_hasPressed(true))
+    if (btnPwr_hasPressed())
     {
-        pwr_tick();
         dbg_ser.printf("menu[%u] idx %u return from pwr btn\r\n", m->id, m->idx);
+        btnPwr_clrPressed();
         return true;
     }
     #endif

@@ -10,8 +10,8 @@
 #define USE_SPRITE_MANAGER
 #define DISABLE_WELCOME
 
-//#define USE_PWR_BTN_AS_EXIT
-#define USE_PWR_BTN_AS_BACK
+#define USE_PWR_BTN_AS_EXIT
+//#define USE_PWR_BTN_AS_BACK
 
 #define LEDBLINK_USE_PWM
 #define LEDBLINK_PWM_DUTY_ON  (0xFF - 16)

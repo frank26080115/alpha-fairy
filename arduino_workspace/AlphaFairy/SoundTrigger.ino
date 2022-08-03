@@ -21,9 +21,9 @@ bool gui_microphoneActive = false;
 uint32_t mictrig_ignoreTime = 0; // ignore the trigger if it's happening too soon after a button click
 
 const configitem_t mictrig_config[] = {
-  // item pointer                               ,  max , min , step , text          , flags
-  { (int32_t*)&(config_settings.mictrig_level  ),   100,    1,     1, "Trig Level"  , TXTFMT_NONE },
-  { (int32_t*)&(config_settings.mictrig_delay  ), 10000,    0,     1, "Start Delay" , TXTFMT_TIME },
+  // item pointer                               ,  max , min , step , text            , flags
+  { (int32_t*)&(config_settings.mictrig_level  ),   100,    1,     1, "Trigger Level" , TXTFMT_NONE },
+  { (int32_t*)&(config_settings.mictrig_delay  ), 10000,    0,     1, "Start Delay"   , TXTFMT_TIME },
   { NULL, 0, 0, 0, "" }, // end of table
 };
 
@@ -93,12 +93,12 @@ void mictrig_poll()
 
     if (m > mictrig_filteredMax)
     {
-        mictrig_decay = 128;     // slow down the decay
+        mictrig_decay = 64 * 4;     // slow down the decay
         mictrig_filteredMax = m; // set the new displayed peak
     }
     else
     {
-        mictrig_decay();
+        mictrig_decayTask();
     }
 
     // check if triggered
@@ -108,7 +108,7 @@ void mictrig_poll()
     }
 }
 
-void mictrig_decay()
+void mictrig_decayTask()
 {
     // decay the displayed peak
     if (mictrig_filteredMax >= mictrig_decay) {
@@ -116,7 +116,7 @@ void mictrig_decay()
     }
     // accelerate the decay
     if (mictrig_decay <= 0xFFF) {
-        mictrig_decay += 64;
+        mictrig_decay += 32 * 3;
     }
 }
 
@@ -161,7 +161,7 @@ void sound_shutter(void* mip)
             mictrig_drawIcon();
         }
 
-        if (btnSide_hasPressed(true))
+        if (btnSide_hasPressed())
         {
             m->idx = (m->idx >= m->cnt) ? 0 : (m->idx + 1);
             M5Lcd.fillScreen(TFT_BLACK); // item has changed so clear the screen
@@ -169,10 +169,10 @@ void sound_shutter(void* mip)
             redraw_flag = false;
             mictrig_hasTriggered = false;
             mictrig_ignoreTime = millis();
-            pwr_tick();
+            btnSide_clrPressed();
         }
         #if defined(USE_PWR_BTN_AS_BACK) && !defined(USE_PWR_BTN_AS_EXIT)
-        if (btnPwr_hasPressed(true))
+        if (btnPwr_hasPressed())
         {
             m->idx = (m->idx <= 0) ? m->cnt : (m->idx - 1);
             M5Lcd.fillScreen(TFT_BLACK); // item has changed so clear the screen
@@ -180,7 +180,7 @@ void sound_shutter(void* mip)
             redraw_flag = false;
             mictrig_hasTriggered = false;
             mictrig_ignoreTime = millis();
-            pwr_tick();
+            btnPwr_clrPressed();
         }
         #endif
 
@@ -191,11 +191,11 @@ void sound_shutter(void* mip)
             M5Lcd.setTextFont(4);
             M5Lcd.print("Exit");
             gui_drawBackIcon();
-            if (btnBig_hasPressed(true))
+            if (btnBig_hasPressed())
             {
-                pwr_tick();
                 settings_save();
                 gui_microphoneActive = false;
+                btnBig_clrPressed();
                 return;
             }
             mictrig_hasTriggered = false;
@@ -232,7 +232,6 @@ void sound_shutter(void* mip)
             {
                 mictrig_hasTriggered = false;
                 pwr_tick();
-                settings_save();
                 ledblink_setMode(LEDMODE_OFF);
                 mictrig_shoot(mip);
                 ledblink_setMode(LEDMODE_NORMAL);
@@ -260,9 +259,9 @@ void sound_shutter(void* mip)
         }
 
         #ifdef USE_PWR_BTN_AS_EXIT
-        if (btnPwr_hasPressed(true))
+        if (btnPwr_hasPressed())
         {
-            pwr_tick();
+            btnPwr_clrPressed();
             gui_microphoneActive = false;
             return;
         }

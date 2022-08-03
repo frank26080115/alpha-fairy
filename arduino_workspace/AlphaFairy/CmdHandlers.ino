@@ -16,6 +16,7 @@ void imu_func       (void* cmd, char* argstr, Stream* stream);
 void imushow_func   (void* cmd, char* argstr, Stream* stream);
 void mic_func       (void* cmd, char* argstr, Stream* stream);
 void pwr_func       (void* cmd, char* argstr, Stream* stream);
+void btncnt_func    (void* cmd, char* argstr, Stream* stream);
 void debug_func     (void* cmd, char* argstr, Stream* stream);
 void camdebug_func  (void* cmd, char* argstr, Stream* stream);
 void infrared_func  (void* cmd, char* argstr, Stream* stream);
@@ -30,6 +31,7 @@ const cmd_def_t cmds[] = {
   { "imushow"  , imushow_func },
   { "mic"      , mic_func },
   { "pwr"      , pwr_func },
+  { "btncnt"   , btncnt_func },
   { "stats"    , statscheck_func },
   { "reboot"   , reboot_func },
   { "debug"    , debug_func },
@@ -115,7 +117,7 @@ void imushow_func(void* cmd, char* argstr, Stream* stream)
         if (spin != 0) {
             imu.resetSpin();
         }
-        if (btnBig_hasPressed(true) || btnSide_hasPressed(true) || M5.Axp.GetBtnPress() != 0) {
+        if (btnAll_hasPressed()) {
             stream->printf("user exit\r\n");
             delay(100);
             ESP.restart();
@@ -136,7 +138,7 @@ void mic_func(void* cmd, char* argstr, Stream* stream)
         mictrig_poll();
         stream->printf("mic:    %d   %d\r\n", mictrig_lastMax, mictrig_filteredMax);
         mictrig_drawLevel();
-        if (btnBig_hasPressed(true) || btnSide_hasPressed(true) || M5.Axp.GetBtnPress() != 0) {
+        if (btnAll_hasPressed()) {
             stream->printf("user exit\r\n");
             delay(100);
             ESP.restart();
@@ -154,6 +156,14 @@ void pwr_func(void* cmd, char* argstr, Stream* stream)
     M5.Axp.GetVBusCurrent()
     );
 }
+
+extern volatile uint32_t btnSide_cnt, btnBig_cnt, btnPwr_cnt;
+void btncnt_func(void* cmd, char* argstr, Stream* stream)
+{
+    pwr_tick();
+    stream->printf("btn cnt:   %u    %u    %u\r\n", btnSide_cnt, btnBig_cnt, btnPwr_cnt);
+}
+
 
 extern DebuggingSerial dbg_ser;
 void debug_func(void* cmd, char* argstr, Stream* stream)

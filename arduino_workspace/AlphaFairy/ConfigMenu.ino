@@ -50,22 +50,22 @@ void conf_settings(void* mip)
         conf_drawIcon();
     }
 
-    if (btnSide_hasPressed(true))
+    if (btnSide_hasPressed())
     {
       menustate_confsettings.idx = (menustate_confsettings.idx >= menustate_confsettings.cnt) ? 0 : (menustate_confsettings.idx + 1);
       M5Lcd.fillScreen(TFT_BLACK); // item has changed so clear the screen
       conf_drawIcon();
-      pwr_tick();
       redraw_flag = false;
+      btnSide_clrPressed();
     }
     #if defined(USE_PWR_BTN_AS_BACK) && !defined(USE_PWR_BTN_AS_EXIT)
-    if (btnPwr_hasPressed(true))
+    if (btnPwr_hasPressed())
     {
       menustate_confsettings.idx = (menustate_confsettings.idx <= 0) ? menustate_confsettings.cnt : (menustate_confsettings.idx - 1);
       M5Lcd.fillScreen(TFT_BLACK); // item has changed so clear the screen
       conf_drawIcon();
-      pwr_tick();
       redraw_flag = false;
+      btnPwr_clrPressed();
     }
     #endif
 
@@ -77,11 +77,11 @@ void conf_settings(void* mip)
       M5Lcd.setTextFont(4);
       M5Lcd.print("Save + Exit");
       gui_drawBackIcon();
-      if (btnBig_hasPressed(true))
+      if (btnBig_hasPressed())
       {
-        pwr_tick();
         settings_save();
         M5.Axp.ScreenBreath(config_settings.lcd_brightness);
+        btnBig_clrPressed();
         return;
       }
     }
@@ -104,11 +104,11 @@ void conf_settings(void* mip)
     }
 
     #ifdef USE_PWR_BTN_AS_EXIT
-    if (btnPwr_hasPressed(true))
+    if (btnPwr_hasPressed())
     {
-        pwr_tick();
         memcpy(&config_settings, &backup, sizeof(configsettings_t)); // restore settings to unchanged
         M5.Axp.ScreenBreath(config_settings.lcd_brightness);
+        btnPwr_clrPressed();
         return;
     }
     #endif
