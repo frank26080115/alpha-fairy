@@ -23,6 +23,7 @@
 
 #define SUBMENU_X_OFFSET 5
 #define SUBMENU_Y_OFFSET 5
+#define MICTRIG_LEVEL_MARGIN      16
 
 #define PAGINATION_DOT_SIZE      2
 #define PAGINATION_SPACE_SIZE    2

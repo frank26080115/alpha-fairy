@@ -19,9 +19,12 @@ The fun part about this project for me is to create a usable user interface on a
  * Focus 9-Point
    * takes consecutive photos as the auto-focus point moves around the scene, to obtain multiple photos focused on multiple objects, convenient for landscape photography
  * Focus Pull
+ * Sound Triggered Shutter
+   * with adjustable sound level threshold and adjustable delay
  * Dual Shutter
    * takes two consecutive photos, with different shutter speeds, for compositing photos with both sharp subjects and blurred features
  * Intervalometer
+   * supports AF-C, different from in-camera intervalometer (which forces AF-S)
  * Astrophotography Intervalometer
    * same as intervalometer but more focused on bulb mode, and uses pause time instead of fixed interval time
 

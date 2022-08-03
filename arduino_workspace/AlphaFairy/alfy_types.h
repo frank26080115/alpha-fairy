@@ -53,6 +53,9 @@ typedef struct
   //int32_t astro_delay;
   //int32_t astro_limit;
 
+  int32_t mictrig_level;
+  int32_t mictrig_delay;
+
   uint32_t crc32;
 }
 configsettings_t;

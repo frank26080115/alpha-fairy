@@ -321,6 +321,8 @@ void gui_showValOnLcd(int32_t val, uint16_t txtfmt, int lcdx, int lcdy, int8_t d
     }
 }
 
+extern bool gui_microphoneActive;
+
 void gui_valIncDec(configitem_t* cfgitm)
 {
     int32_t* val_ptr = cfgitm->ptr_val;
@@ -355,6 +357,7 @@ void gui_valIncDec(configitem_t* cfgitm)
         }
         else {
             gui_showValOnLcd((*val_ptr), txtfmt, lcdx, lcdy, cfgitm->step_size, true);
+            if (gui_microphoneActive) { mictrig_drawLevel(); }
         }
     }
     else if (imu.getTilt() == TILT_IS_DOWN)
@@ -371,22 +374,31 @@ void gui_valIncDec(configitem_t* cfgitm)
         }
         else {
             gui_showValOnLcd((*val_ptr), txtfmt, lcdx, lcdy, -cfgitm->step_size, true);
+            if (gui_microphoneActive) { mictrig_drawLevel(); }
         }
     }
     else {
         gui_showValOnLcd((*val_ptr), txtfmt, lcdx, lcdy, 0, true);
+        if (gui_microphoneActive) { mictrig_drawLevel(); }
     }
 
     if (next_step != 0 && (txtfmt & TXTFMT_BOOL) == 0) // has pressed
     {
         press_time = millis();
         gui_showValOnLcd((*val_ptr), txtfmt, lcdx, lcdy, next_step, true);
+        if (gui_microphoneActive) { mictrig_drawLevel(); }
+
         uint32_t dly = 500; // press-and-hold repeating delay
         int step_cnt = 0; // used to make sure at least some steps are done at minimum step size
         int tens = 10 * next_step * ((next_step < 0) ? (-1) : (1)); // if the step size starts at 1 or 10, these cases are handled
         while (btnBig_isPressed()) // is press-and-hold
         {
             app_poll();
+
+            if (gui_microphoneActive) {
+                mictrig_poll();
+            }
+
             uint32_t now = millis();
             if ((now - press_time) >= dly)
             {
@@ -414,10 +426,13 @@ void gui_valIncDec(configitem_t* cfgitm)
                     tens *= 10;
                     next_step *= 10;
                 }
+
                 gui_showValOnLcd((*val_ptr), txtfmt, lcdx, lcdy, next_step, true);
+                if (gui_microphoneActive) { mictrig_drawLevel(); }
             }
         }
         gui_showValOnLcd((*val_ptr), txtfmt, lcdx, lcdy, next_step, true);
+        if (gui_microphoneActive) { mictrig_drawLevel(); }
     }
 
     app_waitAllRelease(BTN_DEBOUNCE);

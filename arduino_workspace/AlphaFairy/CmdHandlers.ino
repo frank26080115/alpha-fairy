@@ -14,6 +14,7 @@ void statscheck_func(void* cmd, char* argstr, Stream* stream);
 void reboot_func    (void* cmd, char* argstr, Stream* stream);
 void imu_func       (void* cmd, char* argstr, Stream* stream);
 void imushow_func   (void* cmd, char* argstr, Stream* stream);
+void mic_func       (void* cmd, char* argstr, Stream* stream);
 void pwr_func       (void* cmd, char* argstr, Stream* stream);
 void debug_func     (void* cmd, char* argstr, Stream* stream);
 void camdebug_func  (void* cmd, char* argstr, Stream* stream);
@@ -27,6 +28,7 @@ const cmd_def_t cmds[] = {
   { "mem"      , memcheck_func },
   { "imu"      , imu_func },
   { "imushow"  , imushow_func },
+  { "mic"      , mic_func },
   { "pwr"      , pwr_func },
   { "stats"    , statscheck_func },
   { "reboot"   , reboot_func },
@@ -114,6 +116,29 @@ void imushow_func(void* cmd, char* argstr, Stream* stream)
             imu.resetSpin();
         }
         if (btnBig_hasPressed(true) || btnSide_hasPressed(true) || M5.Axp.GetBtnPress() != 0) {
+            stream->printf("user exit\r\n");
+            delay(100);
+            ESP.restart();
+        }
+    }
+}
+
+extern int32_t mictrig_lastMax, mictrig_filteredMax;
+
+void mic_func(void* cmd, char* argstr, Stream* stream)
+{
+    gui_startAppPrint();
+    mictrig_drawIcon();
+    while (true)
+    {
+        pwr_tick();
+        app_poll();
+        mictrig_poll();
+        stream->printf("mic:    %d   %d\r\n", mictrig_lastMax, mictrig_filteredMax);
+        mictrig_drawLevel();
+        if (btnBig_hasPressed(true) || btnSide_hasPressed(true) || M5.Axp.GetBtnPress() != 0) {
+            stream->printf("user exit\r\n");
+            delay(100);
             ESP.restart();
         }
     }

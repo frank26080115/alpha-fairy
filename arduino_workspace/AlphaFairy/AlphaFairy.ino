@@ -19,6 +19,7 @@ void shutter_step   (void* mip);
 void wifi_info      (void* mip);
 void record_movie   (void* mip);
 void dual_shutter   (void* mip);
+void sound_shutter  (void* mip);
 void conf_settings  (void* mip);
 void submenu_enter  (void* mip);
 void intervalometer_config(void* mip);
@@ -41,6 +42,7 @@ const menuitem_t menu_items_remote[] = {
     { MENUITEM_REMOTESHUTTER_DLY, "/remoteshutter_d.png"  , remote_shutter },
     { MENUITEM_RECORDMOVIE      , "/recordmovie.png"      , record_movie   },
     { MENUITEM_FOCUS_PULL       , "/focus_pull.png"       , focus_pull     },
+    { MENUITEM_SOUNDSHUTTER     , "/soundshutter.png"     , sound_shutter  },
     { MENUITEM_DUALSHUTTER_REG  , "/dualshutter_reg.png"  , dual_shutter   },
     { MENUITEM_DUALSHUTTER_SHOOT, "/dualshutter_shoot.png", dual_shutter   },
     #if !defined(USE_PWR_BTN_AS_EXIT) || defined(USE_PWR_BTN_AS_BACK)
@@ -80,6 +82,8 @@ menustate_t menustate_utils;
 menustate_t menustate_intval;
 menustate_t menustate_astro;
 
+menustate_t menustate_soundshutter;
+
 menustate_t* curmenu = &menustate_main;
 
 DebuggingSerial dbg_ser(&Serial);
@@ -113,6 +117,7 @@ void setup()
         Serial.println("SPIFFS Mount Failed");
         delay(500);
     }
+    mictrig_init();
     cmdline.print_prompt();
     #ifdef WIFI_AP_UNIQUE_NAME
         char wifi_ap_name[64];
@@ -140,6 +145,7 @@ void setup()
     // clear the button flags
     btnBig_hasPressed(true);
     btnSide_hasPressed(true);
+    btnPwr_hasPressed(true);
 
     imu.poll();
 

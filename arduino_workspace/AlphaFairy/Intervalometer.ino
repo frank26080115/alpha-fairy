@@ -57,7 +57,7 @@ void intervalometer_config(void* mip)
             redraw_flag = false;
             gui_startAppPrint();
             M5Lcd.fillScreen(TFT_BLACK);
-            conf_drawIcon();
+            interval_drawIcon(menuitm->id);
         }
 
         if (btnSide_hasPressed(true))
@@ -254,7 +254,7 @@ void interval_drawTimer(int8_t x)
     i %= 12;
     sprintf(fname, "/timer_%u.png", i);
 
-    #ifdef USE_SPRITE_MANAGER
+    #if defined(USE_SPRITE_MANAGER) && 0
     if ((sprites->holder_flag & SPRITESHOLDER_FOCUSPULL) == 0) {
         sprites->draw(fname, M5Lcd.width() - 60, M5Lcd.height() - 60, 60, 60);
         sprites->holder_flag |= SPRITESHOLDER_INTERVAL;
@@ -399,6 +399,8 @@ void intervalometer_run(uint8_t id)
     }
 }
 
+extern bool gui_microphoneActive;
+
 bool intervalometer_wait(int32_t twait, uint32_t tstart, int32_t cnt, const char* msg, bool pausable, int32_t total_period)
 {
     uint32_t now, telapsed;
@@ -411,7 +413,6 @@ bool intervalometer_wait(int32_t twait, uint32_t tstart, int32_t cnt, const char
 
     while ((telapsed = ((now = millis()) - tstart)) < twait)
     {
-        pwr_tick();
         app_poll();
 
         if (redraw_flag) {
@@ -457,7 +458,7 @@ bool intervalometer_wait(int32_t twait, uint32_t tstart, int32_t cnt, const char
         }
         #endif
 
-        M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);
+        M5Lcd.setCursor(SUBMENU_X_OFFSET, gui_microphoneActive == false ? SUBMENU_Y_OFFSET : MICTRIG_LEVEL_MARGIN);
         if (stop_request == false) {
             M5Lcd.print(msg);
         }
@@ -509,7 +510,7 @@ bool intervalometer_wait(int32_t twait, uint32_t tstart, int32_t cnt, const char
     // make sure 0 is the last number shown
     if (stop_request == false)
     {
-        M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);
+        M5Lcd.setCursor(SUBMENU_X_OFFSET, gui_microphoneActive == false ? SUBMENU_Y_OFFSET : MICTRIG_LEVEL_MARGIN);
         M5Lcd.print(msg);
         M5Lcd.println();
         gui_setCursorNextLine();

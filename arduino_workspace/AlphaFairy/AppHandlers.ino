@@ -8,6 +8,8 @@ uint32_t dual_shutter_iso = 0;
 uint32_t dual_shutter_last_tv = 0;
 uint32_t dual_shutter_last_iso = 0;
 
+extern bool gui_microphoneActive;
+
 void cam_shootQuick()
 {
     // convenience function for quickly taking a photo without complicated connectivity checks
@@ -103,12 +105,15 @@ void remote_shutter(void* mip)
 
     menuitem_t* menuitm = (menuitem_t*)mip;
     int time_delay = 0;
-    // determine time delay based on which menu item was used
-    if (menuitm->id == MENUITEM_REMOTESHUTTER_NOW) {
-        time_delay = 0;
-    }
-    else if (menuitm->id == MENUITEM_REMOTESHUTTER_DLY) {
-        time_delay = remoteshutter_delay;
+    if (mip != NULL)
+    {
+        // determine time delay based on which menu item was used
+        if (menuitm->id == MENUITEM_REMOTESHUTTER_NOW) {
+            time_delay = 0;
+        }
+        else if (menuitm->id == MENUITEM_REMOTESHUTTER_DLY) {
+            time_delay = remoteshutter_delay;
+        }
     }
 
     if (camera.isOperating() == false)
@@ -247,7 +252,7 @@ void remote_shutter(void* mip)
         camera.cmd_Shutter(false);
         dbg_ser.printf("rmtshutter shutter close\r\n");
     }
-    else
+    else if (gui_microphoneActive == false)
     {
         // TODO: in this case, the camera didn't take a photo! what should we do?
         gui_drawVerticalDots(0, 20, -1, 3, time_delay > 2 ? time_delay : 5, 0, false, TFT_RED, TFT_RED);
