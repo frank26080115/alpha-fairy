@@ -38,14 +38,7 @@ void gui_drawStatusBar(bool is_black)
         if (li == 2 || batt_ibatt < 0) {
             batt_ibatt = M5.Axp.GetBatCurrent();
         }
-        if (li == 3) {
-            uint8_t b = M5.Axp.GetBtnPress();
-            if (b != 0) {
-                dbg_ser.printf("user pressed power button\r\n");
-                pwr_tick();
-            }
-        }
-        li = (li + 1) % 4;
+        li = (li + 1) % 3;
 
         // the PMIC gives us a lot of data to use
         if (batt_vbus > 3) // check if USB power is available

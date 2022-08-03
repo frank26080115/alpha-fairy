@@ -159,6 +159,14 @@ bool guimenu_task(menustate_t* m)
         app_sleep(50, true); // kinda sorta a debounce and rate limit, don't think I need this here
         pwr_tick();
     }
+    #ifdef USE_PWR_BTN_AS_BACK
+    if (btnPwr_hasPressed(true))
+    {
+        pwr_tick();
+        dbg_ser.printf("menu[%u] idx %u return from pwr btn\r\n", m->id, m->idx);
+        return true;
+    }
+    #endif
 
     return false;
 }

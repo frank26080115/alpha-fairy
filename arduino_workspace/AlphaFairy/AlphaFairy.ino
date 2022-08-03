@@ -43,7 +43,9 @@ const menuitem_t menu_items_remote[] = {
     { MENUITEM_FOCUS_PULL       , "/focus_pull.png"       , focus_pull     },
     { MENUITEM_DUALSHUTTER_REG  , "/dualshutter_reg.png"  , dual_shutter   },
     { MENUITEM_DUALSHUTTER_SHOOT, "/dualshutter_shoot.png", dual_shutter   },
+    #ifndef USE_PWR_BTN_AS_BACK
     { MENUITEM_BACK             , "/back.png"             , NULL           },
+    #endif
     { MENUITEM_END_OF_TABLE     , ""                      , NULL           }, // menu length is counted at run-time
 };
 
@@ -53,8 +55,10 @@ const menuitem_t menu_items_focus[] = {
     { MENUITEM_FOCUSSTACK_FAR_2 , "/focusstack_far_2.png" , focus_stack     },
     { MENUITEM_FOCUS_9POINT     , "/focus_9point.png"     , focus_9point    },
     { MENUITEM_SHUTTERSTEP      , "/shutter_step.png"     , shutter_step    },
-    { MENUITEM_FOCUS_PULL       , "/focus_pull.png"       , focus_pull     },
+    { MENUITEM_FOCUS_PULL       , "/focus_pull.png"       , focus_pull      },
+    #ifndef USE_PWR_BTN_AS_BACK
     { MENUITEM_BACK             , "/back.png"             , NULL            },
+    #endif
     { MENUITEM_END_OF_TABLE     , ""                      , NULL            }, // menu length is counted at run-time
 };
 
@@ -62,7 +66,9 @@ const menuitem_t menu_items_utils[] = {
     // ID                       , FILE-NAME               , FUNCTION POINTER
     { MENUITEM_WIFIINFO         , "/wifiinfo.png"         , wifi_info       },
     { MENUITEM_CONFIG           , "/config.png"           , conf_settings   },
+    #ifndef USE_PWR_BTN_AS_BACK
     { MENUITEM_BACK             , "/back.png"             , NULL            },
+    #endif
     { MENUITEM_END_OF_TABLE     , ""                      , NULL            }, // menu length is counted at run-time
 };
 
@@ -158,9 +164,12 @@ void loop()
     pwr_sleepCheck();
 }
 
+extern volatile bool btnPwr_flag;
+
 bool app_poll()
 {
-    uint32_t now;
+    uint32_t now = millis();
+    static uint32_t btn_last_time = 0;
 
     // high priority tasks
     ledblink_task();
@@ -173,7 +182,7 @@ bool app_poll()
     if (gpio_time != 0)
     {
         // release the GPIO after a timeout
-        uint32_t telapsed = millis() - gpio_time;
+        uint32_t telapsed = now - gpio_time;
         int32_t tlimit = config_settings.intv_bulb;
         tlimit = (tlimit <= 0) ? config_settings.astro_bulb : tlimit;
         tlimit *= 1000; // previous units were in seconds, next unit is in milliseconds
@@ -191,6 +200,17 @@ bool app_poll()
     if (camera.isKindaBusy() == false) {
         imu.poll();
         cmdline.task();
+
+        if ((now - btn_last_time) > 100 || btn_last_time == 0) {
+            btn_last_time = now;
+            uint8_t b = M5.Axp.GetBtnPress();
+            if (b != 0) {
+                btnPwr_flag = true;
+                dbg_ser.printf("user pressed power button\r\n");
+                pwr_tick();
+            }
+        }
+
         yield();
         return true; // can do more low priority tasks
     }
@@ -226,11 +246,16 @@ void app_waitAnyPress()
 {
     while (true)
     {
+        bool x;
         app_poll();
-        if (btnSide_hasPressed(true) || btnBig_hasPressed(true))
+        x |= btnSide_hasPressed(true); 
+        x |= btnBig_hasPressed(true);
+        x |= btnPwr_hasPressed(true);
+        if (x)
         {
             break;
         }
+        
     }
     btns_clear();
 }
@@ -239,6 +264,7 @@ void app_waitAllRelease(uint32_t debounce)
 {
     btnBig_hasPressed(true);
     btnSide_hasPressed(true);
+    btnPwr_hasPressed(true);
     if (btnSide_isPressed() == false && btnBig_isPressed() == false)
     {
         return;
@@ -260,6 +286,7 @@ void app_waitAllReleaseConnecting(uint32_t debounce)
 {
     btnBig_hasPressed(true);
     btnSide_hasPressed(true);
+    btnPwr_hasPressed(true);
     if (btnSide_isPressed() == false && btnBig_isPressed() == false)
     {
         return;

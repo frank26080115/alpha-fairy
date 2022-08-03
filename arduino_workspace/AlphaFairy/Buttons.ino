@@ -14,6 +14,7 @@ volatile uint32_t btnSide_downTime = 0;
 volatile uint32_t btnBig_downTime = 0;
 volatile bool btnSide_flag = false;
 volatile bool btnBig_flag  = false;
+volatile bool btnPwr_flag  = false;
 
 void IRAM_ATTR btnSide_isr() {
     btnSide_flag = true;
@@ -73,6 +74,14 @@ bool btnBig_hasPressed(bool clr) {
         }
     }
     return false;
+}
+
+bool btnPwr_hasPressed(bool clr) {
+    bool x = btnPwr_flag;
+    if (clr) {
+        btnPwr_flag = false;
+    }
+    return x;
 }
 
 bool btnSide_isPressed() {

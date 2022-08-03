@@ -31,6 +31,11 @@ void conf_settings(void* mip)
     }
   }
 
+  #ifdef USE_PWR_BTN_AS_BACK
+  configsettings_t backup;
+  memcpy(&backup, &config_settings, sizeof(configsettings_t)); // allows for changes to be undone
+  #endif
+
   gui_startAppPrint();
 
   while (true)
@@ -55,6 +60,7 @@ void conf_settings(void* mip)
     }
 
     configitem_t* cfgitm = (configitem_t*)&(config_items[menustate_confsettings.idx]);
+
     if (menustate_confsettings.idx == menustate_confsettings.cnt) // last item is the exit item
     {
       M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);
@@ -86,6 +92,17 @@ void conf_settings(void* mip)
       gui_setCursorNextLine();
       gui_valIncDec(cfgitm);
     }
+
+    #ifdef USE_PWR_BTN_AS_BACK
+    if (btnPwr_hasPressed(true))
+    {
+        pwr_tick();
+        memcpy(&config_settings, &backup, sizeof(configsettings_t)); // restore settings to unchanged
+        M5.Axp.ScreenBreath(config_settings.lcd_brightness);
+        return;
+    }
+    #endif
+
     conf_drawIcon();
   }
 }

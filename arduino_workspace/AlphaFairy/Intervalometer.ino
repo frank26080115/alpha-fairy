@@ -189,6 +189,15 @@ void intervalometer_config(void* mip)
                 gui_blankRestOfLine();
             }
         }
+
+        #ifdef USE_PWR_BTN_AS_BACK
+        if (btnPwr_hasPressed(true))
+        {
+            pwr_tick();
+            return;
+        }
+        #endif
+
         interval_drawIcon(menuitm->id);
     }
 }
@@ -307,6 +316,7 @@ void intervalometer_run(uint8_t id)
     // for the number of frames we want (or infinite if negative)
     for (; cnt != 0 && stop_flag == false; )
     {
+        pwr_tick();
         app_poll();
 
         if (redraw_flag) {
@@ -318,9 +328,19 @@ void intervalometer_run(uint8_t id)
 
         if (btnSide_hasPressed(true))
         {
+            pwr_tick();
             stop_flag = true;
             break;
         }
+
+        #ifdef USE_PWR_BTN_AS_BACK
+        if (btnPwr_hasPressed(true))
+        {
+            pwr_tick();
+            break;
+        }
+        #endif
+
         interval_drawTimer(-1);
 
         t = millis();
@@ -381,6 +401,7 @@ bool intervalometer_wait(int32_t twait, uint32_t tstart, int32_t cnt, const char
 
     while ((telapsed = ((now = millis()) - tstart)) < twait)
     {
+        pwr_tick();
         app_poll();
 
         if (redraw_flag) {
@@ -415,6 +436,16 @@ bool intervalometer_wait(int32_t twait, uint32_t tstart, int32_t cnt, const char
             // a release means two button press, if a second press is detected, quit immediately
             stop_flag = true;
         }
+
+        #ifdef USE_PWR_BTN_AS_BACK
+        if (btnPwr_hasPressed(true))
+        {
+            pwr_tick();
+            stop_flag = true;
+            stop_request = true;
+            break;
+        }
+        #endif
 
         M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);
         if (stop_request == false) {
