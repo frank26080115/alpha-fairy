@@ -14,6 +14,7 @@ typedef struct
     uint16_t uid;
     TFT_eSprite* sprite;
     void* next_node;
+    void* prev_node;
 }
 sprmgr_item_t;
 
@@ -24,6 +25,7 @@ class SpriteMgr
         bool load(const char* fp, int16_t width, int16_t height);
         void draw(const char* fp, int16_t x, int16_t y, int16_t width = 0, int16_t height = 0);
         TFT_eSprite* get(const char* fp);
+        void unload_all(void);
         uint8_t holder_flag;
 
     private:

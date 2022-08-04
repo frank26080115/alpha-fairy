@@ -165,7 +165,9 @@ void intervalometer_config(void* mip)
                 settings_save();
                 ledblink_setMode(LEDMODE_OFF);
                 btnBig_clrPressed();
+                sprites->unload_all();
                 intervalometer_run(menuitm->id);
+                sprites->unload_all();
                 ledblink_setMode(LEDMODE_NORMAL);
                 gui_startAppPrint();
                 M5Lcd.fillScreen(TFT_BLACK);
@@ -254,7 +256,7 @@ void interval_drawTimer(int8_t x)
     i %= 12;
     sprintf(fname, "/timer_%u.png", i);
 
-    #if defined(USE_SPRITE_MANAGER) && 0
+    #if defined(USE_SPRITE_MANAGER)
     if ((sprites->holder_flag & SPRITESHOLDER_FOCUSPULL) == 0) {
         sprites->draw(fname, M5Lcd.width() - 60, M5Lcd.height() - 60, 60, 60);
         sprites->holder_flag |= SPRITESHOLDER_INTERVAL;

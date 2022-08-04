@@ -17,7 +17,9 @@ bool SpriteMgr::load(const char* fp, int16_t width, int16_t height)
         return true;
     }
 
-    //Serial.printf("SpMgr free heap before %u\r\n", ESP.getFreeHeap());
+    if (this->head_node == NULL) {
+        Serial.printf("SpMgr free heap before head %u\r\n", ESP.getFreeHeap());
+    }
 
     sprmgr_item_t* node = (sprmgr_item_t*)malloc(sizeof(sprmgr_item_t));
     if (node == NULL) {
@@ -34,11 +36,13 @@ bool SpriteMgr::load(const char* fp, int16_t width, int16_t height)
     if (this->head_node == NULL) {
         // first ever sprite
         this->head_node = node;
+        node->prev_node = NULL;
     }
     else {
         // add to end of list
         sprmgr_item_t* last_node = last();
         last_node->next_node = (void*)node;
+        node->prev_node = (void*)last_node;
     }
 
     sprite->createSprite(width, height);
@@ -110,6 +114,27 @@ sprmgr_item_t* SpriteMgr::last(void)
         cur_node = next_node;
     }
     return NULL;
+}
+
+void SpriteMgr::unload_all(void)
+{
+    sprmgr_item_t* node = last();
+    sprmgr_item_t* prev_node;
+    while (node != NULL)
+    {
+        TFT_eSprite* s = node->sprite;
+        if (s != NULL)
+        {
+            s->deleteSprite();
+            delete s;
+        }
+        prev_node = (sprmgr_item_t*)(node->prev_node);
+        free(node);
+        node = prev_node;
+    }
+    this->head_node = NULL;
+
+    Serial.printf("SpMgr free heap after unload %u\r\n", ESP.getFreeHeap());
 }
 
 static uint16_t fletcher16_str(const uint8_t* data)

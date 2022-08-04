@@ -47,13 +47,26 @@ bool guimenu_task(menustate_t* m)
 
     if (m->last_idx != m->idx || redraw_flag) { // prevent unnecessary re-draws
         redraw_flag = false;
+
+        if (m->items[m->idx].id == MENUITEM_REMOTESHUTTER_DLY && m->items[m->last_idx].id == MENUITEM_REMOTESHUTTER_NOW) {
+            #if 0
+            // this transition needs a better indication, so blank the whole screen quickly first
+            M5Lcd.fillScreen(TFT_WHITE);
+            #else
+            // this transition needs a better indication, so fade the screen quickly first
+            for (int16_t y = 0; y < M5Lcd.height() - 20; y += 2) {
+                M5Lcd.drawFastHLine(0, y, M5Lcd.width(), TFT_WHITE);
+            }
+            #endif
+        }
+
         guimenu_drawScreen(&(m->items[m->idx]));
         if ((m->flags & MENUFLAG_DRAW_PAGES) != 0) {
             guimenu_drawPages();
         }
         gui_drawStatusBar(false);
-        m->last_idx = m->idx;
-        app_sleep(50, true); // kinda sorta a debounce and rate limit, don't think I need this here
+        m->last_idx = m->idx; // prevent unnecessary re-draws
+        app_sleep(1, true); // kinda sorta a debounce and rate limit, don't think I need this here
         // note: above call clears buttons
         imu.resetSpin();
     }
@@ -64,6 +77,7 @@ bool guimenu_task(menustate_t* m)
         imu.hasChange = false;
     }
 
+    // periodically update just the status bar, in case of changes happening while idle
     if ((now - last_time) > 1000) {
         last_time = now;
         gui_drawStatusBar(false);
@@ -163,7 +177,10 @@ bool guimenu_task(menustate_t* m)
         }
         dbg_ser.printf("menu[%u] idx %u - %u calling func\r\n", m->id, m->idx, menuitm->id);
         btnBig_clrPressed();
+
+        sprites->unload_all();
         menuitm->func((void*)menuitm);
+        sprites->unload_all();
 
 
         if (m->items[m->idx].id != MENUITEM_FOCUS_PULL) { // do not redraw items that require faster response
