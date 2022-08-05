@@ -155,6 +155,7 @@ void gui_drawConnecting(bool first)
         M5Lcd.setRotation(0);
         M5Lcd.drawPngFile(SPIFFS, conn_filename, 0, 0);
     }
+    redraw_flag = true;
 }
 
 void gui_setCursorNextLine()
