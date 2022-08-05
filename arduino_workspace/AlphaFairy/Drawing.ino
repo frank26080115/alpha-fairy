@@ -247,7 +247,17 @@ void gui_valIncDec(configitem_t* cfgitm)
             if (gui_microphoneActive) { mictrig_drawLevel(); }
         }
     }
-    else {
+    else
+    {
+        if (btnBig_hasPressed())
+        {
+            // flip boolean variable even if there's no tilt
+            if ((txtfmt & TXTFMT_BOOL) != 0) {
+                (*val_ptr) = ((*val_ptr) == 0) ? 1 : 0;
+            }
+
+            btnBig_clrPressed();
+        }
         gui_showValOnLcd((*val_ptr), txtfmt, lcdx, lcdy, 0, true);
         if (gui_microphoneActive) { mictrig_drawLevel(); }
     }
