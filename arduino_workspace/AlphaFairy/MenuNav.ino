@@ -178,14 +178,15 @@ bool guimenu_task(menustate_t* m)
         dbg_ser.printf("menu[%u] idx %u - %u calling func\r\n", m->id, m->idx, menuitm->id);
         btnBig_clrPressed();
 
-        #ifdef USE_SPRITE_MANAGER
-        sprites->unload_all();
-        #endif
-        menuitm->func((void*)menuitm);
-        #ifdef USE_SPRITE_MANAGER
-        sprites->unload_all();
-        #endif
-
+        if (menuitm->func != NULL) {
+            #ifdef USE_SPRITE_MANAGER
+            sprites->unload_all();
+            #endif
+            menuitm->func((void*)menuitm);
+            #ifdef USE_SPRITE_MANAGER
+            sprites->unload_all();
+            #endif
+        }
 
         if (m->items[m->idx].id != MENUITEM_FOCUS_PULL) { // do not redraw items that require faster response
             m->last_idx = -1; // force redraw
