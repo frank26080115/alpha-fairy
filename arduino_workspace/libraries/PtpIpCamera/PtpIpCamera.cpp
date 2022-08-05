@@ -254,7 +254,6 @@ void PtpIpCamera::poll_socket(
     if ((avail = sock->available()) <= 0) {
         return;
     }
-    digitalWrite(10, LOW);
     #else
     avail = pb->len; // note: the _recv function from AsyncClient already handles the pb->next packet for you, do not attempt to chain them here
     #endif
@@ -289,8 +288,6 @@ void PtpIpCamera::poll_socket(
         }
     }
     while ((retries--) > 0);
-
-    digitalWrite(10, HIGH);
 }
 
 bool PtpIpCamera::try_decode_pkt(uint8_t buff[], uint32_t* buff_idx, uint32_t buff_max, bool can_force)
