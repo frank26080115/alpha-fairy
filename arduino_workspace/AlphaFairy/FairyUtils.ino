@@ -29,6 +29,34 @@ void wifi_init_ap(bool force_default)
     #endif
 }
 
+#ifdef WIFI_ALL_MODES
+
+void wifi_init_sta()
+{
+    if (strlen(config_settings.wifi_ssid) <= 0) {
+        Serial.println("ERROR: WiFi STA mode specified without SSID");
+        wifi_init_ap(true);
+        return;
+    }
+    NetMgr_beginSTA((char*)config_settings.wifi_ssid, (char*)config_settings.wifi_pass, on_got_client);
+}
+
+#endif
+
+void wifi_init()
+{
+    #ifdef WIFI_ALL_MODES
+    if (config_settings.wifi_opmode != WIFIOPMODE_STA) {
+    #endif
+        wifi_init_ap(false);
+    #ifdef WIFI_ALL_MODES
+    }
+    else {
+        wifi_init_sta();
+    }
+    #endif
+}
+
 uint32_t shutter_to_millis(uint32_t x)
 {
     uint16_t* p16 = (uint16_t*)&x;

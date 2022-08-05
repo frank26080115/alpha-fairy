@@ -140,7 +140,7 @@ void setup()
     wifi_config(NULL);
     #endif
 
-    wifi_init_ap(false);
+    wifi_init();
 
     guimenu_init(MENUITEM_MAIN  , &menustate_main  , (menuitem_t*)menu_items_main  );
     guimenu_init(MENUITEM_REMOTE, &menustate_remote, (menuitem_t*)menu_items_remote);
@@ -363,6 +363,7 @@ void critical_error()
         }
         if (((now = millis()) - t) > 2000) {
             Serial.println("CRITICAL ERROR");
+            t = now;
         }
     }
 }
