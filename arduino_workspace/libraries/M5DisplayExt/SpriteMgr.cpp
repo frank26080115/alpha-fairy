@@ -17,9 +17,11 @@ bool SpriteMgr::load(const char* fp, int16_t width, int16_t height)
         return true;
     }
 
+    #ifdef SPMGR_DEBUG_MEMORY
     if (this->head_node == NULL) {
         Serial.printf("SpMgr free heap before head %u\r\n", ESP.getFreeHeap());
     }
+    #endif
 
     sprmgr_item_t* node = (sprmgr_item_t*)malloc(sizeof(sprmgr_item_t));
     if (node == NULL) {
@@ -134,7 +136,9 @@ void SpriteMgr::unload_all(void)
     }
     this->head_node = NULL;
 
+    #ifdef SPMGR_DEBUG_MEMORY
     Serial.printf("SpMgr free heap after unload %u\r\n", ESP.getFreeHeap());
+    #endif
 }
 
 static uint16_t fletcher16_str(const uint8_t* data)

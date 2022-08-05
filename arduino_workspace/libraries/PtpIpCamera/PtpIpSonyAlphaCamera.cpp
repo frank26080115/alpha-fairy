@@ -70,6 +70,54 @@ bool PtpIpSonyAlphaCamera::check_name()
 {
     this->cam_model = SONYALPHAMODEL_A1;
     // TODO: assign model number according to name string
+    if (camera_name_check(this->cam_name, "ILCE-1")) {
+        this->cam_model = SONYALPHAMODEL_A1;
+    }
+    else if (camera_name_check(this->cam_name, "A7M4A") || camera_name_check(this->cam_name, "ILCE-7M4A")) {
+        this->cam_model = SONYALPHAMODEL_A7M4A;
+    }
+    else if (camera_name_check(this->cam_name, "A7M4") || camera_name_check(this->cam_name, "ILCE-7M4")) {
+        this->cam_model = SONYALPHAMODEL_A7M4;
+    }
+    else if (camera_name_check(this->cam_name, "A7SM3") || camera_name_check(this->cam_name, "ILCE-7SM3")) {
+        this->cam_model = SONYALPHAMODEL_A7SM3;
+    }
+    else if (camera_name_check(this->cam_name, "A9M2") || camera_name_check(this->cam_name, "ILCE-9M2")) {
+        this->cam_model = SONYALPHAMODEL_A9M2;
+    }
+    else if (camera_name_check(this->cam_name, "A7RM4") || camera_name_check(this->cam_name, "ILCE-7M4")) {
+        this->cam_model = SONYALPHAMODEL_A7RM4;
+    }
+    else if (camera_name_check(this->cam_name, "A7C") || camera_name_check(this->cam_name, "ILCE-7C")) {
+        this->cam_model = SONYALPHAMODEL_A7C;
+    }
+    else if (camera_name_check(this->cam_name, "ZV-E10") || camera_name_check(this->cam_name, "ZVE10")) {
+        this->cam_model = SONYALPHAMODEL_ZVE10;
+    }
+    else if (camera_name_check(this->cam_name, "ZV1") || camera_name_check(this->cam_name, "ZV-1")) {
+        this->cam_model = SONYALPHAMODEL_ZV1;
+    }
+    else if (camera_name_check(this->cam_name, "A6600") || camera_name_check(this->cam_name, "ILCE-6600")) {
+        this->cam_model = SONYALPHAMODEL_A6600;
+    }
+    else if (camera_name_check(this->cam_name, "A6500") || camera_name_check(this->cam_name, "ILCE-6500")) {
+        this->cam_model = SONYALPHAMODEL_A6500;
+    }
+    else if (camera_name_check(this->cam_name, "A6400") || camera_name_check(this->cam_name, "ILCE-6400")) {
+        this->cam_model = SONYALPHAMODEL_A6400;
+    }
+    else if (camera_name_check(this->cam_name, "A6300") || camera_name_check(this->cam_name, "ILCE-6300")) {
+        this->cam_model = SONYALPHAMODEL_A6300;
+    }
+    else if (camera_name_check(this->cam_name, "A6200") || camera_name_check(this->cam_name, "ILCE-6200")) {
+        this->cam_model = SONYALPHAMODEL_A6200;
+    }
+    else if (camera_name_check(this->cam_name, "A6100") || camera_name_check(this->cam_name, "ILCE-6100")) {
+        this->cam_model = SONYALPHAMODEL_A6100;
+    }
+    else if (camera_name_check(this->cam_name, "A6000") || camera_name_check(this->cam_name, "ILCE-6000")) {
+        this->cam_model = SONYALPHAMODEL_A6000;
+    }
     return true;
 }
 

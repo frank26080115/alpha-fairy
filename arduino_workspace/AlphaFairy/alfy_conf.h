@@ -1,14 +1,25 @@
 #ifndef _ALFY_CONF_H_
 #define _ALFY_CONF_H_
 
+#define WIFI_ALL_MODES
+
 //#define WIFI_AP_UNIQUE_NAME
+#ifndef WIFI_AP_UNIQUE_NAME
+#define WIFI_DEFAULT_SSID "fairywifi"
+#else
+#define WIFI_DEFAULT_SSID "fairy"
+#endif
+#define WIFI_DEFAULT_PASS  "1234567890"
+
 //#define DISABLE_STATUS_BAR
 //#define DISABLE_POWER_SAVE
 //#define DISABLE_ALL_MSG
 //#define DISABLE_CMD_LINE
+//#define QUICK_HTTP_TEST
 
 #define USE_SPRITE_MANAGER
 #define DISABLE_WELCOME
+#define MENU_INCLUDE_ABOUT
 
 #define USE_PWR_BTN_AS_EXIT
 //#define USE_PWR_BTN_AS_BACK

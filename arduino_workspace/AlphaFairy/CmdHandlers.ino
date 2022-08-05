@@ -6,6 +6,7 @@ handles command line commands
 this is used only for testing
 */
 
+void factory_reset_func(void* cmd, char* argstr, Stream* stream);
 #ifndef DISABLE_CMD_LINE
 void shoot_func     (void* cmd, char* argstr, Stream* stream);
 void echo_func      (void* cmd, char* argstr, Stream* stream);
@@ -23,6 +24,7 @@ void infrared_func  (void* cmd, char* argstr, Stream* stream);
 #endif
 
 const cmd_def_t cmds[] = {
+  { "factoryreset", factory_reset_func},
   #ifndef DISABLE_CMD_LINE
   { "shoot"    , shoot_func },
   { "echo"     , echo_func },
@@ -42,6 +44,14 @@ const cmd_def_t cmds[] = {
 };
 
 SerialCmdLine cmdline(&Serial, (cmd_def_t*)cmds, false, (char*)">>>", (char*)"???", true, 512);
+
+void factory_reset_func(void* cmd, char* argstr, Stream* stream)
+{
+  pwr_tick();
+  settings_default();
+  settings_save();
+  stream->println("factory reset performed");
+}
 
 #ifndef DISABLE_CMD_LINE
 

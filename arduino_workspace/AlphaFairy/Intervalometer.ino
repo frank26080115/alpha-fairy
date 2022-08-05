@@ -165,9 +165,13 @@ void intervalometer_config(void* mip)
                 settings_save();
                 ledblink_setMode(LEDMODE_OFF);
                 btnBig_clrPressed();
+                #ifdef USE_SPRITE_MANAGER
                 sprites->unload_all();
+                #endif
                 intervalometer_run(menuitm->id);
+                #ifdef USE_SPRITE_MANAGER
                 sprites->unload_all();
+                #endif
                 ledblink_setMode(LEDMODE_NORMAL);
                 gui_startAppPrint();
                 M5Lcd.fillScreen(TFT_BLACK);

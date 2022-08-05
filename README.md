@@ -6,7 +6,11 @@ This remote combines the features of other simple camera remotes, plus many comp
 
 This GitHub repo contains the C++ source code (and graphics files) that can be compiled and loaded into the M5StickC-Plus, so anybody can [create this remote](INSTRUCTIONS.md).
 
-Supported camera models: A1 (tested), untested but theoretically can support: A7SM3, A9M2, A7M4A, A7RM4, A7C, A7M4, ZV-E10, ZV-1
+Supported camera models: A1 (tested)
+
+Untested but theoretically can support: A7SM3, A9M2, A7M4A, A7RM4, A7C, A7M4, ZV-E10, ZV-1
+
+Other camera models that support the mobile version of the Imaging Edge Remote app might also work but it is even more difficult to accomplish.
 
 The fun part about this project for me is to create a usable user interface on a device with only two buttons plus an IMU.
 
@@ -35,6 +39,8 @@ The fun part about this project for me is to create a usable user interface on a
  * status bar with battery indicator and connection indicator
  * auto power save
  * configurable options
+ * web page interface for re-configuring Wi-Fi network
+   * has QR code generation for fast access via smartphone
  * serial port debugging and command line interface
 
 ## Known Problems
@@ -43,4 +49,4 @@ The camera does not re-establish a broken connection. If the remote is turned of
 
 The features that can change shutter speed are not reliable. The camera takes a long (and variable) time to register a remote command to change the shutter speed.
 
-Battery life is a bit short. Do not use it for intervalometer purposes without an external power source. Also, using Wi-Fi for intervalometer is ill-advised, use a real shutter release cable if possible.
+Battery life is a bit short. Do not use it for intervalometer purposes without an external power source. Also, using Wi-Fi for intervalometer is ill-advised (reliability and latency issues), use a real shutter release cable if possible.

@@ -13,5 +13,6 @@ int32_t  decode_chunk_to_int   (uint16_t data_type, uint8_t* data_chunk, uint8_t
 uint32_t decode_chunk_to_uint  (uint16_t data_type, uint8_t* data_chunk, uint8_t data_length);
 void     propdecoder_print_hex (uint16_t datatype, uint8_t* dptr, int cnt);
 uint8_t  property_data_get_size(uint16_t data_type);
+bool     camera_name_check     (char* instr, const char* needle);
 
 #endif

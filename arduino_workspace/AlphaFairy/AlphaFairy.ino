@@ -24,6 +24,10 @@ void conf_settings  (void* mip);
 void submenu_enter  (void* mip);
 void intervalometer_config(void* mip);
 
+#ifdef WIFI_ALL_MODES
+void wifi_config(void* mip);
+#endif
+
 void on_got_client(uint32_t ip);
 
 const menuitem_t menu_items_main[] = {
@@ -68,6 +72,12 @@ const menuitem_t menu_items_utils[] = {
     // ID                       , FILE-NAME               , FUNCTION POINTER
     { MENUITEM_WIFIINFO         , "/wifiinfo.png"         , wifi_info       },
     { MENUITEM_CONFIG           , "/config.png"           , conf_settings   },
+    #ifdef MENU_INCLUDE_ABOUT
+    { MENUITEM_ABOUT            , "/about.png"            , NULL            },
+    #endif
+    #ifdef WIFI_ALL_MODES
+    { MENUITEM_WIFICONFIG       , "/wifi_config.png"      , wifi_config     },
+    #endif
     #if !defined(USE_PWR_BTN_AS_EXIT) || defined(USE_PWR_BTN_AS_BACK)
     { MENUITEM_BACK             , "/back.png"             , NULL            },
     #endif
@@ -83,6 +93,8 @@ menustate_t menustate_intval;
 menustate_t menustate_astro;
 
 menustate_t menustate_soundshutter;
+
+extern menustate_t menustate_wificonfig;
 
 menustate_t* curmenu = &menustate_main;
 
@@ -119,26 +131,21 @@ void setup()
     }
     mictrig_init();
     cmdline.print_prompt();
-    #ifdef WIFI_AP_UNIQUE_NAME
-        char wifi_ap_name[64];
-        uint8_t wifi_ap_mac[16];
-        WiFi.macAddress(wifi_ap_mac);
-        sprintf(wifi_ap_name, "fairy-%u%u%u", wifi_ap_mac[0], wifi_ap_mac[1], wifi_ap_mac[2]);
-        Serial.print("WiFi AP Name: ");
-        Serial.println(wifi_ap_name);
-        NetMgr_begin((char*)wifi_ap_name, (char*)"1234567890", on_got_client);
-    #else
-        NetMgr_begin((char*)"afairywifi", (char*)"1234567890", on_got_client);
+
+    #ifdef USE_SPRITE_MANAGER
+    sprites = new SpriteMgr(&M5Lcd);
     #endif
+
+    #ifdef QUICK_HTTP_TEST
+    wifi_config(NULL);
+    #endif
+
+    wifi_init_ap(false);
 
     guimenu_init(MENUITEM_MAIN  , &menustate_main  , (menuitem_t*)menu_items_main  );
     guimenu_init(MENUITEM_REMOTE, &menustate_remote, (menuitem_t*)menu_items_remote);
     guimenu_init(MENUITEM_FOCUS , &menustate_focus , (menuitem_t*)menu_items_focus );
     guimenu_init(MENUITEM_UTILS , &menustate_utils , (menuitem_t*)menu_items_utils );
-
-    #ifdef USE_SPRITE_MANAGER
-    sprites = new SpriteMgr(&M5Lcd);
-    #endif
 
     dbg_ser.printf("finished setup() at %u ms\r\n", millis());
 
@@ -248,11 +255,22 @@ void app_sleep(uint32_t x, bool forget_btns)
     }
 }
 
+extern bool http_is_active;
+extern bool http_has_client;
+extern bool http_has_shown;
+
 void on_got_client(uint32_t ip)
 {
-    if (camera.canNewConnect())
+    if (http_is_active == false)
     {
-        camera.begin(ip);
+        if (camera.canNewConnect())
+        {
+            camera.begin(ip);
+        }
+    }
+    else
+    {
+        http_has_client = true;
     }
 }
 

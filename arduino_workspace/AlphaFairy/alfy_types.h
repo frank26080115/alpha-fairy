@@ -30,6 +30,12 @@ typedef struct
   uint32_t magic;
   uint32_t len;
 
+  #ifdef WIFI_ALL_MODES
+  int32_t wifi_opmode;
+  char    wifi_ssid[32];
+  char    wifi_pass[32];
+  #endif
+
   int32_t focus_pause_time_ms;
   int32_t shutter_press_time_ms;
   int32_t manual_focus_return;

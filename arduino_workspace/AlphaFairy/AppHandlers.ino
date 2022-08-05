@@ -770,21 +770,6 @@ void dual_shutter(void* mip)
     app_waitAllRelease(BTN_DEBOUNCE);
 }
 
-uint32_t shutter_to_millis(uint32_t x)
-{
-    uint16_t* p16 = (uint16_t*)&x;
-    if (x == 0 || x == 0xFFFFFFFF) {
-        return 0;
-    }
-    uint32_t nn = p16[1];
-    uint32_t dd = p16[0];
-    nn *= 1000;
-    float n = nn;
-    float d = dd;
-    float y = d != 0 ? (n/d) : 0;
-    return lroundf(y);
-}
-
 void dual_shutter_shoot(bool already_focused, bool read_button, uint32_t restore_shutter, uint32_t restore_iso)
 {
     bool starting_mf = false;

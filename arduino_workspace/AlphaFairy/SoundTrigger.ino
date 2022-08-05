@@ -220,6 +220,12 @@ void sound_shutter(void* mip)
             M5Lcd.print("s");
             gui_blankRestOfLine();
 
+            if (btnBig_hasPressed())
+            {
+                mictrig_ignoreTime = millis();
+                btnBig_clrPressed();
+            }
+
             if (mictrig_hasTriggered)
             {
                 // ignore the trigger if it's happening too soon after a button click
@@ -242,6 +248,7 @@ void sound_shutter(void* mip)
                 pwr_tick();
                 mictrig_hasTriggered = false;
                 mictrig_ignoreTime = millis();
+                btnAll_clrPressed();
             }
         }
         else

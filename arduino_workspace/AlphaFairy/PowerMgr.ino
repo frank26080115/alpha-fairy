@@ -9,6 +9,8 @@ float batt_vbatt = -1;
 float batt_ibatt = -1;
 float batt_ibatt_max = -1;
 
+extern bool http_is_active;
+
 void gui_drawStatusBar(bool is_black)
 {
     #ifdef DISABLE_STATUS_BAR
@@ -116,7 +118,7 @@ void gui_drawStatusBar(bool is_black)
 
         x += icon_width;
     }
-    if (camera.isOperating() == false) {
+    if (camera.isOperating() == false && http_is_active == false) {
         sprintf(fpath, "%snocam%s%s", txt_prefix, is_black ? txt_black : txt_white, txt_suffix);
 
         #ifndef USE_SPRITE_MANAGER

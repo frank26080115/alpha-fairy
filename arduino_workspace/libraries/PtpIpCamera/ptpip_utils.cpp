@@ -137,3 +137,34 @@ uint8_t property_data_get_size(uint16_t data_type)
     }
     return dsz;
 }
+
+bool camera_name_check(char* instr, const char* needle)
+{
+    int slen1 = strlen(instr);
+    int slen2 = strlen(needle);
+    if (slen2 > slen1) {
+        return false;
+    }
+    int i, d = slen1 - slen2;
+    for (i = 0; i <= d; i++) {
+        bool all_match = true;
+        char* shifted_str = &instr[i];
+        int slen3 = strlen(shifted_str);
+        int j;
+        for (j = 0; j < slen3 && j < slen2; j++)
+        {
+            char c1 = shifted_str[j];
+            char c2 = needle[j];
+            c1 = (c1 >= 'A' && c1 <= 'Z') ? (c1 - 'A' + 'a') : (c1);
+            c2 = (c2 >= 'A' && c2 <= 'Z') ? (c2 - 'A' + 'a') : (c2);
+            if (c1 != c2) {
+                all_match = false;
+                break;
+            }
+        }
+        if (all_match) {
+            return true;
+        }
+    }
+    return false;
+}
