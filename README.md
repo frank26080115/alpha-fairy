@@ -39,8 +39,6 @@ The fun part about this project for me is to create a usable user interface on a
  * status bar with battery indicator and connection indicator
  * auto power save
  * configurable options
- * web page interface for re-configuring Wi-Fi network
-   * has QR code generation for fast access via smartphone
  * serial port debugging and command line interface
 
 ## Known Problems

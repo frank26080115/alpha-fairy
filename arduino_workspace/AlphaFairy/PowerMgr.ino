@@ -172,6 +172,12 @@ void pwr_sleepCheck()
 
 void pwr_shutdown()
 {
+    esp_wifi_disconnect();
+    esp_wifi_stop();
+    esp_wifi_deinit();
+
+    show_poweroff();
+
     // no USB voltage -> power off
     if (batt_vbus < 3) {
         Serial.println("Power Save Shutdown");
@@ -182,11 +188,8 @@ void pwr_shutdown()
 
     // yes USB voltage -> pretend power off but keep charging the battery
     Serial.println("Power Save Screen Saver");
-    esp_wifi_disconnect();
-    esp_wifi_stop();
-    esp_wifi_deinit();
     M5Lcd.fillScreen(TFT_BLACK);
-    M5.Axp.ScreenBreath(0);
+    M5.Axp.ScreenSwitch(false);
     while (true)
     {
         cmdline.task();
@@ -209,4 +212,55 @@ void pwr_shutdown()
 void pwr_tick()
 {
     pwr_last_tick = millis();
+}
+
+void show_poweroff()
+{
+    uint32_t t = millis();
+    srand(t);
+    M5Lcd.setRotation(0);
+    M5Lcd.drawPngFile(SPIFFS, "/sleep.png", 0, 0);
+    delay(500);
+    if ((rand() % 2) == 0)
+    {
+        int y, dly = 10, m = 50;
+        for (y = m + 0; y < M5Lcd.height() - m; y += 4) {
+            M5Lcd.drawFastHLine(0, y, M5Lcd.width(), TFT_BLACK);
+            delay(dly);
+        }
+        for (y = m + 2; y < M5Lcd.height() - m; y += 4) {
+            M5Lcd.drawFastHLine(0, y, M5Lcd.width(), TFT_BLACK);
+            delay(dly);
+        }
+        for (y = m + 1; y < M5Lcd.height() - m; y += 4) {
+            M5Lcd.drawFastHLine(0, y, M5Lcd.width(), TFT_BLACK);
+            delay(dly);
+        }
+        for (y = m + 3; y < M5Lcd.height() - m; y += 4) {
+            M5Lcd.drawFastHLine(0, y, M5Lcd.width(), TFT_BLACK);
+            delay(dly);
+        }
+    }
+    else
+    {
+        int b = config_settings.lcd_brightness - 1;
+        while (true)
+        {
+            uint32_t d = millis() - t;
+            if (d > 800) {
+                t = millis();
+                M5.Axp.ScreenBreath(b);
+                b -= 1;
+                if (b < 5) {
+                    break;
+                }
+            }
+            int x = rand() % M5Lcd.width();
+            int y = 50 + (rand() % (M5Lcd.height() - 100));
+            M5Lcd.fillRect(x, y, 1, 1, TFT_BLACK);
+        }
+    }
+
+    M5Lcd.fillScreen(TFT_BLACK);
+    M5.Axp.ScreenSwitch(false);
 }

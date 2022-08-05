@@ -1,8 +1,5 @@
 #include "AlphaFairy.h"
-#include <AsyncTCP.h>
-#include <ESPAsyncWebServer.h>
 #include <WiFi.h>
-#include <DNSServer.h>
 #include <FS.h>
 #include <SPIFFS.h>
 
@@ -19,6 +16,10 @@ bool http_has_client = false;
 bool http_has_shown  = false;
 
 #ifdef WIFI_ALL_MODES
+
+//#include //<AsyncTCP.h>
+//#include //<ESPAsyncWebServer.h>
+//#include //<DNSServer.h>
 
 void send_css(AsyncResponseStream* response);
 void send_cur_wifi_settings(AsyncResponseStream* response);

@@ -123,12 +123,14 @@ void setup()
     M5.IMU.SetGyroFsr(M5.IMU.GFS_500DPS);
     M5.IMU.SetAccelFsr(M5.IMU.AFS_4G);
     M5.Axp.begin();
-    M5.Axp.ScreenBreath(config_settings.lcd_brightness);
+    M5.Axp.ScreenSwitch(false); // turn off the LCD backlight while initializing, avoids junk being shown on the screen
     M5Lcd.begin(); // our own extended LCD object
+    M5Lcd.fillScreen(TFT_BLACK);
     while (!SPIFFS.begin(true)){
         Serial.println("SPIFFS Mount Failed");
         delay(500);
     }
+    M5.Axp.ScreenBreath(config_settings.lcd_brightness);
     mictrig_init();
     cmdline.print_prompt();
 
@@ -349,6 +351,7 @@ void critical_error()
     {
         pwr_sleepCheck();
         if (btnBoth_hasPressed()) {
+            #if 0
             delay(100);
             btnBoth_clrPressed();
             while (btnBig_isPressed() || btnSide_isPressed()) {
@@ -357,9 +360,13 @@ void critical_error()
             NetMgr_reboot();
             redraw_flag = true;
             return;
+            #else
+            ESP.restart();
+            #endif
         }
         if (M5.Axp.GetBtnPress() != 0) {
-            ESP.restart();
+            show_poweroff();
+            M5.Axp.PowerOff();
         }
         if (((now = millis()) - t) > 2000) {
             Serial.println("CRITICAL ERROR");
