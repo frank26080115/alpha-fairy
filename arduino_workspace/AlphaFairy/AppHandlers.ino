@@ -164,7 +164,13 @@ void remote_shutter(void* mip)
                 btnSide_clrPressed();
             }
             dbg_ser.println("shoot");
-            cam_shootQuickGpio();
+            //cam_shootQuickGpio();
+            cam_shootOpen();
+            tstart = millis();
+            while (((tdiff = ((now = millis()) - tstart))) < config_settings.shutter_press_time_ms || btnBig_isPressed()) {
+                app_poll();
+            }
+            cam_shootClose();
             can_still_shoot = true;
         }
 
