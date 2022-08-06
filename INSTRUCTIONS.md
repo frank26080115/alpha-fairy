@@ -50,7 +50,7 @@ The side button navigates, chooses the next item.
 
 The big button is used to either enter a menu item, or activate a menu item.
 
-The power button turns the device on, and holding it down for 4 seconds (or more) will shutdown the device.
+The power button turns the device on, and holding it down for 4 seconds (or more) will shutdown the device. It also acts as an exit button when you press it quickly.
 
 When trying to adjust a configurable option, there will be either a plus (+) or minus (-) sign beside the number. Tilting the device to the right will use plus mode, pressing the big button will add to the number. Tilting the device to the left will use minus mode, pressing the big button will subtract from the number.
 

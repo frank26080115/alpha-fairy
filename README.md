@@ -10,8 +10,6 @@ Supported camera models: A1 (tested)
 
 Untested but theoretically can support: A7SM3, A9M2, A7M4A, A7RM4, A7C, A7M4, ZV-E10, ZV-1
 
-Other camera models that support the mobile version of the Imaging Edge Remote app might also work but it is even more difficult to accomplish.
-
 The fun part about this project for me is to create a usable user interface on a device with only two buttons plus an IMU.
 
 ## Main Features
@@ -45,6 +43,11 @@ The fun part about this project for me is to create a usable user interface on a
 
 The camera does not re-establish a broken connection. If the remote is turned off (or disconnected for other reasons), you need to turn off the camera and turn it back on (after the remote is turned back on).
 
-The features that can change shutter speed are not reliable. The camera takes a long (and variable) time to register a remote command to change the shutter speed.
+The features that can change shutter speed are not reliable. The camera takes a long (and variable) time to register a remote command to change the shutter speed. By long, I mean sometimes up to several seconds, or never.
 
 Battery life is a bit short. Do not use it for intervalometer purposes without an external power source. Also, using Wi-Fi for intervalometer is ill-advised (reliability and latency issues), use a real shutter release cable if possible.
+
+## More
+
+ * [Firmware Engineering](doc/Firmware-Engineering.md)
+ * [Camera Reverse Engineering](doc/Camera-Reverse-Engineering.md)
