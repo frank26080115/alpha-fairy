@@ -3,6 +3,8 @@
 #include <Arduino.h>
 #include <M5StickCPlus.h>
 
+#include <math.h>
+
 #define TILT_THRESH 40
 #define TILT_HYSTER 20
 
@@ -37,6 +39,20 @@ void AlphaFairyImu::poll()
     M5.IMU.getGyroData(&gyroX, &gyroY, &gyroZ);
     M5.IMU.getAccelData(&accX, &accY, &accZ);
     MahonyAHRSupdateIMU(gyroX * DEG_TO_RAD, gyroY * DEG_TO_RAD, gyroZ * DEG_TO_RAD, accX, accY, accZ, &pitch, &roll, &yaw);
+
+    if (hasMajorMotion == false)
+    {
+        // detect major movements for the purposes of auto power sleep
+        float accMag = sqrtf((accX * accX) + (accY * accY) + (accZ * accZ));
+        if (accMag > 1.2 || accMag < 0.8) {
+            hasMajorMotion |= true;
+        }
+        if (hasMajorMotion == false) {
+            if (abs(gyroX) > 180 || abs(gyroY) > 180 || abs(gyroZ) > 180) {
+                hasMajorMotion |= true;
+            }
+        }
+    }
 
     // generalize the angle being reported into a tilt direction
     if (roll >= TILT_THRESH || (tilt == TILT_IS_UP && roll >= (TILT_THRESH - TILT_HYSTER))) {
@@ -123,10 +139,12 @@ void AlphaFairyImu::poll()
     pitch_prev = pitchi;
 
     if (old_tilt != tilt) {
-        hasChange = true;
+        hasChange |= true;
+        hasMajorMotion |= true;
     }
     if (old_spin != spin_cnt) {
-        hasChange = true;
+        hasChange |= true;
+        hasMajorMotion |= true;
     }
 }
 

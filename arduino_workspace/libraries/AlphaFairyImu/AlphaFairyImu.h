@@ -21,6 +21,7 @@ class AlphaFairyImu
         uint8_t getTilt();
         int16_t getPitch();
         bool    hasChange;
+        bool    hasMajorMotion;
     //private:
         float pitch, roll, yaw; // units are degrees
         float accX, accY, accZ, gyroX, gyroY, gyroZ;

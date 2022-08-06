@@ -224,6 +224,12 @@ bool app_poll()
         imu.poll();
         cmdline.task();
 
+        if (imu.hasMajorMotion) {
+            // do not sleep if the user is moving the device
+            imu.hasMajorMotion = false;
+            pwr_tick();
+        }
+
         if ((now - btn_last_time) > 100 || btn_last_time == 0) {
             btn_last_time = now;
             uint8_t b = M5.Axp.GetBtnPress();

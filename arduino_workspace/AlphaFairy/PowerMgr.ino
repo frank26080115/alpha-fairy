@@ -130,6 +130,25 @@ void gui_drawStatusBar(bool is_black)
         x += icon_width;
     }
 
+    if (config_settings.pwr_save_secs > 5 && (now - pwr_last_tick) > ((config_settings.pwr_save_secs - 5) * 1000))
+    {
+        // show a "ZZZ" status when we are close to going into automatic sleep mode
+        M5Lcd.setCursor(x + 5, y + 1);
+        M5Lcd.setTextFont(0);
+        M5Lcd.highlight(true);
+        M5Lcd.setTextWrap(false);
+        if (is_black == false) {
+            M5Lcd.setTextColor(TFT_BLACK, TFT_WHITE);
+            M5Lcd.setHighlightColor(TFT_WHITE);
+        }
+        else {
+            M5Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+            M5Lcd.setHighlightColor(TFT_BLACK);
+        }
+        M5Lcd.print("ZZZ");
+        x += icon_width;
+    }
+
     if (x > max_x) {
         // track the largest status bar we've made so we can clear it
         max_x = x;
@@ -217,7 +236,7 @@ void pwr_tick()
 void show_poweroff()
 {
     uint32_t t = millis();
-    srand(t);
+    srand(t + lroundf(imu.accX) + lroundf(imu.accY) + lroundf(imu.accZ));
     M5Lcd.setRotation(0);
     M5Lcd.drawPngFile(SPIFFS, "/sleep.png", 0, 0);
     delay(500);
