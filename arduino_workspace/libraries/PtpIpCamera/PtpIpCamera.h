@@ -84,6 +84,7 @@ class PtpIpCamera
         inline char*    getCameraName(void)   { return (char*)cam_name; };
         inline bool     canNewConnect(void)   { return state < PTPSTATE_START_WAIT || state >= PTPSTATE_DISCONNECTED; };
                bool     isKindaBusy(void);
+               bool     isPairingWaiting(void);
         bool send_oper_req(uint32_t opcode, uint32_t* params, uint8_t params_cnt, uint8_t* payload, int32_t payload_len);
         void wait_while_busy(uint32_t min_wait, uint32_t max_wait, volatile bool* exit_signal);
 

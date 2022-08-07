@@ -7,6 +7,7 @@
 #define PTPIP_CONN_WAIT 1000
 #define PTPIP_PACKET_TIMEOUT 5000
 #define PTPIP_ERROR_THRESH 10
+#define PTPIP_INITSEQ_TIMEOUT 10000
 
 //#define PTPIP_DEBUG_RX
 
@@ -211,6 +212,15 @@ void PtpIpCamera::task()
                 dbgser_states->printf("PTP init done, now polling\r\n");
                 state = PTPSTATE_POLLING;
             }
+        }
+    }
+
+    if (state != (PTPSTATE_CMD_REQ + 1) && state < PTPSTATE_POLLING) { // still handshaking but not waiting for pairing
+        if ((now - last_rx_time) > PTPIP_INITSEQ_TIMEOUT) { // too long
+            dbgser_important->printf("PTP handshake timed out\r\n");
+            state = PTPSTATE_DISCONNECTED;
+            critical_error_cnt++;
+            return;
         }
     }
 }
@@ -504,6 +514,14 @@ bool PtpIpCamera::isKindaBusy()
         }
     }
     return true;
+}
+
+bool PtpIpCamera::isPairingWaiting()
+{
+    if (state != (PTPSTATE_CMD_REQ + 1)) {
+        return false;
+    }
+    return (millis() - last_rx_time) > 1000;
 }
 
 void PtpIpCamera::debug_rx(uint8_t* buff, uint32_t read_in) {

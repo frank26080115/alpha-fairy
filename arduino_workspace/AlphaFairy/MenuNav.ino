@@ -45,6 +45,10 @@ bool guimenu_task(menustate_t* m)
     }
     #endif
 
+    if (m->last_idx != m->idx && (m->items[m->idx].id == MENUITEM_ZOOM_PULL) && config_settings.zoom_enabled == 0) {
+        m->idx++; // skip this zoom menu item if zoom is disabled
+    }
+
     if (m->last_idx != m->idx || redraw_flag) { // prevent unnecessary re-draws
         redraw_flag = false;
 
@@ -89,7 +93,7 @@ bool guimenu_task(menustate_t* m)
         // indicate a tally light on the screen
         gui_drawMovieRecStatus();
     }
-    else if (m->items[m->idx].id == MENUITEM_FOCUS_PULL) {
+    else if (m->items[m->idx].id == MENUITEM_FOCUS_PULL || m->items[m->idx].id == MENUITEM_ZOOM_PULL) {
         gui_drawFocusPullState();
     }
     else if (m->items[m->idx].id == MENUITEM_REMOTESHUTTER_DLY)

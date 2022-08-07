@@ -15,6 +15,7 @@ void remote_shutter (void* mip);
 void focus_stack    (void* mip);
 void focus_9point   (void* mip);
 void focus_pull     (void* mip);
+void zoom_pull      (void* mip);
 void shutter_step   (void* mip);
 void wifi_info      (void* mip);
 void record_movie   (void* mip);
@@ -46,6 +47,7 @@ const menuitem_t menu_items_remote[] = {
     { MENUITEM_REMOTESHUTTER_DLY, "/remoteshutter_d.png"  , remote_shutter },
     { MENUITEM_RECORDMOVIE      , "/recordmovie.png"      , record_movie   },
     { MENUITEM_FOCUS_PULL       , "/focus_pull.png"       , focus_pull     },
+    { MENUITEM_ZOOM_PULL        , "/zoom_adjust.png"      , zoom_pull      },
     { MENUITEM_SOUNDSHUTTER     , "/soundshutter.png"     , sound_shutter  },
     { MENUITEM_DUALSHUTTER_REG  , "/dualshutter_reg.png"  , dual_shutter   },
     { MENUITEM_DUALSHUTTER_SHOOT, "/dualshutter_shoot.png", dual_shutter   },
@@ -282,13 +284,15 @@ void on_got_client(uint32_t ip)
     }
 }
 
-void app_waitAnyPress()
+void app_waitAnyPress(bool can_sleep)
 {
     while (true)
     {
         app_poll();
-        if (btnAll_hasPressed())
-        {
+        if (can_sleep == false) {
+            pwr_tick();
+        }
+        if (btnAll_hasPressed()) {
             break;
         }
     }

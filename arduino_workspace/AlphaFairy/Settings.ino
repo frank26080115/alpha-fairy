@@ -26,6 +26,7 @@ void settings_default() {
   config_settings.nine_point_dist        = 150;
   config_settings.shutter_speed_step_cnt = 3;
   config_settings.shutter_step_time_ms   = 2000;
+  config_settings.zoom_enabled           = 1;
   config_settings.infrared_enabled       = 1;
   config_settings.gpio_enabled           = 0;
 

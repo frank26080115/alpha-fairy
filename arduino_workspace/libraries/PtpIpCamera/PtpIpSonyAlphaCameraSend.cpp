@@ -25,6 +25,13 @@ bool PtpIpSonyAlphaCamera::cmd_ManualFocusStep(int16_t step)
     return send_oper_req((uint32_t)SONYALPHA_OPCODE_SetControlDeviceB, &propcode, 1, (uint8_t*)&step, 2);
 }
 
+bool PtpIpSonyAlphaCamera::cmd_ZoomStep(int16_t step)
+{
+    wait_while_busy(0, DEFAULT_BUSY_TIMEOUT, NULL);
+    uint32_t propcode = SONYALPHA_PROPCODE_ZoomStep;
+    return send_oper_req((uint32_t)SONYALPHA_OPCODE_SetControlDeviceB, &propcode, 1, (uint8_t*)&step, 2);
+}
+
 bool PtpIpSonyAlphaCamera::cmd_ShutterSpeedSet(int16_t numerator, int16_t denominator)
 {
     wait_while_busy(0, DEFAULT_BUSY_TIMEOUT, NULL);

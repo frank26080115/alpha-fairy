@@ -53,6 +53,7 @@ enum
     SONYALPHA_PROPCODE_FocusPointSet      = 0xD2DC,
     SONYALPHA_PROPCODE_ManualFocusMode    = 0xD2D2,
     SONYALPHA_PROPCODE_ManualFocusStep    = 0xD2D1,
+    SONYALPHA_PROPCODE_ZoomStep           = 0xD2DD,
     SONYALPHA_PROPCODE_FileFormat         = PTP_PROPCODE_CompressionSetting,
     SONYALPHA_PROPCODE_MovieTime          = 0xD261,
     SONYALPHA_PROPCODE_ManualFocusDist    = 0xD24C,
@@ -116,6 +117,7 @@ enum
     SONYALPHA_DRIVEMODE_SingleBracket05EV9Image       = 0x8956,
     SONYALPHA_DRIVEMODE_SingleBracket07EV9Image       = 0x8976,
 };
+// note: Does NOT match "CrDriveMode" from "CrDeviceProperty" in CrSDK
 
 enum
 {
@@ -140,6 +142,7 @@ enum
     SONYALPHA_EXPOMODE_NightPortrait     = 0x8017,
     SONYALPHA_EXPOMODE_AntiMotionBlur    = 0x8018,
 };
+// note: potentially matching "CrExposureProgram" from "CrDeviceProperty" in CrSDK
 
 enum
 {
@@ -158,6 +161,7 @@ enum
     SONYALPHA_FOCUSAREA_TRACKING_MOVEABLE_LARGE   = 0x0206,
     SONYALPHA_FOCUSAREA_TRACKING_MOVEABLE_EXPAND  = 0x0207,
 };
+// note: Does NOT match "CrFocusArea" from "CrDeviceProperty" in CrSDK
 
 enum
 {
@@ -169,6 +173,7 @@ enum
     SONYALPHA_FILEFORMAT_JPEG_FINE        = 0x0003,
     SONYALPHA_FILEFORMAT_JPEG_XFINE       = 0x0004,
 };
+// note: the quality bits seems to be matching "CrJpegQuality" from "CrDeviceProperty" in CrSDK
 
 #define SONYALPHA_FOCUSPOINT_X_MAX 639
 #define SONYALPHA_FOCUSPOINT_Y_MAX 480
@@ -189,12 +194,19 @@ enum
 
 enum
 {
+    SONYALPHA_ZOOM_TELE = -1,
+    SONYALPHA_ZOOM_WIDE =  1,
+};
+
+enum
+{
     SONYALPHA_AFMODE_AFC = 0x8004,
     SONYALPHA_AFMODE_AFS = 0x0002,
     SONYALPHA_AFMODE_AFA = 0x8005,
     SONYALPHA_AFMODE_DMF = 0x8006,
     SONYALPHA_AFMODE_MF  = 0x0001,
 };
+// note: Does NOT match "CrFocusMode" from "CrDeviceProperty" in CrSDK
 
 enum
 {
@@ -204,5 +216,6 @@ enum
     SONYALPHA_FOCUSSTATUS_FAILED   = 0x03, // AF failed, unable to acquire
     SONYALPHA_FOCUSSTATUS_LOST     = 0x02, // single AF on target, but then shift out of focus (normal for AF-S)
 };
+// note: Does NOT match "CrFocusIndicator" from "CrDeviceProperty" in CrSDK
 
 #endif

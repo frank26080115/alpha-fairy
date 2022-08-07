@@ -665,6 +665,43 @@ void focus_pull(void* mip)
     }
 }
 
+void zoom_pull(void* mip)
+{
+    dbg_ser.println("zoom_pull");
+
+    if (camera.isOperating() == false) {
+        // show user that the camera isn't connected
+        app_waitAllReleaseConnecting(BTN_DEBOUNCE);
+        return;
+    }
+
+    #ifdef APP_DOES_NOTHING
+    app_waitAllRelease(BTN_DEBOUNCE);
+    return;
+    #endif
+
+    ledblink_setMode(LEDMODE_OFF);
+
+    bool do_one = true;
+
+    while ((btnBig_isPressed() || do_one) && camera.isOperating())
+    {
+        do_one = false;
+
+        app_poll();
+        int8_t n = gui_drawFocusPullState(); // return is -3 to +3
+        int8_t na = n < 0 ? (-n) : n;
+        uint32_t dly = config_settings.focus_pause_time_ms; // the pause between steps is shorter for higher tilt
+        if (na == 1) {
+            dly += 200;
+        }
+        if (n != 0) {
+            camera.cmd_ZoomStep((n > 0) ? -1 : +1);
+            camera.wait_while_busy(dly, DEFAULT_BUSY_TIMEOUT, NULL);
+        }
+    }
+}
+
 void wifi_info(void* mip)
 {
     dbg_ser.println("wifi_info");
@@ -694,7 +731,7 @@ void wifi_info(void* mip)
         M5Lcd.println(cam_name);
     }
 
-    app_waitAnyPress();
+    app_waitAnyPress(false);
 }
 
 void record_movie(void* mip)

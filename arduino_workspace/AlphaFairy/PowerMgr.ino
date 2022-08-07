@@ -118,33 +118,31 @@ void gui_drawStatusBar(bool is_black)
 
         x += icon_width;
     }
-    if (camera.isOperating() == false && http_is_active == false) {
-        sprintf(fpath, "%snocam%s%s", txt_prefix, is_black ? txt_black : txt_white, txt_suffix);
 
-        #ifndef USE_SPRITE_MANAGER
-        M5Lcd.drawPngFile(SPIFFS, fpath, x, y);
-        #else
-        sprites->draw(fpath, x, y, icon_width, 12);
-        #endif
+    if (camera.isOperating() == false && http_is_active == false)
+    {
+        if (camera.isPairingWaiting()) {
+            gui_prepStatusBarText(x, y, is_black);
+            M5Lcd.print("PAIR");
+            x += icon_width;
+        }
+        else {
+            sprintf(fpath, "%snocam%s%s", txt_prefix, is_black ? txt_black : txt_white, txt_suffix);
 
-        x += icon_width;
+            #ifndef USE_SPRITE_MANAGER
+            M5Lcd.drawPngFile(SPIFFS, fpath, x, y);
+            #else
+            sprites->draw(fpath, x, y, icon_width, 12);
+            #endif
+
+            x += icon_width;
+        }
     }
 
     if (config_settings.pwr_save_secs > 5 && (now - pwr_last_tick) > ((config_settings.pwr_save_secs - 5) * 1000))
     {
         // show a "ZZZ" status when we are close to going into automatic sleep mode
-        M5Lcd.setCursor(x + 5, y + 1);
-        M5Lcd.setTextFont(0);
-        M5Lcd.highlight(true);
-        M5Lcd.setTextWrap(false);
-        if (is_black == false) {
-            M5Lcd.setTextColor(TFT_BLACK, TFT_WHITE);
-            M5Lcd.setHighlightColor(TFT_WHITE);
-        }
-        else {
-            M5Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
-            M5Lcd.setHighlightColor(TFT_BLACK);
-        }
+        gui_prepStatusBarText(x, y, is_black);
         M5Lcd.print("ZZZ");
         x += icon_width;
     }
@@ -157,6 +155,22 @@ void gui_drawStatusBar(bool is_black)
     if (x < max_x) {
         // clear the blank space of the status bar
         M5Lcd.fillRect(x, y, max_x - x, icon_height, is_black ? TFT_BLACK : TFT_WHITE);
+    }
+}
+
+void gui_prepStatusBarText(int16_t x, int16_t y, bool is_black)
+{
+    M5Lcd.setCursor(x + 5, y + 1);
+    M5Lcd.setTextFont(0);
+    M5Lcd.highlight(true);
+    M5Lcd.setTextWrap(false);
+    if (is_black == false) {
+        M5Lcd.setTextColor(TFT_BLACK, TFT_WHITE);
+        M5Lcd.setHighlightColor(TFT_WHITE);
+    }
+    else {
+        M5Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+        M5Lcd.setHighlightColor(TFT_BLACK);
     }
 }
 

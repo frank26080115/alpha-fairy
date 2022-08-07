@@ -23,6 +23,7 @@ static const uint16_t interested_properties_default[] = {
     SONYALPHA_PROPCODE_Recording,
     SONYALPHA_PROPCODE_FocusArea,
     SONYALPHA_PROPCODE_ManualFocusDist,
+    SONYALPHA_PROPCODE_ZoomStep,
     SONYALPHA_PROPCODE_ShutterSpeed,
     SONYALPHA_PROPCODE_DriveMode,
     SONYALPHA_PROPCODE_ISO,
@@ -91,7 +92,7 @@ bool PtpIpSonyAlphaCamera::check_name()
     else if (camera_name_check(this->cam_name, "A7C") || camera_name_check(this->cam_name, "ILCE-7C")) {
         this->cam_model = SONYALPHAMODEL_A7C;
     }
-    else if (camera_name_check(this->cam_name, "ZV-E10") || camera_name_check(this->cam_name, "ZVE10")) {
+    else if (camera_name_check(this->cam_name, "ZV-E10") || camera_name_check(this->cam_name, "ZVE10")) { // confirmed "ZV-E10"
         this->cam_model = SONYALPHAMODEL_ZVE10;
     }
     else if (camera_name_check(this->cam_name, "ZV1") || camera_name_check(this->cam_name, "ZV-1")) {
