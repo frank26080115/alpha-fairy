@@ -1,3 +1,6 @@
+https://github.com/m5stack/M5StickC-Plus
+4677f3432bafe011b0116c6443c36547ade3fd34 - Do not update this library beyond this commit, the author of this library has made code-breaking changes after this particular commit
+
 # M5StickC-Plus Library
 
 English | [中文](README_cn.md)
