@@ -26,13 +26,19 @@ volatile uint32_t btnPwr_cnt_prev  = 0;
 extern uint32_t pwr_last_tick;
 
 void IRAM_ATTR btnSide_isr() {
-    btnSide_cnt++;
-    btnSide_downTime = millis();
+    uint32_t now = millis();
+    if ((now - btnSide_downTime) > BTN_DEBOUNCE) {
+        btnSide_cnt++;
+    }
+    btnSide_downTime = now;
 }
 
 void IRAM_ATTR btnBig_isr() {
-    btnBig_cnt++;
-    btnBig_downTime = millis();
+    uint32_t now = millis();
+    if ((now - btnBig_downTime) > BTN_DEBOUNCE) {
+        btnBig_cnt++;
+    }
+    btnBig_downTime = now;
 }
 
 void btns_init()
@@ -105,7 +111,7 @@ void btnSide_clrPressed() {
     Serial.printf("clr btnSide_cnt %u %u\r\n", btnSide_cnt, btnSide_cnt_prev);
     #endif
     btnSide_cnt_prev = btnSide_cnt;
-    btnSide_downTime = 0;
+    //btnSide_downTime = 0;
     btnSide_clrTime  = now;
     pwr_last_tick    = now;
 }
@@ -144,7 +150,7 @@ void btnBig_clrPressed() {
     Serial.printf("clr btnBig_cnt %u %u\r\n", btnBig_cnt, btnBig_cnt_prev);
     #endif
     btnBig_cnt_prev  = btnBig_cnt;
-    btnBig_downTime  = 0;
+    //btnBig_downTime  = 0;
     btnBig_clrTime   = now;
     pwr_last_tick    = now;
 }
