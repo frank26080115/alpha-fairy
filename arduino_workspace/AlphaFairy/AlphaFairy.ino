@@ -9,7 +9,7 @@
 #include <SerialCmdLine.h>
 #include <SonyCameraInfraredRemote.h>
 
-PtpIpSonyAlphaCamera camera((char*)"Alpha-Fairy", NULL);
+PtpIpSonyAlphaCamera camera((char*)"ALPHA-FAIRY", NULL);
 
 void remote_shutter (void* mip);
 void focus_stack    (void* mip);
@@ -28,8 +28,6 @@ void intervalometer_config(void* mip);
 #ifdef WIFI_ALL_MODES
 void wifi_config(void* mip);
 #endif
-
-void on_got_client(uint32_t ip);
 
 const menuitem_t menu_items_main[] = {
     // ID                   , FILE-NAME            , FUNCTION POINTER
@@ -294,9 +292,14 @@ void cam_onCriticalError()
     if (camera.critical_error_cnt > 2) {
         NetMgr_markClientError(camera.ip_addr);
         if (NetMgr_shouldReportError()) {
-            critical_error();
+            critical_error("/crit_error.png");
         }
     }
+}
+
+void cam_onReject()
+{
+    critical_error("/rejected.png");
 }
 
 void cam_cb_setup()
@@ -304,6 +307,7 @@ void cam_cb_setup()
     camera.cb_onConnect = cam_onConnect;
     camera.cb_onDisconnect = cam_onDisconnect;
     camera.cb_onCriticalError = cam_onCriticalError;
+    camera.cb_onReject = cam_onReject;
 }
 
 void app_waitAnyPress(bool can_sleep)
@@ -369,7 +373,7 @@ void app_waitAllReleaseConnecting(uint32_t debounce)
     while ((last_time - (now = millis())) < debounce);
 }
 
-void critical_error()
+void critical_error(const char* fp)
 {
     pwr_tick();
     M5.Axp.GetBtnPress();
@@ -378,7 +382,7 @@ void critical_error()
     esp_wifi_stop();
     esp_wifi_deinit();
     M5Lcd.setRotation(0);
-    M5Lcd.drawPngFile(SPIFFS, "/crit_error.png", 0, 0);
+    M5Lcd.drawPngFile(SPIFFS, fp, 0, 0);
     while (true)
     {
         pwr_sleepCheck();

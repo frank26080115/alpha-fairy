@@ -493,6 +493,13 @@ bool PtpIpCamera::decode_pkt(uint8_t buff[], uint32_t buff_len)
     {
         dbgser_rx->printf("PTPRX cancel-data\r\n");
     }
+    else if (pkt_type == PTP_PKTTYPE_INITFAILED)
+    {
+        dbgser_rx->printf("PTPRX init-failed\r\n");
+        if (cb_onReject != NULL) {
+            cb_onReject();
+        }
+    }
     else if (pkt_type == PTP_PKTTYPE_DATA)
     {
         dbgser_rx->printf("PTPRX data chunk %u\r\n", (pkt_len - 12));

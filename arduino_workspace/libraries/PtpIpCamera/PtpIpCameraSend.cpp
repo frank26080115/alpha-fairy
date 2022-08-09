@@ -127,9 +127,11 @@ bool PtpIpCamera::send_cmd_req()
     uint8_t guid_src[16];
     WiFi.macAddress(guid_src);
     memcpy(&(guid_src[6]), my_name, 10);
-    memcpy(pktstruct->guid, guid_src, 16);
+    sprintf((char*)(pktstruct->guid), "%02x%02x%02x%02x-%02x%02x-%02x", guid_src[0], guid_src[1], guid_src[2], guid_src[3], guid_src[4], guid_src[5], guid_src[6]);
+    //sprintf((char*)(pktstruct->guid), "be420903-1567-48"); // extracted from sniff
+    //sprintf((char*)(pktstruct->guid), "90f4b2qa-c206-43"); // extracted from sniff
     len = 8 + 16;
-    len += copy_bytes_to_utf16(my_name, pktstruct->name);
+    len += copy_bytes_to_utf16(pktstruct->name, my_name);
     version_ptr = (uint32_t*)&(outbuff[len]);
     (*version_ptr) = 0x00010000;
     len += 4;
