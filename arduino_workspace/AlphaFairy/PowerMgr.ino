@@ -160,7 +160,7 @@ void gui_drawStatusBar(bool is_black)
 
 void gui_prepStatusBarText(int16_t x, int16_t y, bool is_black)
 {
-    M5Lcd.setCursor(x + 5, y + 1);
+    M5Lcd.setCursor(x + 5, y + 2);
     M5Lcd.setTextFont(0);
     M5Lcd.highlight(true);
     M5Lcd.setTextWrap(false);
