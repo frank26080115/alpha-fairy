@@ -731,16 +731,14 @@ void wifi_info(void* mip)
         redraw |= camera.isOperating() != conn_state;
         conn_state = camera.isOperating();
 
+        #ifdef HTTP_SERVER_ENABLE
         if (btnBig_hasPressed())
         {
             btnAll_clrPressed();
-            #ifdef HTTP_SERVER_ENABLE
             m->idx = (m->idx + 1) % m->cnt;
             redraw = true;
-            #else
-            break;
-            #endif
         }
+        #endif
 
         if (btnSide_hasPressed())
         {

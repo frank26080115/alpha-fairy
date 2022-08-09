@@ -25,11 +25,10 @@ void send_css(AsyncResponseStream* response);
 void send_cur_wifi_settings(AsyncResponseStream* response);
 
 static AsyncWebServerRequest* httpsrv_request  = NULL;
-static AsyncResponseStream*   httpsrv_response = NULL;
 
 void httpsrv_jpgStream(uint8_t* buff, uint32_t len);
 void httpsrv_jpgDone(void);
-void httpsrv_startJpgStream(AsyncWebServerRequest* request, AsyncResponseStream* response);
+void httpsrv_startJpgStream(AsyncWebServerRequest* request);
 
 const byte DNS_PORT = 53;
 DNSServer* dnsServer;
@@ -204,7 +203,8 @@ void httpsrv_init()
         AsyncResponseStream* response = request->beginResponseStream("text/html");
         add_crossDomainHeaders(response);
         if (camera.isOperating()) {
-            response->printf("<html>camera: %s</html>", camera.getCameraName());
+            //response->printf("<html>camera: %s</html>", camera.getCameraName());
+            response->printf("<html>camera: %s<br /><img src='/getpreview.jpg?a=b' /></html>", camera.getCameraName());
         }
         else {
             response->printf("<html>no camera</html>");
@@ -245,14 +245,14 @@ void httpsrv_init()
         request->send(response);
     });
 
-    #if 0
+    #if 1
     httpServer->on("/getpreview.jpg", HTTP_GET, [] (AsyncWebServerRequest* request)
     {
         NetMgr_markClientHttp(request->client()->getRemoteAddress());
         http_is_active = true;
-        AsyncResponseStream* response = request->beginResponseStream("image/jpeg");
-        add_crossDomainHeaders(response);
-        httpsrv_startJpgStream(request, response);
+        //AsyncResponseStream* response = request->beginResponseStream("image/jpeg", 1024 * 8);
+        //add_crossDomainHeaders(response);
+        httpsrv_startJpgStream(request);
     });
     #endif
 
@@ -386,25 +386,32 @@ void httpsrv_init()
 
 void httpsrv_jpgStream(uint8_t* buff, uint32_t len)
 {
-    if (httpsrv_response == NULL) {
+    if (httpsrv_request == NULL) {
         return;
     }
-    httpsrv_response->write((const uint8_t *)buff, (size_t)len);
+    uint32_t now = millis(), t = now;
+    while (httpsrv_request->client()->canSend() == false && ((now = millis()) - t) < 1000) {
+        yield();
+    }
+    if (httpsrv_request->client()->canSend()) {
+        httpsrv_request->client()->write((const char *)buff, (size_t)len);
+    }
 }
 
 void httpsrv_jpgDone(void)
 {
-    if (httpsrv_request != NULL && httpsrv_response != NULL) {
-        httpsrv_request->send(httpsrv_response);
+    if (httpsrv_request != NULL) {
+        httpsrv_request->client()->close();
     }
     httpsrv_request = NULL;
-    httpsrv_response = NULL;
 }
 
-void httpsrv_startJpgStream(AsyncWebServerRequest* request, AsyncResponseStream* response)
+void httpsrv_startJpgStream(AsyncWebServerRequest* request)
 {
+    char http_resp[256];
     httpsrv_request  = request;
-    httpsrv_response = response;
+    int i = sprintf(http_resp, "HTTP/1.1 200 OK\r\nContent-Type: image/jpeg\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Headers: Content-Type\r\nAccess-Control-Allow-Methods: POST, GET, OPTIONS\r\n\r\n");
+    httpsrv_request->client()->write((const char *)http_resp, (size_t)i);
     if (camera.isOperating()) {
         camera.get_jpg(httpsrv_jpgStream, httpsrv_jpgDone);
     }
