@@ -97,6 +97,7 @@ menustate_t menustate_astro;
 menustate_t menustate_soundshutter;
 
 extern menustate_t menustate_wificonfig;
+extern menustate_t menustate_wifiinfo;
 
 menustate_t* curmenu = &menustate_main;
 
@@ -144,6 +145,7 @@ void setup()
     wifi_config(NULL);
     #endif
 
+    cam_cb_setup();
     wifi_init();
 
     guimenu_init(MENUITEM_MAIN  , &menustate_main  , (menuitem_t*)menu_items_main  );
@@ -200,9 +202,9 @@ bool app_poll()
     #endif
     NetMgr_task();
     camera.task();
-    if (camera.getState() >= PTPSTATE_DISCONNECTED) {
-        NetMgr_reset();
-    }
+    #if defined(HTTP_SERVER_ENABLE) || defined(WIFI_ALL_MODES)
+    httpsrv_poll();
+    #endif
 
     if (gpio_time != 0)
     {
@@ -246,10 +248,6 @@ bool app_poll()
         return true; // can do more low priority tasks
     }
 
-    if (camera.critical_error_cnt > 2) {
-        critical_error();
-    }
-
     return false; // should not do more low priority tasks
 }
 
@@ -265,23 +263,47 @@ void app_sleep(uint32_t x, bool forget_btns)
     }
 }
 
-extern bool http_is_active;
-extern bool http_has_client;
-extern bool http_has_shown;
-
-void on_got_client(uint32_t ip)
+void wifi_onConnect()
 {
-    if (http_is_active == false)
-    {
-        if (camera.canNewConnect())
-        {
-            camera.begin(ip);
+    dbg_ser.printf("application wifi event handler called\r\n");
+    pwr_tick();
+    if (camera.canNewConnect()) {
+        uint32_t newip = NetMgr_getConnectableClient();
+        if (newip != 0) {
+            camera.begin(newip);
         }
     }
-    else
-    {
-        http_has_client = true;
+}
+
+void cam_onConnect()
+{
+    dbg_ser.printf("cam_onConnect\r\n");
+    pwr_tick();
+    NetMgr_markClientCamera(camera.ip_addr);
+}
+
+void cam_onDisconnect()
+{
+    pwr_tick();
+    NetMgr_markClientDisconnect(camera.ip_addr);
+}
+
+void cam_onCriticalError()
+{
+    pwr_tick();
+    if (camera.critical_error_cnt > 2) {
+        NetMgr_markClientError(camera.ip_addr);
+        if (NetMgr_shouldReportError()) {
+            critical_error();
+        }
     }
+}
+
+void cam_cb_setup()
+{
+    camera.cb_onConnect = cam_onConnect;
+    camera.cb_onDisconnect = cam_onDisconnect;
+    camera.cb_onCriticalError = cam_onCriticalError;
 }
 
 void app_waitAnyPress(bool can_sleep)

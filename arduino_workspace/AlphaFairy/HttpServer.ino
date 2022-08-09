@@ -11,22 +11,36 @@ implement a simple web page interface for the user to change Wi-Fi configuration
 // https://github.com/me-no-dev/ESPAsyncWebServer/
 // plenty of documentation and examples
 
-bool http_is_active  = false;
-bool http_has_client = false;
-bool http_has_shown  = false;
+bool http_is_active = false;
 
-#ifdef WIFI_ALL_MODES
+#if defined(HTTP_SERVER_ENABLE) || defined(WIFI_ALL_MODES)
 
-//#include //<AsyncTCP.h>
-//#include //<ESPAsyncWebServer.h>
-//#include //<DNSServer.h>
+#include <AsyncTCP.h>
+#include <ESPAsyncWebServer.h>
+#include <DNSServer.h>
+
+void add_crossDomainHeaders(AsyncResponseStream* response);
 
 void send_css(AsyncResponseStream* response);
 void send_cur_wifi_settings(AsyncResponseStream* response);
 
+static AsyncWebServerRequest* httpsrv_request  = NULL;
+static AsyncResponseStream*   httpsrv_response = NULL;
+
+void httpsrv_jpgStream(uint8_t* buff, uint32_t len);
+void httpsrv_jpgDone(void);
+void httpsrv_startJpgStream(AsyncWebServerRequest* request, AsyncResponseStream* response);
+
 const byte DNS_PORT = 53;
 DNSServer* dnsServer;
 AsyncWebServer* httpServer;
+
+void add_crossDomainHeaders(AsyncResponseStream* response)
+{
+    response->addHeader("Access-Control-Allow-Origin", "*");
+    response->addHeader("Access-Control-Allow-Headers", "Content-Type");
+    response->addHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+}
 
 void send_css(AsyncResponseStream* response)
 {
@@ -50,6 +64,7 @@ void send_css(AsyncResponseStream* response)
 void send_cur_wifi_settings(AsyncResponseStream* response)
 {
     response->print("<table border='1' width='100%'><tr><td class='col-left'>SSID:</td><td class='col-right'>");
+    #if defined(WIFI_ALL_MODES)
     if (strlen(config_settings.wifi_ssid) > 0) {
         response->print(config_settings.wifi_ssid);
         response->print("</td></tr>\r\n<tr><td class='col-left'>Password:</td><td class='col-right'>");
@@ -63,7 +78,9 @@ void send_cur_wifi_settings(AsyncResponseStream* response)
         }
         response->print("</td></tr></table></fieldset>");
     }
-    else {
+    else
+    #endif
+    {
         #ifdef WIFI_AP_UNIQUE_NAME
         char wifi_ap_name[64];
         wifi_get_unique_ssid(wifi_ap_name);
@@ -82,20 +99,24 @@ void httpsrv_init()
     if (NetMgr_getOpMode() != WIFIOPMODE_AP)
     {
         // switch mode if required
+        #ifdef WIFI_ALL_MODES
         wifi_init_ap(true);
+        #else
+        wifi_init_ap(false);
+        #endif
     }
-
-    http_is_active = true;
 
     httpServer = new AsyncWebServer(80);
     dnsServer = new DNSServer();
     dnsServer->start(DNS_PORT, "*", WiFi.softAPIP());
 
-    httpServer->on("/", HTTP_GET, [] (AsyncWebServerRequest* request)
+#ifdef WIFI_ALL_MODES
+    httpServer->on("/wificonfig", HTTP_GET, [] (AsyncWebServerRequest* request)
     {
         // main page, index page
+        NetMgr_markClientHttp(request->client()->getRemoteAddress());
+        http_is_active = true;
         // show current settings plus show the form for changing the settings
-        http_has_shown = true;
         AsyncResponseStream* response = request->beginResponseStream("text/html");
         response->print("<!DOCTYPE html><html><head><title>Alpha Fairy Wi-Fi Config</title>");
         send_css(response);
@@ -130,7 +151,8 @@ void httpsrv_init()
     httpServer->on("/setwifi", HTTP_POST, [] (AsyncWebServerRequest* request)
     {
         // this is the target of the form
-        http_has_shown = true;
+        NetMgr_markClientHttp(request->client()->getRemoteAddress());
+        http_is_active = true;
         AsyncResponseStream* response = request->beginResponseStream("text/html");
         if (request->hasParam("ssid", true) && request->hasParam("password", true) && request->hasParam("opmode", true)) {
             AsyncWebParameter* paramSsid   = request->getParam("ssid", true);
@@ -173,6 +195,177 @@ void httpsrv_init()
         }
         request->send(response);
     });
+#endif
+
+    httpServer->on("/", HTTP_GET, [] (AsyncWebServerRequest* request)
+    {
+        NetMgr_markClientHttp(request->client()->getRemoteAddress());
+        http_is_active = true;
+        AsyncResponseStream* response = request->beginResponseStream("text/html");
+        add_crossDomainHeaders(response);
+        if (camera.isOperating()) {
+            response->printf("<html>camera: %s</html>", camera.getCameraName());
+        }
+        else {
+            response->printf("<html>no camera</html>");
+        }
+        request->send(response);
+    });
+
+    httpServer->on("/getip", HTTP_GET, [] (AsyncWebServerRequest* request)
+    {
+        NetMgr_markClientHttp(request->client()->getRemoteAddress());
+        http_is_active = true;
+        AsyncResponseStream* response = request->beginResponseStream("text/html");
+        add_crossDomainHeaders(response);
+        response->printf("%s", WiFi.softAPIP().toString().c_str());
+        if (camera.isOperating()) {
+            response->printf(";\r\n");
+            response->printf("%s;\r\n", (IPAddress(camera.ip_addr)).toString().c_str());
+        }
+        request->send(response);
+    });
+
+    httpServer->on("/getstate", HTTP_GET, [] (AsyncWebServerRequest* request)
+    {
+        NetMgr_markClientHttp(request->client()->getRemoteAddress());
+        http_is_active = true;
+        AsyncResponseStream* response = request->beginResponseStream("text/html");
+        add_crossDomainHeaders(response);
+        response->printf("%u;\r\n", camera.getState());
+        if (camera.isOperating())
+        {
+            response->printf("%s;\r\n", camera.getCameraName());
+            int i;
+            for (i = 0; i < camera.properties_cnt; i++) {
+                ptpipcam_prop_t* p = &(camera.properties[i]);
+                response->printf("0x%04X , 0x%02X , %d;\r\n", p->prop_code, p->data_type, p->value);
+            }
+        }
+        request->send(response);
+    });
+
+    #if 0
+    httpServer->on("/getpreview.jpg", HTTP_GET, [] (AsyncWebServerRequest* request)
+    {
+        NetMgr_markClientHttp(request->client()->getRemoteAddress());
+        http_is_active = true;
+        AsyncResponseStream* response = request->beginResponseStream("image/jpeg");
+        add_crossDomainHeaders(response);
+        httpsrv_startJpgStream(request, response);
+    });
+    #endif
+
+    httpServer->on("/cmd", HTTP_GET, [] (AsyncWebServerRequest* request)
+    {
+        NetMgr_markClientHttp(request->client()->getRemoteAddress());
+        http_is_active = true;
+        AsyncResponseStream* response = request->beginResponseStream("text/html");
+        add_crossDomainHeaders(response);
+        if (camera.isOperating() == false) {
+            response->printf("disconnected");
+            request->send(response);
+            return;
+        }
+        bool ret;
+        if (request->hasParam("name") == false)
+        {
+            AsyncWebParameter* paramName = request->getParam("name");
+            if (request->hasParam("value"))
+            {
+                AsyncWebParameter* paramValue = request->getParam("value");
+                int32_t pv = atoi(paramValue->value().c_str());
+                if (paramName->value() == "mftoggle") {
+                    ret = camera.cmd_ManualFocusToggle(pv != 0);
+                }
+                else if (paramName->value() == "mfmode") {
+                    ret = camera.cmd_ManualFocusMode(pv != 0);
+                }
+                else if (paramName->value() == "movierec") {
+                    ret = camera.cmd_MovieRecord(pv != 0);
+                }
+                else if (paramName->value() == "movierectog") {
+                    ret = camera.cmd_MovieRecordToggle();
+                }
+                else if (paramName->value() == "shoot") {
+                    ret = camera.cmd_Shoot(pv);
+                }
+                else if (paramName->value() == "shutter") {
+                    ret = camera.cmd_Shutter(pv != 0);
+                }
+                else if (paramName->value() == "af") {
+                    ret = camera.cmd_AutoFocus(pv != 0);
+                }
+                else if (paramName->value() == "mfstep") {
+                    ret = camera.cmd_ManualFocusStep(pv);
+                }
+                else if (paramName->value() == "zoomstep") {
+                    ret = camera.cmd_ZoomStep(pv);
+                }
+                else {
+                    response->printf("error;\r\nunknown cmd");
+                    request->send(response);
+                    return;
+                }
+                if (ret) {
+                    response->printf("success");
+                    request->send(response);
+                    return;
+                }
+                else {
+                    response->printf("failed");
+                    request->send(response);
+                    return;
+                }
+            }
+            else
+            {
+                response->printf("error;\r\nmissing opcode");
+            }
+            request->send(response);
+            return;
+        }
+
+        if (request->hasParam("opcode") == false) {
+            response->printf("error;\r\nmissing opcode");
+            request->send(response);
+            return;
+        }
+        AsyncWebParameter* paramOpcode = request->getParam("propcode");
+        if (request->hasParam("opcode") == false) {
+            response->printf("error;\r\nmissing propcode");
+            request->send(response);
+            return;
+        }
+        AsyncWebParameter* paramPropcode = request->getParam("propcode");
+        uint32_t payloadcache;
+        uint8_t* payloadptr = NULL;
+        int32_t payloadlen = -1;
+        if (request->hasParam("payload") && request->hasParam("payloadlen")) {
+            AsyncWebParameter* paramPayload = request->getParam("payload");
+            AsyncWebParameter* paramPayloadLen = request->getParam("payloadlen");
+            payloadcache = atoi(paramPayload->value().c_str());
+            payloadlen = atoi(paramPayloadLen->value().c_str());
+            payloadptr = (uint8_t*)(&payloadcache);
+        }
+        else if (request->hasParam("payload"))
+        {
+            response->printf("error;\r\nmissing payloadlen");
+            request->send(response);
+            return;
+        }
+        ret = camera.cmd_arb(atoi(paramOpcode->value().c_str()), atoi(paramPropcode->value().c_str()), payloadptr, payloadlen);
+        if (ret) {
+            response->printf("success");
+            request->send(response);
+            return;
+        }
+        else {
+            response->printf("failed");
+            request->send(response);
+            return;
+        }
+    });
 
     httpServer->onNotFound([] (AsyncWebServerRequest* request) {
         #if 0
@@ -191,9 +384,45 @@ void httpsrv_init()
     httpServer->begin();
 }
 
+void httpsrv_jpgStream(uint8_t* buff, uint32_t len)
+{
+    if (httpsrv_response == NULL) {
+        return;
+    }
+    httpsrv_response->write((const uint8_t *)buff, (size_t)len);
+}
+
+void httpsrv_jpgDone(void)
+{
+    if (httpsrv_request != NULL && httpsrv_response != NULL) {
+        httpsrv_request->send(httpsrv_response);
+    }
+    httpsrv_request = NULL;
+    httpsrv_response = NULL;
+}
+
+void httpsrv_startJpgStream(AsyncWebServerRequest* request, AsyncResponseStream* response)
+{
+    httpsrv_request  = request;
+    httpsrv_response = response;
+    if (camera.isOperating()) {
+        camera.get_jpg(httpsrv_jpgStream, httpsrv_jpgDone);
+    }
+    else {
+        httpsrv_jpgDone();
+    }
+}
+
+void httpsrv_poll()
+{
+    if (dnsServer != NULL) {
+        dnsServer->processNextRequest();
+    }
+}
+
 void httpsrv_task()
 {
-    dnsServer->processNextRequest();
+    httpsrv_poll();
     ledblink_task();
     NetMgr_task();
     imu.poll();
@@ -202,6 +431,8 @@ void httpsrv_task()
     btns_poll();
     #endif
 }
+
+#if defined(WIFI_ALL_MODES)
 
 menustate_t menustate_wificonfig;
 
@@ -215,10 +446,10 @@ void wifi_config(void* mip)
     btnAll_clrPressed();
     M5Lcd.fillScreen(TFT_WHITE);
 
-    httpsrv_init();
     while (true)
     {
-        httpsrv_task();
+        app_poll();
+        pwr_tick();
 
         if (btnSide_hasPressed())
         {
@@ -241,6 +472,8 @@ void wifi_config(void* mip)
 
         // note: page index 4 is the current settings, which might change, so it's constantly redrawn without flickering
 
+        gui_drawStatusBar(false);
+
         if (redraw || (m->idx == 4))
         {
             #ifdef QUICK_HTTP_TEST
@@ -249,9 +482,8 @@ void wifi_config(void* mip)
 
             M5Lcd.drawPngFile(SPIFFS, "/wificfg_head.png", 0, 0);
             if (redraw) {
-                M5Lcd.fillRect(0, 50, M5Lcd.width(), M5Lcd.height() - 12 - 50, TFT_WHITE);
+                M5Lcd.fillRect(0, 50, M5Lcd.width(), M5Lcd.height() - 16 - 50, TFT_WHITE);
             }
-            gui_drawStatusBar(false);
             if (m->idx == 0 || m->idx == 4)
             {
                 int line_space = 16;
@@ -337,3 +569,5 @@ void wifi_config(void* mip)
 }
 
 #endif // WIFI_ALL_MODES
+
+#endif  // WIFI_ALL_MODES or HTTP_SERVER_ENABLE

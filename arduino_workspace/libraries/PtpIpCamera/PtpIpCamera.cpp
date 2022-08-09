@@ -109,6 +109,9 @@ void PtpIpCamera::task()
             dbgser_important->printf("PTP connection timed out\r\n");
             state = PTPSTATE_DISCONNECTED;
             critical_error_cnt++;
+            if (cb_onCriticalError != NULL) {
+                cb_onCriticalError();
+            }
             return;
         }
     }
@@ -132,6 +135,9 @@ void PtpIpCamera::task()
         #else
         state = PTPSTATE_DISCONNECTED;
         #endif
+        if (cb_onDisconnect != NULL) {
+            cb_onDisconnect();
+        }
         return;
     }
     if (state < PTPSTATE_DISCONNECT && error_cnt >= PTPIP_ERROR_THRESH) {
@@ -161,6 +167,14 @@ void PtpIpCamera::task()
             }
             last_rx_time = now;
             reset_buffers();
+            #ifdef PTPIP_ENABLE_STREAMING
+            if (cb_stream_done != NULL) {
+                cb_stream_done();
+                cb_stream_done = NULL;
+                cb_stream = NULL;
+                stream_state = 0;
+            }
+            #endif
         }
     }
 
@@ -193,6 +207,9 @@ void PtpIpCamera::task()
         {
             dbgser_states->printf("PTP init no other tasks, now polling\r\n");
             state = PTPSTATE_POLLING;
+            if (cb_onConnect != NULL) {
+                cb_onConnect();
+            }
         }
         else
         {
@@ -211,15 +228,21 @@ void PtpIpCamera::task()
                 dbgser_states->printf("PTP init finished sending all substates %u\r\n", substate);
                 dbgser_states->printf("PTP init done, now polling\r\n");
                 state = PTPSTATE_POLLING;
+                if (cb_onConnect != NULL) {
+                    cb_onConnect();
+                }
             }
         }
     }
 
     if (state != (PTPSTATE_CMD_REQ + 1) && state < PTPSTATE_POLLING) { // still handshaking but not waiting for pairing
-        if ((now - last_rx_time) > PTPIP_INITSEQ_TIMEOUT) { // too long
-            dbgser_important->printf("PTP handshake timed out\r\n");
+        if (now > last_rx_time && (now - last_rx_time) > PTPIP_INITSEQ_TIMEOUT) { // too long
+            dbgser_important->printf("PTP handshake timed out %u %u\r\n", now, last_rx_time);
             state = PTPSTATE_DISCONNECTED;
             critical_error_cnt++;
+            if (cb_onCriticalError != NULL) {
+                cb_onCriticalError();
+            }
             return;
         }
     }
@@ -357,6 +380,51 @@ bool PtpIpCamera::try_decode_pkt(uint8_t buff[], uint32_t* buff_idx, uint32_t bu
         // no need to call buffer_consume as the only place that calls can_force will do a reset_buffer anyways
         did_stuff = true;
     }
+    #ifdef PTPIP_ENABLE_STREAMING
+    else if (cb_stream != NULL && stream_state != 0 && pending_data > 0)
+    {
+        if (hdr->pkt_type == PTP_PKTTYPE_DATA && stream_state == 1)
+        {
+            int32_t chunk_size = hdr->length - 12;
+            int32_t avail_size = (*buff_idx) - 12;
+            if (avail_size <= 0) {
+                return false;
+            }
+
+            int32_t copy_size = chunk_size < avail_size ? chunk_size : avail_size;
+            dbgser_events->printf("stream sending first chunk %u\r\n", copy_size);
+            cb_stream(&(buff[12]), copy_size);
+            pending_data -= copy_size;
+            buffer_consume(buff, buff_idx, copy_size, buff_max);
+            stream_state = 2;
+            did_stuff = true;
+        }
+        else if (pending_data > 0)
+        {
+            uint32_t copy_size = (uint32_t)(*buff_idx);
+            if (copy_size > pending_data) {
+                copy_size = pending_data;
+            }
+            dbgser_events->printf("stream sending another chunk %u\r\n", copy_size);
+            cb_stream(buff, copy_size);
+            pending_data -= copy_size;
+            buffer_consume(buff, buff_idx, copy_size, buff_max);
+            did_stuff = true;
+        }
+        else if (hdr->pkt_type == PTP_PKTTYPE_ENDDATA || hdr->pkt_type == PTP_PKTTYPE_CANCELDATA)
+        {
+            dbgser_events->printf("stream end\r\n");
+            pending_data = 0;
+            stream_state = 3;
+            if (cb_stream_done != NULL) {
+                cb_stream_done();
+                cb_stream_done = NULL;
+            }
+            cb_stream = NULL;
+            did_stuff |= try_decode_pkt(buff, buff_idx, buff_max, false); // no chance of infinite recursion due to pending_data = 0 and cb_stream = null
+        }
+    }
+    #endif
     return did_stuff;
 }
 
@@ -440,6 +508,9 @@ bool PtpIpCamera::decode_pkt(uint8_t buff[], uint32_t buff_len)
         send_probe_resp();
         dbgser_events->printf("PTPIP probe request\r\n");
         critical_error_cnt++;
+        if (cb_onCriticalError != NULL) {
+            cb_onCriticalError();
+        }
     }
     else
     {
@@ -490,6 +561,17 @@ void PtpIpCamera::wait_canSend(AsyncClient* sock, uint32_t max_time)
     while ((sock->canSend() == false && (now - start_time) < max_time)) {
         now = millis();
     }
+}
+#endif
+
+#ifdef PTPIP_ENABLE_STREAMING
+void PtpIpCamera::start_stream(void (*cb_s)(uint8_t*, uint32_t), void (*cb_d)(void))
+{
+    cb_stream = cb_s;
+    cb_stream_done = cb_d;
+    stream_state = 1;
+    pending_data = 0;
+    dbgser_events->printf("starting stream\r\n");
 }
 #endif
 

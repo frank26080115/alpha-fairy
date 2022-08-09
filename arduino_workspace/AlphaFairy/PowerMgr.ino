@@ -182,6 +182,12 @@ void pwr_sleepCheck()
     return;
     #else
 
+    #if defined(HTTP_SERVER_ENABLE) || defined(WIFI_ALL_MODES)
+    if (http_is_active) {
+        return;
+    }
+    #endif
+
     // enforce a minimum
     if (config_settings.pwr_save_secs < 30) {
         config_settings.pwr_save_secs = 30;

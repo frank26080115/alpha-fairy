@@ -13,7 +13,7 @@ void wifi_init_ap(bool force_default)
     if (force_default == false && strlen(config_settings.wifi_ssid) > 0) {
         Serial.print("WiFi AP Name: ");
         Serial.println(config_settings.wifi_ssid);
-        NetMgr_beginAP((char*)config_settings.wifi_ssid, (char*)config_settings.wifi_pass, on_got_client);
+        NetMgr_beginAP((char*)config_settings.wifi_ssid, (char*)config_settings.wifi_pass);
         return;
     }
     #endif
@@ -23,9 +23,9 @@ void wifi_init_ap(bool force_default)
         wifi_get_unique_ssid(wifi_ap_name);
         Serial.print("WiFi AP Name: ");
         Serial.println(wifi_ap_name);
-        NetMgr_beginAP((char*)wifi_ap_name, (char*)WIFI_DEFAULT_PASS, on_got_client);
+        NetMgr_beginAP((char*)wifi_ap_name, (char*)WIFI_DEFAULT_PASS);
     #else
-        NetMgr_beginAP((char*)WIFI_DEFAULT_SSID, (char*)WIFI_DEFAULT_PASS, on_got_client);
+        NetMgr_beginAP((char*)WIFI_DEFAULT_SSID, (char*)WIFI_DEFAULT_PASS);
     #endif
 }
 
@@ -38,13 +38,16 @@ void wifi_init_sta()
         wifi_init_ap(true);
         return;
     }
-    NetMgr_beginSTA((char*)config_settings.wifi_ssid, (char*)config_settings.wifi_pass, on_got_client);
+    NetMgr_beginSTA((char*)config_settings.wifi_ssid, (char*)config_settings.wifi_pass);
 }
 
 #endif
 
+extern void wifi_onConnect(void);
+
 void wifi_init()
 {
+    NetMgr_regCallback(wifi_onConnect);
     #ifdef WIFI_ALL_MODES
     if (config_settings.wifi_opmode != WIFIOPMODE_STA) {
     #endif
@@ -54,6 +57,9 @@ void wifi_init()
     else {
         wifi_init_sta();
     }
+    #endif
+    #ifdef HTTP_SERVER_ENABLE
+    httpsrv_init();
     #endif
 }
 

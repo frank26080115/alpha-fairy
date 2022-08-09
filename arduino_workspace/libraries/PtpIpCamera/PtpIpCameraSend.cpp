@@ -17,7 +17,7 @@ bool PtpIpCamera::send_oper_req(uint32_t opcode, uint32_t* params, uint8_t param
     uint32_t len, i;
     int wrote;
     pktstruct->header.pkt_type = PTP_PKTTYPE_OPERREQ;
-    pktstruct->data_phase = payload_len > 0 ? 1 : 0;
+    pktstruct->data_phase = payload_len >= 0 ? 1 : 0;
     pktstruct->op_code = opcode;
     pktstruct->transaction_id = transaction_id;
 

@@ -131,3 +131,9 @@ bool PtpIpSonyAlphaCamera::cmd_ManualFocusToggle(bool onoff)
     bool already_on = is_manuallyfocused();
     return cmd_ManualFocusMode(!already_on);
 }
+
+bool PtpIpSonyAlphaCamera::cmd_arb(uint32_t opcode, uint32_t propcode, uint8_t* payload, uint32_t payload_len)
+{
+    wait_while_busy(0, DEFAULT_BUSY_TIMEOUT, NULL);
+    return send_oper_req(opcode, &propcode, 1, payload, payload_len);
+}

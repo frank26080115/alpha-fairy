@@ -702,36 +702,159 @@ void zoom_pull(void* mip)
     }
 }
 
+menustate_t menustate_wifiinfo;
+
 void wifi_info(void* mip)
 {
     dbg_ser.println("wifi_info");
 
-    gui_startAppPrint();
+    bool redraw = true; // always draw on entry
+    bool first = true;  // this helps the button release
+    bool conn_state = camera.isOperating();
+    menustate_t* m = &menustate_wifiinfo;
+    m->idx = 0;
+    #ifdef HTTP_SERVER_ENABLE
+    m->cnt = 4;
+    #else
+    m->cnt = 1;
+    #endif
 
-    M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);
-    M5Lcd.println("Wi-Fi SSID:");
-    gui_setCursorNextLine();
-    M5Lcd.println(NetMgr_getSSID());
-    gui_setCursorNextLine();
-    M5Lcd.println("Password:");
-    gui_setCursorNextLine();
-    M5Lcd.println(NetMgr_getPassword());
-    uint32_t ip_addr;
-    if ((ip_addr = NetMgr_getClient()) != 0) {
-        gui_setCursorNextLine();
-        M5Lcd.print("Cam IP: ");
-        M5Lcd.println(IPAddress(ip_addr));
-    }
-    char* cam_name = NULL;
-    if (camera.isOperating()) {
-        cam_name = camera.getCameraName();
-    }
-    if (cam_name != NULL && strlen(cam_name) > 0) {
-        gui_setCursorNextLine();
-        M5Lcd.println(cam_name);
-    }
+    btnAll_clrPressed();
+    M5Lcd.fillScreen(TFT_WHITE);
 
-    app_waitAnyPress(false);
+    while (true)
+    {
+        app_poll();
+        pwr_tick();
+
+        // redraw if connection changed
+        redraw |= camera.isOperating() != conn_state;
+        conn_state = camera.isOperating();
+
+        if (btnBig_hasPressed())
+        {
+            btnAll_clrPressed();
+            #ifdef HTTP_SERVER_ENABLE
+            m->idx = (m->idx + 1) % m->cnt;
+            redraw = true;
+            #else
+            break;
+            #endif
+        }
+
+        if (btnSide_hasPressed())
+        {
+            btnAll_clrPressed();
+            #ifdef HTTP_SERVER_ENABLE
+            #if defined(USE_PWR_BTN_AS_BACK) && !defined(USE_PWR_BTN_AS_EXIT)
+            m->idx = (m->idx + 1) % m->cnt;
+            #else
+            m->idx++;
+            if (m->idx >= m->cnt) {
+                m->idx = 0;
+                break;
+            }
+            #endif
+            redraw = true;
+            #else
+            break;
+            #endif
+        }
+
+        if (btnPwr_hasPressed())
+        {
+            btnAll_clrPressed();
+            break;
+        }
+
+        #ifdef HTTP_SERVER_ENABLE
+        if (m->idx == 1 && camera.isOperating() == false) {
+            m->idx = 2;
+        }
+        #endif
+
+        if (redraw)
+        {
+            M5Lcd.drawPngFile(SPIFFS, "/wifiinfo_head.png", 0, 0);
+            M5Lcd.fillRect(0, 50, M5Lcd.width(), M5Lcd.height() - 16 - 50, TFT_WHITE);
+            gui_drawStatusBar(false);
+            #ifdef HTTP_SERVER_ENABLE
+            if (m->idx == 0 || m->idx == 1 || m->idx >= m->cnt)
+            {
+            #endif
+                int line_space = 16;
+                int top_margin = 7;
+                int left_margin = 55;
+                M5Lcd.setRotation(1);
+                M5Lcd.highlight(true);
+                M5Lcd.setTextWrap(true);
+                M5Lcd.setHighlightColor(TFT_WHITE);
+                M5Lcd.setTextColor(TFT_BLACK, TFT_WHITE);
+                M5Lcd.setCursor(left_margin, top_margin);
+                M5Lcd.setTextFont(2);
+                M5Lcd.print("Wi-Fi SSID: ");
+                M5Lcd.setCursor(left_margin + 8, top_margin + (line_space * 1));
+                M5Lcd.print(NetMgr_getSSID()); gui_blankRestOfLine();
+                M5Lcd.setCursor(left_margin, top_margin + (line_space * 2));
+                M5Lcd.print("password: ");
+                M5Lcd.setCursor(left_margin + 8, top_margin + (line_space * 3));
+                M5Lcd.print(NetMgr_getPassword()); gui_blankRestOfLine();
+                M5Lcd.setCursor(left_margin, top_margin + (line_space * 4));
+                #ifdef HTTP_SERVER_ENABLE
+                if (m->idx != 1)
+                {
+                    M5Lcd.print("URL: ");
+                    M5Lcd.setCursor(left_margin + 8, top_margin + (line_space * 5));
+                    M5Lcd.print("http://");
+                    M5Lcd.print(WiFi.softAPIP());
+                    M5Lcd.print("/");
+                }
+                else if (m->idx == 1)
+                #else
+                if (camera.isOperating())
+                #endif
+                {
+                    M5Lcd.print("Camera: ");
+                    M5Lcd.setCursor(left_margin + 8, top_margin + (line_space * 5));
+                    M5Lcd.print(IPAddress(camera.ip_addr));
+                    char* cam_name = camera.getCameraName();
+                    if (cam_name != NULL && strlen(cam_name) > 0) {
+                        M5Lcd.setCursor(left_margin + 8, top_margin + (line_space * 6));
+                        M5Lcd.print(cam_name);
+                    }
+                }
+                M5Lcd.setRotation(0);
+            #ifdef HTTP_SERVER_ENABLE
+            }
+            else if (m->idx == 2 || m->idx == 3)
+            {
+                // draw a header quickly first
+                M5Lcd.drawPngFile(SPIFFS, m->idx == 2 ? "/wifiinfo_login.png" : "/wifiinfo_url.png", 0, 0);
+                char qrstr[64];
+                uint32_t width = 124;
+                uint32_t x = (M5Lcd.width()  - width + 1) / 2;
+                uint32_t y = (M5Lcd.height() - width + 1) / 2;
+                y += 20;
+                // generate the QR code
+                if (m->idx == 2) {
+                    sprintf(qrstr, "WIFI:T:WPA;S:%s;P:%s;;", NetMgr_getSSID(), NetMgr_getPassword());
+                }
+                else if (m->idx == 3) {
+                    sprintf(qrstr, "http://%s/", WiFi.softAPIP());
+                }
+                M5Lcd.qrcode(qrstr, x, y, width, 7);
+            }
+            #endif
+            redraw = false;
+            if (first) {
+                app_waitAllRelease(BTN_DEBOUNCE);
+            }
+            first = false;
+        }
+        gui_drawStatusBar(false);
+        app_sleep(BTN_DEBOUNCE, false); // this screen is way too jumpy with the button bounces
+    }
+    app_waitAllRelease(BTN_DEBOUNCE);
 }
 
 void record_movie(void* mip)

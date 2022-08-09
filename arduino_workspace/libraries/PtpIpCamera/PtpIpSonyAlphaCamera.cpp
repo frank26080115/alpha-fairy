@@ -5,6 +5,7 @@
 #include <stdlib.h>
 
 #define SONYCAM_CHECK_PROPS_INTERVAL 10000
+#define SONYCAM_PROPCODE_NEED_MORE
 
 static const ptpip_init_substep_t init_table[] = {
     { PTP_OPCODE_GetDeviceInfo             , {     0,  0, 0 } , 0 },
@@ -22,11 +23,24 @@ static const uint16_t interested_properties_default[] = {
     SONYALPHA_PROPCODE_FocusMode,
     SONYALPHA_PROPCODE_Recording,
     SONYALPHA_PROPCODE_FocusArea,
+    SONYALPHA_PROPCODE_ManualFocusMode,
     SONYALPHA_PROPCODE_ManualFocusDist,
     SONYALPHA_PROPCODE_ZoomStep,
     SONYALPHA_PROPCODE_ShutterSpeed,
     SONYALPHA_PROPCODE_DriveMode,
     SONYALPHA_PROPCODE_ISO,
+    #ifdef SONYCAM_PROPCODE_NEED_MORE
+    SONYALPHA_PROPCODE_FocusPointGet,
+    SONYALPHA_PROPCODE_FocusPointSet,
+    SONYALPHA_PROPCODE_ExposeIndex,
+    SONYALPHA_PROPCODE_ExpoComp,
+    SONYALPHA_PROPCODE_Aperture,
+    SONYALPHA_PROPCODE_FileFormat,
+    SONYALPHA_PROPCODE_ObjectInMemory,
+    SONYALPHA_PROPCODE_SonyBatteryLevel,
+    SONYALPHA_PROPCODE_MemoryRemaining_Card1,
+    SONYALPHA_PROPCODE_MemoryRemaining_Card2,
+    #endif
     0x0000, // end of table
 };
 
@@ -162,6 +176,21 @@ bool PtpIpSonyAlphaCamera::check_dev_props()
     }
     return success;
 }
+
+#ifdef PTPIP_ENABLE_STREAMING
+bool PtpIpSonyAlphaCamera::get_jpg(void (*cb_s)(uint8_t*, uint32_t), void (*cb_d)(void))
+{
+    bool success;
+    wait_while_busy(0, DEFAULT_BUSY_TIMEOUT, NULL);
+    uint32_t objcode = 0xFFFFC002;
+    success = send_oper_req(PTP_OPCODE_GetObject, &objcode, 1, NULL, 0);
+    if (success != false) {
+        reset_buffers();
+        start_stream(cb_s, cb_d);
+    }
+    return success;
+}
+#endif
 
 void PtpIpSonyAlphaCamera::task()
 {

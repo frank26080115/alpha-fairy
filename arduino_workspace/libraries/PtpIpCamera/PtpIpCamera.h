@@ -29,7 +29,8 @@ enum
 #define DATA_BUFFER_SIZE   (1024 * 6) // needs to be just big enough for a whole device properties packet
 #define NAME_BUFFER_SIZE    256
 
-#define PTPIP_KEEP_STATS
+//#define PTPIP_KEEP_STATS
+//#define PTPIP_ENABLE_STREAMING
 
 #define DEFAULT_BUSY_TIMEOUT 1000
 
@@ -88,6 +89,12 @@ class PtpIpCamera
         bool send_oper_req(uint32_t opcode, uint32_t* params, uint8_t params_cnt, uint8_t* payload, int32_t payload_len);
         void wait_while_busy(uint32_t min_wait, uint32_t max_wait, volatile bool* exit_signal);
 
+        uint32_t ip_addr;
+
+        void (*cb_onConnect)(void) = NULL;
+        void (*cb_onCriticalError)(void) = NULL;
+        void (*cb_onDisconnect)(void) = NULL;
+
         virtual void set_debugflags(uint32_t x);
         uint32_t debug_flags;
         void test_debug_msg(const char*);
@@ -103,7 +110,6 @@ class PtpIpCamera
     protected:
         int state;
         int substate;
-        uint32_t   ip_addr;
         #ifndef USE_ASYNC_SOCK
         WiFiClient socket_main;
         WiFiClient socket_event;
@@ -164,6 +170,13 @@ class PtpIpCamera
         bool send_open_session(void);
         void send_debug(char* s);
         void debug_rx(uint8_t*, uint32_t);
+
+        #ifdef PTPIP_ENABLE_STREAMING
+        void (*cb_stream)(uint8_t* buff, uint32_t len) = NULL;
+        void (*cb_stream_done)(void) = NULL;
+        void start_stream(void (*cb_s)(uint8_t*, uint32_t), void (*cb_d)(void));
+        uint8_t stream_state = 0;
+        #endif
 
         #ifdef USE_ASYNC_SOCK
         void        wait_canSend      (AsyncClient* sock, uint32_t max_time);
