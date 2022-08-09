@@ -139,6 +139,7 @@ void gui_drawStatusBar(bool is_black)
         }
     }
 
+#ifndef DISABLE_POWER_SAVE
     if (config_settings.pwr_save_secs > 5 && (now - pwr_last_tick) > ((config_settings.pwr_save_secs - 5) * 1000))
     {
         // show a "ZZZ" status when we are close to going into automatic sleep mode
@@ -146,6 +147,7 @@ void gui_drawStatusBar(bool is_black)
         M5Lcd.print("ZZZ");
         x += icon_width;
     }
+#endif
 
     if (x > max_x) {
         // track the largest status bar we've made so we can clear it
