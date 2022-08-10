@@ -1,5 +1,0 @@
-https://docs.espressif.com/projects/arduino-esp32/en/latest/installing.html
-https://github.com/m5stack/M5StickC (installed via library manager, with all dependencies)
-https://github.com/m5stack/M5StickC-Plus
-https://github.com/Arduino-IRremote/Arduino-IRremote (installed via library manager, with all dependencies)
-https://github.com/me-no-dev/arduino-esp32fs-plugin/releases/

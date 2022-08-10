@@ -1,5 +1,0 @@
-Arduino 1.8.15
-ESP32 for Arduino 2.0.3
-Board: M5Stick-C
-
-https://github.com/me-no-dev/arduino-esp32fs-plugin/releases/
