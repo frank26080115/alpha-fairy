@@ -1,6 +1,6 @@
-#include "AlphaFairy.h"
 #include <Arduino.h>
 #include <stdbool.h>
+#include <M5StickCPlus.h>
 
 /*
 interrupts are used to catch new button press events
@@ -10,28 +10,20 @@ a simple debounce algorithm is used
 #define PIN_BTN_SIDE 39
 #define PIN_BTN_BIG 37
 
+#define BTN_DEBOUNCE 50
+
 //#define BTNS_DEBUG
 
 volatile uint32_t btnSide_downTime = 0;
 volatile uint32_t btnBig_downTime  = 0;
 volatile uint32_t btnSide_clrTime  = 0;
 volatile uint32_t btnBig_clrTime   = 0;
-volatile uint32_t btnSide_cnt      = 0;
-volatile uint32_t btnBig_cnt       = 0;
-volatile uint32_t btnPwr_cnt       = 0;
-volatile uint32_t btnSide_cnt_prev = 0;
-volatile uint32_t btnBig_cnt_prev  = 0;
-volatile uint32_t btnPwr_cnt_prev  = 0;
-
-extern uint32_t pwr_last_tick;
-
-void IRAM_ATTR btnSide_isr() {
-    uint32_t now = millis();
-    if ((now - btnSide_downTime) > BTN_DEBOUNCE) {
-        btnSide_cnt++;
-    }
-    btnSide_downTime = now;
-}
+volatile uint8_t  btnSide_cnt      = 0;
+volatile uint8_t  btnBig_cnt       = 0;
+volatile uint8_t  btnPwr_cnt       = 0;
+volatile uint8_t  btnSide_cnt_prev = 0;
+volatile uint8_t  btnBig_cnt_prev  = 0;
+volatile uint8_t  btnPwr_cnt_prev  = 0;
 
 void IRAM_ATTR btnBig_isr() {
     uint32_t now = millis();
@@ -41,12 +33,24 @@ void IRAM_ATTR btnBig_isr() {
     btnBig_downTime = now;
 }
 
+void IRAM_ATTR btnSide_isr() {
+    if (digitalRead(PIN_BTN_SIDE) != LOW) {
+        // this guards against a ESP32 hardware bug
+        return;
+    }
+    uint32_t now = millis();
+    if ((now - btnSide_downTime) > BTN_DEBOUNCE) {
+        btnSide_cnt++;
+    }
+    btnSide_downTime = now;
+}
+
 void btns_init()
 {
-    pinMode(PIN_BTN_SIDE, INPUT_PULLUP);
-    attachInterrupt(PIN_BTN_SIDE, btnSide_isr, FALLING);
     pinMode(PIN_BTN_BIG, INPUT_PULLUP);
     attachInterrupt(PIN_BTN_BIG, btnBig_isr, FALLING);
+    pinMode(PIN_BTN_SIDE, INPUT_PULLUP);
+    attachInterrupt(PIN_BTN_SIDE, btnSide_isr, FALLING);
 }
 
 void btns_poll()
@@ -113,7 +117,6 @@ void btnSide_clrPressed() {
     btnSide_cnt_prev = btnSide_cnt;
     //btnSide_downTime = 0;
     btnSide_clrTime  = now;
-    pwr_last_tick    = now;
 }
 
 bool btnBig_hasPressed() {
@@ -152,7 +155,13 @@ void btnBig_clrPressed() {
     btnBig_cnt_prev  = btnBig_cnt;
     //btnBig_downTime  = 0;
     btnBig_clrTime   = now;
-    pwr_last_tick    = now;
+}
+
+void btnPwr_poll()
+{
+    if (M5.Axp.GetBtnPress() != 0) {
+        btnPwr_cnt++;
+    }
 }
 
 bool btnPwr_hasPressed() {
@@ -163,7 +172,6 @@ bool btnPwr_hasPressed() {
 void btnPwr_clrPressed() {
     uint32_t now = millis();
     btnPwr_cnt_prev = btnPwr_cnt;
-    pwr_last_tick = now;
 }
 
 bool btnSide_isPressed() {
@@ -200,38 +208,3 @@ void btnAll_clrPressed() {
     btnBig_clrPressed();
     btnPwr_clrPressed();
 }
-
-#if defined(HTTP_SERVER_ENABLE) && defined(HTTP_MOCKBTNS_ENABLE)
-
-#include <AsyncTCP.h>
-#include <ESPAsyncWebServer.h>
-extern AsyncWebServer* httpServer;
-
-void btn_installMockServer()
-{
-    httpServer->on("/btnbig", HTTP_GET, [] (AsyncWebServerRequest* request)
-    {
-        btnBig_cnt++;
-        AsyncResponseStream* response = request->beginResponseStream("text/html");
-        response->printf("ok");
-        request->send(response);
-    });
-
-    httpServer->on("/btnside", HTTP_GET, [] (AsyncWebServerRequest* request)
-    {
-        btnSide_cnt++;
-        AsyncResponseStream* response = request->beginResponseStream("text/html");
-        response->printf("ok");
-        request->send(response);
-    });
-
-    httpServer->on("/btnpwr", HTTP_GET, [] (AsyncWebServerRequest* request)
-    {
-        btnPwr_cnt++;
-        AsyncResponseStream* response = request->beginResponseStream("text/html");
-        response->printf("ok");
-        request->send(response);
-    });
-}
-
-#endif

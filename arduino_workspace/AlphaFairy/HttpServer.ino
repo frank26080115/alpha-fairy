@@ -381,6 +381,10 @@ void httpsrv_init()
         #endif
     });
 
+    #if defined(HTTP_SERVER_ENABLE) && defined(HTTP_MOCKBTNS_ENABLE)
+    btn_installMockServer();
+    #endif
+
     httpServer->begin();
 }
 
