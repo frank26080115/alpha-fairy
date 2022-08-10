@@ -25,7 +25,14 @@ volatile uint32_t btnPwr_cnt_prev  = 0;
 
 extern uint32_t pwr_last_tick;
 
-void IRAM_ATTR btnSide_isr() {
+void IRAM_ATTR btnSide_isr()
+{
+    if (digitalRead(PIN_BTN_SIDE) != LOW) {
+        // guard against ESP32 hardware bug 
+        // https://github.com/espressif/arduino-esp32/issues/5055
+        // https://github.com/espressif/esp-idf/commit/d890a516a1097f0a07788e203fdb1a82bb83520e
+        return;
+    }
     uint32_t now = millis();
     if ((now - btnSide_downTime) > BTN_DEBOUNCE) {
         btnSide_cnt++;
@@ -33,7 +40,14 @@ void IRAM_ATTR btnSide_isr() {
     btnSide_downTime = now;
 }
 
-void IRAM_ATTR btnBig_isr() {
+void IRAM_ATTR btnBig_isr()
+{
+    if (digitalRead(PIN_BTN_BIG) != LOW) {
+        // guard against ESP32 hardware bug 
+        // https://github.com/espressif/arduino-esp32/issues/5055
+        // https://github.com/espressif/esp-idf/commit/d890a516a1097f0a07788e203fdb1a82bb83520e
+        return;
+    }
     uint32_t now = millis();
     if ((now - btnBig_downTime) > BTN_DEBOUNCE) {
         btnBig_cnt++;
