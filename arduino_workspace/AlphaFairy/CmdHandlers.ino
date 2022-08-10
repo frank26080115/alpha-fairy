@@ -114,7 +114,8 @@ void imushow_func(void* cmd, char* argstr, Stream* stream)
         pwr_tick();
         stream->printf("imu:   %0.1f   %0.1f   %0.1f\r\n", imu.pitch, imu.roll, imu.yaw);
         M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);
-        M5Lcd.printf("%0.1f  ,  %0.1f", imu.roll, imu.pitch); gui_blankRestOfLine(); M5Lcd.println(); gui_setCursorNextLine();
+        M5Lcd.printf("%0.1f , %0.1f    ", imu.roll, imu.pitch); gui_blankRestOfLine(); M5Lcd.println(); gui_setCursorNextLine();
+        M5Lcd.printf("%0.1f , %0.1f    ", imu.roll_adj, imu.pitch_adj); gui_blankRestOfLine(); M5Lcd.println(); gui_setCursorNextLine();
         M5Lcd.printf("%d", imu.pitch_accum); gui_blankRestOfLine(); M5Lcd.println(); gui_setCursorNextLine();
         int spin = imu.getSpin();
         if (spin > 0) {

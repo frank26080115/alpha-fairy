@@ -65,22 +65,26 @@ void AlphaFairyImu::poll()
         tilt = TILT_IS_FLAT;
     }
 
+    roll_adj  = roll;
+    pitch_adj = pitch;
+    rolli  = lroundf(roll);
     pitchi = lroundf(pitch);
 
-    if (roll > 90 || roll < -90)
+    if (rolli > 90 || rolli < 0)
     {
         // is upside down
         // the pitch number goes 0 to 90 then back to 0 again as it approaches what should be 180
         // so we read the roll to see if it's about to go upside down, and recalculate pitch
         if (pitchi < 0) {
-            pitchi = -90 + (-90 - pitchi);
-            pitch  = -90 + (-90 - pitch);
+            pitch_adj = -90 + (-90 - pitch);
         }
         else {
-            pitchi = 90 + (90 - pitchi);
-            pitch  = 90 + (90 - pitch);
+            pitch_adj = 90 + (90 - pitch);
         }
     }
+
+    rolli  = lroundf(roll_adj);
+    pitchi = lroundf(pitch_adj);
 
     if (((pitchi > -45 && pitchi < 0) || (pitchi < 45 && pitchi >= 0)) && (roll < 90 && roll > -90))
     {
