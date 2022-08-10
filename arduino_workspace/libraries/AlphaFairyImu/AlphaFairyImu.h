@@ -24,11 +24,12 @@ class AlphaFairyImu
         bool    hasMajorMotion;
     //private:
         float pitch, roll, yaw; // units are degrees
+        float pitch_adj, roll_adj;
         float accX, accY, accZ, gyroX, gyroY, gyroZ;
         uint32_t sample_timestamp = 0;
         uint8_t tilt;
         int32_t spin_cnt = 0;
-        int16_t pitchi;
+        int16_t pitchi, rolli;
         bool spin_has_home = false;
         int16_t pitch_prev = 0, pitch_accum = 0;
         uint32_t spin_timestamp = 0;
