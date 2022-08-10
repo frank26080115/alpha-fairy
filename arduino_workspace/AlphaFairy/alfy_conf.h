@@ -1,7 +1,7 @@
 #ifndef _ALFY_CONF_H_
 #define _ALFY_CONF_H_
 
-#define HTTP_SERVER_ENABLE
+//#define HTTP_SERVER_ENABLE
 //#define WIFI_ALL_MODES
 // leave the above disabled until cameras that only have wifi-direct mode are supported
 
@@ -14,11 +14,11 @@
 #define WIFI_DEFAULT_PASS  "1234567890"
 
 //#define DISABLE_STATUS_BAR
-#define DISABLE_POWER_SAVE
+//#define DISABLE_POWER_SAVE
 #define DISABLE_ALL_MSG
 //#define DISABLE_CMD_LINE
 //#define QUICK_HTTP_TEST
-#define HTTP_MOCKBTNS_ENABLE
+//#define HTTP_MOCKBTNS_ENABLE
 
 #define USE_SPRITE_MANAGER
 #define DISABLE_WELCOME
