@@ -1,4 +1,4 @@
-# alpha-fairy
+# Alpha-Fairy
 
 This is a tiny remote control for Sony Alpha cameras. The hardware platform is a [M5StickC-Plus](https://shop.m5stack.com/products/m5stickc-plus-esp32-pico-mini-iot-development-kit), which is a DIY device with a [ESP32-PICO](https://www.espressif.com/en/products/socs/esp32) inside, along with a colour LCD screen, rechargable battery, some buttons, and a few other features.
 
@@ -8,7 +8,7 @@ This GitHub repo contains the C++ source code (and graphics files) that can be c
 
 Supported camera models: A1 (tested)
 
-Untested but theoretically can support: A7SM3, A9M2, A7M4A, A7RM4, A7C, A7M4, ZV-E10, ZV-1
+Untested but theoretically can support: A7SM3, A9M2, A7M4A, A7RM4, A7C, A7M4, ZV-E10
 
 The fun part about this project for me is to create a usable user interface on a device with only two buttons plus an IMU.
 
@@ -29,6 +29,8 @@ The fun part about this project for me is to create a usable user interface on a
    * supports AF-C, different from in-camera intervalometer (which forces AF-S)
  * Astrophotography Intervalometer
    * same as intervalometer but more focused on bulb mode, and uses pause time instead of fixed interval time
+ * Focus Frustration
+   * is your camera not focusing on the thing you want it to focus on? rapidly tapping the AF button repeatedly will automatically pull the focus back to the nearest possible point
 
 ### Minor Features
 
