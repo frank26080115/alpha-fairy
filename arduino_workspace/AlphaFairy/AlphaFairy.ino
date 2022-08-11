@@ -24,6 +24,7 @@ void sound_shutter  (void* mip);
 void conf_settings  (void* mip);
 void submenu_enter  (void* mip);
 void intervalometer_config(void* mip);
+void focusfrust_execute(void* mip);
 
 #ifdef WIFI_ALL_MODES
 void wifi_config(void* mip);
@@ -62,6 +63,7 @@ const menuitem_t menu_items_focus[] = {
     { MENUITEM_FOCUS_9POINT     , "/focus_9point.png"     , focus_9point    },
     { MENUITEM_SHUTTERSTEP      , "/shutter_step.png"     , shutter_step    },
     { MENUITEM_FOCUS_PULL       , "/focus_pull.png"       , focus_pull      },
+    { MENUITEM_FOCUSFRUSTRATION , "/focus_frust.png"      , focusfrust_execute },
     #if !defined(USE_PWR_BTN_AS_EXIT) || defined(USE_PWR_BTN_AS_BACK)
     { MENUITEM_BACK             , "/back.png"             , NULL            },
     #endif

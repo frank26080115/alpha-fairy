@@ -326,7 +326,7 @@ void focus_stack(void* mip)
     if (starting_mf == false && camera.isOperating())
     {
         // obviously we need to be in manual focus mode in order to do focus stacking
-        camera.cmd_ManualFocusMode(true);
+        camera.cmd_ManualFocusMode(true, false);
     }
 
     // TODO:
@@ -421,7 +421,7 @@ void focus_stack(void* mip)
     {
         // if the camera was set to MF mode via PTP, then it will be stuck in MF mode even if the user toggle switches on the camera or lens!
         // so we MUST restore the setting via PTP
-        camera.cmd_ManualFocusMode(false);
+        camera.cmd_ManualFocusMode(false, false);
     }
 
     // this kinda imposes a minimum button release time
@@ -557,7 +557,7 @@ void shutter_step(void* mip)
     {
         // use manual focus mode to avoid the complexity of waiting for autofocus
         // assume the user has obtained focus already
-        camera.cmd_ManualFocusMode(true);
+        camera.cmd_ManualFocusMode(true, false);
     }
 
     config_settings.shutter_speed_step_cnt = config_settings.shutter_speed_step_cnt <= 0 ? 1 : config_settings.shutter_speed_step_cnt; // enforce a minimum
@@ -602,7 +602,7 @@ void shutter_step(void* mip)
     if (starting_mf == false && camera.isOperating()) {
         // restore AF state
         camera.wait_while_busy(config_settings.shutter_step_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
-        camera.cmd_ManualFocusMode(true);
+        camera.cmd_ManualFocusMode(true, false);
     }
 
     // this kinda imposes a minimum button release time
@@ -633,7 +633,7 @@ void focus_pull(void* mip)
 
     if (starting_mf == false && camera.isOperating()) {
         // force into manual focus mode
-        camera.cmd_ManualFocusMode(true);
+        camera.cmd_ManualFocusMode(true, false);
         camera.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
     }
 
@@ -661,7 +661,7 @@ void focus_pull(void* mip)
     if (starting_mf == false && camera.isOperating()) {
         // restore AF state
         camera.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
-        camera.cmd_ManualFocusMode(false);
+        camera.cmd_ManualFocusMode(false, false);
     }
 }
 

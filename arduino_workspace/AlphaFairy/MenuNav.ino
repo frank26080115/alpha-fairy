@@ -49,6 +49,10 @@ bool guimenu_task(menustate_t* m)
         m->idx++; // skip this zoom menu item if zoom is disabled
     }
 
+    if (m->last_idx != m->idx && m->items[m->idx].id == MENUITEM_FOCUSFRUSTRATION) {
+        focusfrust_reset();
+    }
+
     if (m->last_idx != m->idx || redraw_flag) { // prevent unnecessary re-draws
         redraw_flag = false;
 
@@ -168,6 +172,10 @@ bool guimenu_task(menustate_t* m)
             dual_shutter_last_tv  = tv  != dual_shutter_next ?  tv : dual_shutter_last_tv;
             dual_shutter_last_iso = iso != dual_shutter_iso  ? iso : dual_shutter_last_iso;
         }
+    }
+    else if (m->items[m->idx].id == MENUITEM_FOCUSFRUSTRATION)
+    {
+        focusfrust_task();
     }
 
     if (btnBig_hasPressed())

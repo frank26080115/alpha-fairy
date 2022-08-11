@@ -62,7 +62,7 @@ class PtpIpSonyAlphaCamera : public PtpIpCamera
         bool cmd_Shoot(int t);
         bool cmd_MovieRecord(bool onoff);
         bool cmd_MovieRecordToggle();
-        bool cmd_ManualFocusMode(bool onoff);
+        bool cmd_ManualFocusMode(bool onoff, bool precheck = false);
         bool cmd_ManualFocusToggle(bool onoff);
         bool cmd_ShutterSpeedStep(int8_t step);
         bool cmd_ShutterSpeedSet(int16_t numerator, int16_t denominator);
