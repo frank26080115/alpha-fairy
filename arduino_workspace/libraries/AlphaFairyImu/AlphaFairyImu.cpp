@@ -83,10 +83,10 @@ void AlphaFairyImu::poll()
         }
     }
 
-    rolli  = lroundf(roll_adj);
-    pitchi = lroundf(pitch_adj);
+    rollai  = lroundf(roll_adj);
+    pitchai = lroundf(pitch_adj);
 
-    if (((pitchi > -45 && pitchi < 0) || (pitchi < 45 && pitchi >= 0)) && (roll < 90 && roll > -90))
+    if (((pitchai > -45 && pitchai < 0) || (pitchai < 45 && pitchai >= 0)) && (roll < 90 && roll > -90))
     {
         // near flat, which is when we can count the spins
 
@@ -119,28 +119,28 @@ void AlphaFairyImu::poll()
         #define DIFF_LIMIT 30
         #define LIMIT_DIFF_TO() do { diff = (diff > DIFF_LIMIT) ? DIFF_LIMIT : ((diff < -DIFF_LIMIT) ? -DIFF_LIMIT : diff); } while (0)
 
-        if (pitchi >= 0 && pitch_prev >= 0) {
-            diff = pitchi - pitch_prev;
+        if (pitchai >= 0 && pitch_prev >= 0) {
+            diff = pitchai - pitch_prev;
             LIMIT_DIFF_TO();
             pitch_accum += diff;
         }
-        else if (pitchi <= 0 && pitch_prev <= 0) {
-            diff = pitch_prev - pitchi;
+        else if (pitchai <= 0 && pitch_prev <= 0) {
+            diff = pitch_prev - pitchai;
             LIMIT_DIFF_TO();
             pitch_accum -= diff;
         }
-        else if (pitchi >= 0 && pitch_prev <= 0) {
-            diff = (-180 - pitch_prev) - (180 - pitchi);
+        else if (pitchai >= 0 && pitch_prev <= 0) {
+            diff = (-180 - pitch_prev) - (180 - pitchai);
             LIMIT_DIFF_TO();
             pitch_accum += diff;
         }
-        else if (pitchi <= 0 && pitch_prev >= 0) {
-            diff = (180 - pitch_prev) - (-180 - pitchi);
+        else if (pitchai <= 0 && pitch_prev >= 0) {
+            diff = (180 - pitch_prev) - (-180 - pitchai);
             LIMIT_DIFF_TO();
             pitch_accum += diff;
         }
     }
-    pitch_prev = pitchi;
+    pitch_prev = pitchai;
 
     if (old_tilt != tilt) {
         hasChange |= true;
