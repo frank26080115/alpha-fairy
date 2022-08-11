@@ -181,11 +181,11 @@ void btnPwr_clrPressed() {
 }
 
 bool btnSide_isPressed() {
-    return (digitalRead(PIN_BTN_SIDE) == LOW) && (millis() - btnSide_downTime) > BTN_DEBOUNCE;
+    return (digitalRead(PIN_BTN_SIDE) == LOW);
 }
 
 bool btnBig_isPressed() {
-    return (digitalRead(PIN_BTN_BIG) == LOW) && (millis() - btnBig_downTime) > BTN_DEBOUNCE;
+    return (digitalRead(PIN_BTN_BIG) == LOW);
 }
 
 bool btnBoth_hasPressed() {
