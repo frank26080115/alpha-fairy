@@ -145,39 +145,71 @@ int count_commas(char* data)
     return cnt;
 }
 
-void parse_all_shutter_speeds(uint32_t* data_table, uint32_t table_len, char* json_data)
+int get_idx_within_strtbl(char* tbl, char* needle)
 {
-    int tbl_i, json_i, n_i, d_i;
-    int json_len = strlen(json_data);
-    bool is_denom = false;
-    char numstr[32];
-    char denomstr[32];
-    for (tbl_i = 0, json_i = 0, n_i = 0, d_i = 0; tbl_i < table_len && json_i < json_len; json_i++)
+    int slen = strlen(tbl);
+    int nlen = strlen(needle);
+    int i;
+    int comma_cnt = 0;
+    bool in_quote = false;
+    char c, prev_c = 0;
+    for (i = 0; i < slen - nlen; i++)
     {
-        char c = json_data[json_i];
-        if (c == ',' || json_data[json_i + 1] == 0)
+        c = tbl[i];
+        if (c == '"' && tbl[i + nlen + 2] == '"')
         {
-            float numerator
-            if (n_i == 0)
-            {
-                is_denom = false;
-                n_i = 0, d_i = 0;
-                continue;
+            prev_c = c;
+            i++;
+            if (memcmp(&tbl[i], needle, nlen) == 0) {
+                return comma_cnt;
             }
-            else if (d_i == 0)
-            {
-            }
-
-            is_denom = false;
-            n_i = 0, d_i = 0;
-        }
-        else if (c == '/')
-        {
-            is_denom = true;
-        }
-        else if (c == '\\' || c == '"' || c == ' ' || c == '\t' || c == '\r' || c == '\n')
-        {
             continue;
         }
+        else if (c == '"' && prev_c != '\\')
+        {
+            in_quote ^= true;
+        }
+        else if (c == ',' && in_quote == false)
+        {
+            comma_cnt++;
+        }
+        prev_c = c;
     }
+    return -1;
+}
+
+bool get_txt_within_strtbl(char* tbl, int idx, char* tgt)
+{
+    int slen = strlen(tbl);
+    int i, j;
+    int comma_cnt = 0;
+    bool in_quote = false;
+    char c, prev_c = 0;
+    for (i = 0, j = 0; i < slen - nlen; i++)
+    {
+        c = tbl[i];
+        if (c == '"' && prev_c != '\\') {
+            in_quote ^= true;
+        }
+        else if (c == ',' && in_quote == false)
+        {
+            comma_cnt++;
+        }
+        else if (in_quote && comma_cnt == idx)
+        {
+            tgt[j]     = c;
+            tgt[j + 1] = 0;
+        }
+
+        if (in_quote == false && j > 0)
+        {
+            return true;
+        }
+        prev_c = c;
+    }
+    if (j > 0) {
+        return true;
+    }
+    tgt[0] = 0;
+    return false;
 }

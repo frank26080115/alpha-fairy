@@ -27,6 +27,7 @@ enum
     SHCAMSTATE_COMMANDING          = 15,
     SHCAMSTATE_FAILED              = 0x80,
     SHCAMSTATE_DISCONNECTED        = 0x81,
+    SHCAMSTATE_FORBIDDEN           = 0x82,
 };
 
 class SonyHttpCamera
@@ -42,6 +43,7 @@ class SonyHttpCamera
         inline bool      canSend         (void) { return state >= SHCAMSTATE_READY && (state & 1) == 0; };
         inline bool      isOperating     (void) { return state >= SHCAMSTATE_READY && state < SHCAMSTATE_FAILED; };
         inline bool      canNewConnect   (void) { return state == SHCAMSTATE_NONE || state == SHCAMSTATE_FAILED || state == SHCAMSTATE_DISCONNECTED };
+        inline void      setForbidden    (void) { state = SHCAMSTATE_FORBIDDEN; }
 
         inline int       getPollDelay    (void)       { return poll_delay; };
         inline void      setPollDelay    (uint32_t x) { poll_delay = x; };

@@ -17,7 +17,9 @@ void SonyHttpCamera::begin(uint32_t ip)
     rx_buff_idx = 0;
     rx_buff[0] = 0;
     last_poll_time = 0;
-    state = SHCAMSTATE_NONE;
+    if (state != SHCAMSTATE_FORBIDDEN || ip == 0) {
+        state = SHCAMSTATE_NONE;
+    }
 
     zoom_state = 0;
     zoom_time = 0;
@@ -110,6 +112,10 @@ void SonyHttpCamera::parse_dd_xml(char* data, int32_t maxlen)
     {
         state = SHCAMSTATE_INIT_GOTDD;
     }
+    else
+    {
+        state = SHCAMSTATE_FORBIDDEN;
+    }
 }
 
 void SonyHttpCamera::get_dd_xml()
@@ -134,10 +140,12 @@ static void SonyHttpCamera::ddRequestCb(void* optParm, AsyncHTTPRequest* req, in
         else
         {
             cam->dd_tries++;
-            if (cam->dd_tries < 3) {
+            if (cam->dd_tries < 3)
+            {
                 cam->get_dd_xml();
             }
-            else {
+            else if (cam->state != SHCAMSTATE_FORBIDDEN)
+            {
                 cam->state = SHCAMSTATE_FAILED;
             }
         }
@@ -197,7 +205,9 @@ static void SonyHttpCamera::eventRequestCb(void* optParm, AsyncHTTPRequest* req,
         else {
             error_cnt++;
         }
-        state = SHCAMSTATE_READY;
+        if (state != SHCAMSTATE_FORBIDDEN) {
+            state = SHCAMSTATE_READY;
+        }
     }
 }
 
@@ -233,6 +243,10 @@ void SonyHttpCamera::get_event()
 void SonyHttpCamera::poll()
 {
     uint32_t now;
+
+    if (state == SHCAMSTATE_FORBIDDEN) {
+        return;
+    }
 
     if (state == SHCAMSTATE_INIT_GOTDD)
     {
@@ -313,11 +327,12 @@ static void SonyHttpCamera::initRequestCb(void* optParm, AsyncHTTPRequest* req, 
             {
                 do_next = cam->state - 1; // retry previous step
             }
-            else {
+            else if (cam->state != SHCAMSTATE_FORBIDDEN)
+            {
                 cam->state = SHCAMSTATE_FAILED;
             }
         }
-        if (do_next != 0)
+        if (do_next != 0 && cam->state != SHCAMSTATE_FORBIDDEN)
         {
             cam->state = do_next; // next call to poll will handle it
         }
