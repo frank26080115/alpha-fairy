@@ -1,0 +1,79 @@
+{
+  "name":"AsyncHTTPRequest_Generic",
+  "version": "1.8.2",
+  "description":"Simple Async HTTP Request library, supporting GET, POST, PUT, PATCH, DELETE and HEAD, on top of AsyncTCP libraries, such as AsyncTCP, ESPAsyncTCP, AsyncTCP_STM32, etc.. for ESP32 (including ESP32_S2, ESP32_S3 and ESP32_C3), WT32_ETH01 (ESP32 + LAN8720), ESP8266 (WiFi, W5x00 or ENC28J60) and currently STM32 with LAN8720 or built-in LAN8742A Ethernet.",
+  "keywords":"communication, async, tcp, http, ESP8266, ESP32, ESP32-S2, ESP32-S3, ESP32-C3, wt32-eth01, stm32, ethernet, wifi, lan8742a, lan8720, f407ve, nucleo-144, stm32f7, W5x00, ENC28J60",
+  "authors": [
+    {
+      "name": "Bob Lemaire",
+      "url":   "https://github.com/boblemaire"
+    },
+    {
+      "name":  "Khoi Hoang",
+      "url":   "https://github.com/khoih-prog",
+      "email": "khoih-dot-prog@gmail.com",
+      "maintainer": true
+    }  
+  ],
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/khoih-prog/AsyncHTTPRequest_Generic"
+  },
+  "homepage": "https://github.com/khoih-prog/AsyncHTTPRequest_Generic",
+  "export": {
+    "exclude": [
+      "linux",
+      "extras",
+      "tests"
+    ]
+  },
+  "dependencies": 
+  [
+    {
+      "owner": "me-no-dev",
+      "name": "AsyncTCP",
+      "version": ">=1.1.1",
+      "platforms": ["espressif32"]
+    },
+    {
+      "owner": "me-no-dev",
+      "name": "ESPAsyncTCP",
+      "version": ">=1.2.2",
+      "platforms": "espressif8266"
+    },
+    {
+      "owner": "khoih-prog",
+      "name": "ESPAsync_WiFiManager",
+      "version": ">=1.12.2",
+      "platforms": ["espressif8266", "espressif32"]
+    },
+    {
+      "owner": "stm32duino",
+      "name": "STM32duino LwIP",
+      "version": ">=2.1.2",
+      "platforms": "ststm32"
+    },
+    {
+      "owner": "stm32duino",
+      "name": "STM32Ethernet",
+      "version": ">=1.3.0",
+      "platforms": "ststm32"
+    },
+    {
+      "owner": "khoih-prog",
+      "name": "WebServer_WT32_ETH01",
+      "version": ">=1.4.1",
+      "platforms": ["espressif32"]
+    },
+    {
+      "name": "STM32AsyncTCP",
+      "version": "https://github.com/khoih-prog/STM32AsyncTCP"
+    }
+  ],
+  "license": "LGPL-3.0",
+  "frameworks": "arduino",
+  "platforms": ["espressif8266", "espressif32", "ststm32"],
+  "examples": "examples/*/*/*.ino",
+  "headers": ["AsyncHTTPRequest_Generic.h", "AsyncHTTPRequest_Generic.hpp"]
+}
