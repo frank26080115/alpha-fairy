@@ -814,7 +814,7 @@ void wifi_info(void* mip)
                 {
                     M5Lcd.print("Camera: ");
                     M5Lcd.setCursor(left_margin + 8, top_margin + (line_space * 5));
-                    M5Lcd.print(IPAddress(camera.ip_addr));
+                    M5Lcd.print(IPAddress(camera.getIp()));
                     char* cam_name = camera.getCameraName();
                     if (cam_name != NULL && strlen(cam_name) > 0) {
                         M5Lcd.setCursor(left_margin + 8, top_margin + (line_space * 6));

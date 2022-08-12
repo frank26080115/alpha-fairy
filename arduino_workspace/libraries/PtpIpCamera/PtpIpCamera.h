@@ -81,15 +81,14 @@ class PtpIpCamera
                                                     ; };
         inline bool     isOperating(void)     { return (state & 0x0F00) != 0; };
         inline int      getState(void)        { return state; };
+        inline uint32_t getIp(void)           { return ip_addr; };
         inline uint32_t getLastRxTime(void)   { return last_rx_time; };
         inline char*    getCameraName(void)   { return (char*)cam_name; };
         inline bool     canNewConnect(void)   { return state < PTPSTATE_START_WAIT || state >= PTPSTATE_DISCONNECTED; };
                bool     isKindaBusy(void);
                bool     isPairingWaiting(void);
         bool send_oper_req(uint32_t opcode, uint32_t* params, uint8_t params_cnt, uint8_t* payload, int32_t payload_len);
-        void wait_while_busy(uint32_t min_wait, uint32_t max_wait, volatile bool* exit_signal);
-
-        uint32_t ip_addr;
+        void wait_while_busy(uint32_t min_wait, uint32_t max_wait, volatile bool* exit_signal = NULL);
 
         void (*cb_onConnect)(void) = NULL;
         void (*cb_onCriticalError)(void) = NULL;
@@ -111,6 +110,7 @@ class PtpIpCamera
     protected:
         int state;
         int substate;
+        uint32_t ip_addr;
         #ifndef USE_ASYNC_SOCK
         WiFiClient socket_main;
         WiFiClient socket_event;

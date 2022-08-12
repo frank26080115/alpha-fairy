@@ -221,7 +221,7 @@ void httpsrv_init()
         response->printf("%s", WiFi.softAPIP().toString().c_str());
         if (camera.isOperating()) {
             response->printf(";\r\n");
-            response->printf("%s;\r\n", (IPAddress(camera.ip_addr)).toString().c_str());
+            response->printf("%s;\r\n", (IPAddress(camera.getIp())).toString().c_str());
         }
         request->send(response);
     });

@@ -279,20 +279,20 @@ void cam_onConnect()
 {
     dbg_ser.printf("cam_onConnect\r\n");
     pwr_tick();
-    NetMgr_markClientCamera(camera.ip_addr);
+    NetMgr_markClientCamera(camera.getIp());
 }
 
 void cam_onDisconnect()
 {
     pwr_tick();
-    NetMgr_markClientDisconnect(camera.ip_addr);
+    NetMgr_markClientDisconnect(camera.getIp());
 }
 
 void cam_onCriticalError()
 {
     pwr_tick();
     if (camera.critical_error_cnt > 2) {
-        NetMgr_markClientError(camera.ip_addr);
+        NetMgr_markClientError(camera.getIp());
         if (NetMgr_shouldReportError()) {
             critical_error("/crit_error.png");
         }
