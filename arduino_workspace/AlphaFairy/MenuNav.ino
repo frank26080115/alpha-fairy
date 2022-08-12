@@ -152,9 +152,9 @@ bool guimenu_task(menustate_t* m)
             gui_blankRestOfLine();
         }
 
-        if (m->items[m->idx].id == MENUITEM_DUALSHUTTER_SHOOT && camera.isOperating())
+        if (m->items[m->idx].id == MENUITEM_DUALSHUTTER_SHOOT && ptpcam.isOperating())
         {
-            if (camera.has_property(SONYALPHA_PROPCODE_FocusFound) && camera.get_property(SONYALPHA_PROPCODE_FocusFound) == SONYALPHA_FOCUSSTATUS_FOCUSED)
+            if (ptpcam.has_property(SONYALPHA_PROPCODE_FocusFound) && ptpcam.get_property(SONYALPHA_PROPCODE_FocusFound) == SONYALPHA_FOCUSSTATUS_FOCUSED)
             {
                 // trigger via shutter half press
                 gui_drawTopThickLine(8, TFT_RED); // indicate
@@ -163,11 +163,11 @@ bool guimenu_task(menustate_t* m)
             }
         }
 
-        if (camera.isOperating() && camera.has_property(SONYALPHA_PROPCODE_ShutterSpeed) && camera.has_property(SONYALPHA_PROPCODE_ISO) && camera.has_property(SONYALPHA_PROPCODE_FocusFound) && camera.get_property(SONYALPHA_PROPCODE_FocusFound) == SONYALPHA_FOCUSSTATUS_NONE)
+        if (ptpcam.isOperating() && ptpcam.has_property(SONYALPHA_PROPCODE_ShutterSpeed) && ptpcam.has_property(SONYALPHA_PROPCODE_ISO) && ptpcam.has_property(SONYALPHA_PROPCODE_FocusFound) && ptpcam.get_property(SONYALPHA_PROPCODE_FocusFound) == SONYALPHA_FOCUSSTATUS_NONE)
         {
             // remember last known setting
-            uint32_t tv  = camera.get_property(SONYALPHA_PROPCODE_ShutterSpeed);
-            uint32_t iso = camera.get_property(SONYALPHA_PROPCODE_ISO);
+            uint32_t tv  = ptpcam.get_property(SONYALPHA_PROPCODE_ShutterSpeed);
+            uint32_t iso = ptpcam.get_property(SONYALPHA_PROPCODE_ISO);
             // only remember if it's not the same (workaround for the camera not responding to restore commands)
             dual_shutter_last_tv  = tv  != dual_shutter_next ?  tv : dual_shutter_last_tv;
             dual_shutter_last_iso = iso != dual_shutter_iso  ? iso : dual_shutter_last_iso;

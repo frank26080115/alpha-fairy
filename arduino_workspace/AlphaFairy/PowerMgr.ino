@@ -119,9 +119,9 @@ void gui_drawStatusBar(bool is_black)
         x += icon_width;
     }
 
-    if (camera.isOperating() == false && http_is_active == false)
+    if (ptpcam.isOperating() == false && http_is_active == false)
     {
-        if (camera.isPairingWaiting()) {
+        if (ptpcam.isPairingWaiting()) {
             gui_prepStatusBarText(x, y, is_black);
             M5Lcd.print("PAIR");
             x += icon_width;

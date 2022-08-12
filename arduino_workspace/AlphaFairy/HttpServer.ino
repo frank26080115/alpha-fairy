@@ -202,9 +202,9 @@ void httpsrv_init()
         http_is_active = true;
         AsyncResponseStream* response = request->beginResponseStream("text/html");
         add_crossDomainHeaders(response);
-        if (camera.isOperating()) {
-            //response->printf("<html>camera: %s</html>", camera.getCameraName());
-            response->printf("<html>camera: %s<br /><img src='/getpreview.jpg?a=b' /></html>", camera.getCameraName());
+        if (ptpcam.isOperating()) {
+            //response->printf("<html>camera: %s</html>", ptpcam.getCameraName());
+            response->printf("<html>camera: %s<br /><img src='/getpreview.jpg?a=b' /></html>", ptpcam.getCameraName());
         }
         else {
             response->printf("<html>no camera</html>");
@@ -219,9 +219,9 @@ void httpsrv_init()
         AsyncResponseStream* response = request->beginResponseStream("text/html");
         add_crossDomainHeaders(response);
         response->printf("%s", WiFi.softAPIP().toString().c_str());
-        if (camera.isOperating()) {
+        if (ptpcam.isOperating()) {
             response->printf(";\r\n");
-            response->printf("%s;\r\n", (IPAddress(camera.getIp())).toString().c_str());
+            response->printf("%s;\r\n", (IPAddress(ptpcam.getIp())).toString().c_str());
         }
         request->send(response);
     });
@@ -232,13 +232,13 @@ void httpsrv_init()
         http_is_active = true;
         AsyncResponseStream* response = request->beginResponseStream("text/html");
         add_crossDomainHeaders(response);
-        response->printf("%u;\r\n", camera.getState());
-        if (camera.isOperating())
+        response->printf("%u;\r\n", ptpcam.getState());
+        if (ptpcam.isOperating())
         {
-            response->printf("%s;\r\n", camera.getCameraName());
+            response->printf("%s;\r\n", ptpcam.getCameraName());
             int i;
-            for (i = 0; i < camera.properties_cnt; i++) {
-                ptpipcam_prop_t* p = &(camera.properties[i]);
+            for (i = 0; i < ptpcam.properties_cnt; i++) {
+                ptpipcam_prop_t* p = &(ptpcam.properties[i]);
                 response->printf("0x%04X , 0x%02X , %d;\r\n", p->prop_code, p->data_type, p->value);
             }
         }
@@ -262,7 +262,7 @@ void httpsrv_init()
         http_is_active = true;
         AsyncResponseStream* response = request->beginResponseStream("text/html");
         add_crossDomainHeaders(response);
-        if (camera.isOperating() == false) {
+        if (ptpcam.isOperating() == false) {
             response->printf("disconnected");
             request->send(response);
             return;
@@ -276,31 +276,31 @@ void httpsrv_init()
                 AsyncWebParameter* paramValue = request->getParam("value");
                 int32_t pv = atoi(paramValue->value().c_str());
                 if (paramName->value() == "mftoggle") {
-                    ret = camera.cmd_ManualFocusToggle(pv != 0);
+                    ret = ptpcam.cmd_ManualFocusToggle(pv != 0);
                 }
                 else if (paramName->value() == "mfmode") {
-                    ret = camera.cmd_ManualFocusMode(pv != 0);
+                    ret = ptpcam.cmd_ManualFocusMode(pv != 0);
                 }
                 else if (paramName->value() == "movierec") {
-                    ret = camera.cmd_MovieRecord(pv != 0);
+                    ret = ptpcam.cmd_MovieRecord(pv != 0);
                 }
                 else if (paramName->value() == "movierectog") {
-                    ret = camera.cmd_MovieRecordToggle();
+                    ret = ptpcam.cmd_MovieRecordToggle();
                 }
                 else if (paramName->value() == "shoot") {
-                    ret = camera.cmd_Shoot(pv);
+                    ret = ptpcam.cmd_Shoot(pv);
                 }
                 else if (paramName->value() == "shutter") {
-                    ret = camera.cmd_Shutter(pv != 0);
+                    ret = ptpcam.cmd_Shutter(pv != 0);
                 }
                 else if (paramName->value() == "af") {
-                    ret = camera.cmd_AutoFocus(pv != 0);
+                    ret = ptpcam.cmd_AutoFocus(pv != 0);
                 }
                 else if (paramName->value() == "mfstep") {
-                    ret = camera.cmd_ManualFocusStep(pv);
+                    ret = ptpcam.cmd_ManualFocusStep(pv);
                 }
                 else if (paramName->value() == "zoomstep") {
-                    ret = camera.cmd_ZoomStep(pv);
+                    ret = ptpcam.cmd_ZoomStep(pv);
                 }
                 else {
                     response->printf("error;\r\nunknown cmd");
@@ -354,7 +354,7 @@ void httpsrv_init()
             request->send(response);
             return;
         }
-        ret = camera.cmd_arb(atoi(paramOpcode->value().c_str()), atoi(paramPropcode->value().c_str()), payloadptr, payloadlen);
+        ret = ptpcam.cmd_arb(atoi(paramOpcode->value().c_str()), atoi(paramPropcode->value().c_str()), payloadptr, payloadlen);
         if (ret) {
             response->printf("success");
             request->send(response);
@@ -416,8 +416,8 @@ void httpsrv_startJpgStream(AsyncWebServerRequest* request)
     httpsrv_request  = request;
     int i = sprintf(http_resp, "HTTP/1.1 200 OK\r\nContent-Type: image/jpeg\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Headers: Content-Type\r\nAccess-Control-Allow-Methods: POST, GET, OPTIONS\r\n\r\n");
     httpsrv_request->client()->write((const char *)http_resp, (size_t)i);
-    if (camera.isOperating()) {
-        camera.get_jpg(httpsrv_jpgStream, httpsrv_jpgDone);
+    if (ptpcam.isOperating()) {
+        ptpcam.get_jpg(httpsrv_jpgStream, httpsrv_jpgDone);
     }
     else {
         httpsrv_jpgDone();

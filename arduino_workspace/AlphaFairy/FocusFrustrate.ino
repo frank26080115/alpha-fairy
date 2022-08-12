@@ -18,12 +18,12 @@ void focusfrust_reset()
 
 void focusfrust_task()
 {
-    if (camera.isOperating() == false) {
+    if (ptpcam.isOperating() == false) {
         focusfrust_reset();
         return;
     }
 
-    if (camera.has_property(SONYALPHA_PROPCODE_FocusFound) == false) {
+    if (ptpcam.has_property(SONYALPHA_PROPCODE_FocusFound) == false) {
         return;
     }
 
@@ -34,9 +34,9 @@ void focusfrust_task()
     */
     uint32_t cardspace = 0;
 
-    if (camera.has_property(SONYALPHA_PROPCODE_ObjectInMemory))
+    if (ptpcam.has_property(SONYALPHA_PROPCODE_ObjectInMemory))
     {
-        x = camera.get_property(SONYALPHA_PROPCODE_ObjectInMemory);
+        x = ptpcam.get_property(SONYALPHA_PROPCODE_ObjectInMemory);
         if (x != focusfrust_objinmem) {
             // buffer space has changed
             focusfrust_cnt = 0;
@@ -45,14 +45,14 @@ void focusfrust_task()
         }
     }
 
-    if (camera.has_property(SONYALPHA_PROPCODE_MemoryRemaining_Card1))
+    if (ptpcam.has_property(SONYALPHA_PROPCODE_MemoryRemaining_Card1))
     {
-        x = camera.get_property(SONYALPHA_PROPCODE_MemoryRemaining_Card1);
+        x = ptpcam.get_property(SONYALPHA_PROPCODE_MemoryRemaining_Card1);
         cardspace += x;
     }
-    if (camera.has_property(SONYALPHA_PROPCODE_MemoryRemaining_Card2))
+    if (ptpcam.has_property(SONYALPHA_PROPCODE_MemoryRemaining_Card2))
     {
-        x = camera.get_property(SONYALPHA_PROPCODE_MemoryRemaining_Card2);
+        x = ptpcam.get_property(SONYALPHA_PROPCODE_MemoryRemaining_Card2);
         cardspace += x;
     }
     if (cardspace != focusfrust_cardrem) {
@@ -62,7 +62,7 @@ void focusfrust_task()
         dbg_ser.printf("focusfrust card space %u\r\n", cardspace);
     }
 
-    x = camera.get_property(SONYALPHA_PROPCODE_FocusFound);
+    x = ptpcam.get_property(SONYALPHA_PROPCODE_FocusFound);
     uint32_t now = millis();
     if (x != SONYALPHA_FOCUSSTATUS_NONE)
     {
@@ -109,7 +109,7 @@ void focusfrust_execute(void* mip)
 {
     dbg_ser.println("focusfrust_execute");
 
-    if (camera.isOperating() == false) {
+    if (ptpcam.isOperating() == false) {
         // show user that the camera isn't connected
         app_waitAllReleaseConnecting(BTN_DEBOUNCE);
         return;
@@ -123,16 +123,16 @@ void focusfrust_execute(void* mip)
     #endif
 
     // obviously we need to be in manual focus mode in order to change focus
-    camera.cmd_ManualFocusMode(true, true);
+    ptpcam.cmd_ManualFocusMode(true, true);
 
-    camera.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+    ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
     for (int i = 0; i < 10 || btnBig_isPressed(); i++) {
-        camera.cmd_ManualFocusStep(SONYALPHA_FOCUSSTEP_CLOSER_LARGE);
-        camera.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+        ptpcam.cmd_ManualFocusStep(SONYALPHA_FOCUSSTEP_CLOSER_LARGE);
+        ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
     }
 
     // return to AF mode
-    camera.cmd_ManualFocusMode(false, false);
+    ptpcam.cmd_ManualFocusMode(false, false);
 
     app_waitAllRelease(BTN_DEBOUNCE);
 }

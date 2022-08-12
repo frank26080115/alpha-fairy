@@ -85,7 +85,7 @@ void gui_drawVerticalDots(int x_offset, int y_margin, int y_offset, int dot_radi
 void gui_drawMovieRecStatus()
 {
     uint16_t colour = TFT_WHITE;
-    if (camera.isOperating() && camera.is_movierecording()) {
+    if (ptpcam.isOperating() && ptpcam.is_movierecording()) {
         colour = TFT_RED;
     }
     uint32_t x = 11, r = 5, y = 47;
@@ -326,8 +326,13 @@ int8_t gui_drawFocusPullState()
     static const char* suffix = ".png";
     char fname[32];
     int x = 0, y = 108;
-    if (aang >= 7) {
-        n = aang / 15;
+    if (aang >= 2) {
+        if (ang > 0) {
+            n = aang / 12;
+        }
+        else {
+            n = aang / 7;
+        }
         n = n > 3 ? 3 : n;
     }
     sprintf(fname, "%s%c%d%s", prefix, s, n, suffix);
@@ -412,7 +417,7 @@ void welcome()
     dbg_ser.printf("conn-wait-screen... ");
 
     // show camera is still connecting
-    if (camera.isOperating() == false)
+    if (ptpcam.isOperating() == false)
     {
         while ((now = millis()) < WELCOME_CONN_TIME_MS)
         {
@@ -420,7 +425,7 @@ void welcome()
             {
                 gui_drawConnecting(false);
             }
-            if (btnAll_hasPressed() || camera.isOperating())
+            if (btnAll_hasPressed() || ptpcam.isOperating())
             {
                 // exit on any button press, or successful connection
                 dbg_ser.printf("event! ");

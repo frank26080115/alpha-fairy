@@ -58,10 +58,10 @@ void factory_reset_func(void* cmd, char* argstr, Stream* stream)
 void shoot_func(void* cmd, char* argstr, Stream* stream)
 {
   pwr_tick();
-  if (camera.getState() == PTPSTATE_POLLING)
+  if (ptpcam.getState() == PTPSTATE_POLLING)
   {
     stream->println("shoot");
-    camera.cmd_Shoot(250);
+    ptpcam.cmd_Shoot(250);
   }
   else
   {
@@ -91,7 +91,7 @@ void statscheck_func(void* cmd, char* argstr, Stream* stream)
 {
   pwr_tick();
   #ifdef PTPIP_KEEP_STATS
-  stream->printf("ptpipcam stats: %u  %u  %u\r\n", camera.stats_tx, camera.stats_acks, camera.stats_pkts);
+  stream->printf("ptpipcam stats: %u  %u  %u\r\n", ptpcam.stats_tx, ptpcam.stats_acks, ptpcam.stats_pkts);
   #else
   stream->printf("ptpipcam stats not available\r\n");
   #endif
@@ -189,9 +189,9 @@ void camdebug_func(void* cmd, char* argstr, Stream* stream)
 {
     pwr_tick();
     int x = atoi(argstr);
-    camera.set_debugflags(x);
+    ptpcam.set_debugflags(x);
     stream->printf("camera debugging output = %u\r\n", x);
-    camera.test_debug_msg("test from cam debug serport\r\n");
+    ptpcam.test_debug_msg("test from cam debug serport\r\n");
 }
 
 void infrared_func(void* cmd, char* argstr, Stream* stream)

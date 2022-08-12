@@ -9,7 +9,7 @@
 #include <SerialCmdLine.h>
 #include <SonyCameraInfraredRemote.h>
 
-PtpIpSonyAlphaCamera camera((char*)"ALPHA-FAIRY", NULL);
+PtpIpSonyAlphaCamera ptpcam((char*)"ALPHA-FAIRY", NULL);
 
 void remote_shutter (void* mip);
 void focus_stack    (void* mip);
@@ -165,7 +165,7 @@ void setup()
 
     #ifdef DISABLE_ALL_MSG
     dbg_ser.enabled = false;
-    camera.set_debugflags(0);
+    ptpcam.set_debugflags(0);
     #endif
 
     btnAll_clrPressed();
@@ -201,7 +201,7 @@ bool app_poll()
     btns_poll();
     #endif
     NetMgr_task();
-    camera.task();
+    ptpcam.task();
     #if defined(HTTP_SERVER_ENABLE) || defined(WIFI_ALL_MODES)
     httpsrv_poll();
     #endif
@@ -224,7 +224,7 @@ bool app_poll()
     }
 
     // do low priority tasks if the networking is not busy
-    if (camera.isKindaBusy() == false) {
+    if (ptpcam.isKindaBusy() == false) {
         imu.poll();
         cmdline.task();
 
@@ -267,10 +267,10 @@ void wifi_onConnect()
 {
     dbg_ser.printf("application wifi event handler called\r\n");
     pwr_tick();
-    if (camera.canNewConnect()) {
+    if (ptpcam.canNewConnect()) {
         uint32_t newip = NetMgr_getConnectableClient();
         if (newip != 0) {
-            camera.begin(newip);
+            ptpcam.begin(newip);
         }
     }
 }
@@ -279,20 +279,20 @@ void cam_onConnect()
 {
     dbg_ser.printf("cam_onConnect\r\n");
     pwr_tick();
-    NetMgr_markClientCamera(camera.getIp());
+    NetMgr_markClientCamera(ptpcam.getIp());
 }
 
 void cam_onDisconnect()
 {
     pwr_tick();
-    NetMgr_markClientDisconnect(camera.getIp());
+    NetMgr_markClientDisconnect(ptpcam.getIp());
 }
 
 void cam_onCriticalError()
 {
     pwr_tick();
-    if (camera.critical_error_cnt > 2) {
-        NetMgr_markClientError(camera.getIp());
+    if (ptpcam.critical_error_cnt > 2) {
+        NetMgr_markClientError(ptpcam.getIp());
         if (NetMgr_shouldReportError()) {
             critical_error("/crit_error.png");
         }
@@ -306,10 +306,10 @@ void cam_onReject()
 
 void cam_cb_setup()
 {
-    camera.cb_onConnect = cam_onConnect;
-    camera.cb_onDisconnect = cam_onDisconnect;
-    camera.cb_onCriticalError = cam_onCriticalError;
-    camera.cb_onReject = cam_onReject;
+    ptpcam.cb_onConnect = cam_onConnect;
+    ptpcam.cb_onDisconnect = cam_onDisconnect;
+    ptpcam.cb_onCriticalError = cam_onCriticalError;
+    ptpcam.cb_onReject = cam_onReject;
 }
 
 void app_waitAnyPress(bool can_sleep)
@@ -364,7 +364,7 @@ void app_waitAllReleaseConnecting(uint32_t debounce)
         if (app_poll()) {
             gui_drawConnecting(false);
         }
-        if (camera.isOperating()) {
+        if (ptpcam.isOperating()) {
             return;
         }
         if (btnSide_isPressed() || btnBig_isPressed()) {

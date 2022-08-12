@@ -88,9 +88,9 @@ void ledblink_task()
         }
         else // normal mode
         {
-            if (camera.isOperating())
+            if (ptpcam.isOperating())
             {
-                if (camera.is_movierecording())
+                if (ptpcam.is_movierecording())
                 {
                     now %= 1500;
                     if (now < 100 || (now >= 200 && now <= 300) || (now >= 400 && now <= 500)) { // triple large blinks with decent pause

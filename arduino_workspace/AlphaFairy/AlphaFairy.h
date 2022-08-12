@@ -19,7 +19,7 @@
 #include <SonyCameraInfraredRemote.h>
 #include <DebuggingSerial.h>
 
-extern PtpIpSonyAlphaCamera camera;
+extern PtpIpSonyAlphaCamera ptpcam;
 extern DebuggingSerial      dbg_ser;
 extern SerialCmdLine        cmdline;
 extern configsettings_t     config_settings;
