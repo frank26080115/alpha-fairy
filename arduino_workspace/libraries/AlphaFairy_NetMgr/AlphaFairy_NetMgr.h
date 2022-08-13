@@ -19,10 +19,11 @@ enum
 
 enum
 {
-    WIFICLIFLAG_NONE     = 0,
-    WIFICLIFLAG_IS_CAM   = 0x01,
-    WIFICLIFLAG_IS_HTTP  = 0x02,
-    WIFICLIFLAG_IS_ERROR = 0x04,
+    WIFICLIFLAG_NONE          = 0,
+    WIFICLIFLAG_IS_CAMPTP     = 0x01,
+    WIFICLIFLAG_IS_CAMHTTP    = 0x02,
+    WIFICLIFLAG_IS_PHONEHTTP  = 0x02,
+    WIFICLIFLAG_IS_ERROR      = 0x08,
 };
 
 void NetMgr_beginAP(char* ssid, char* password);
@@ -34,11 +35,12 @@ uint8_t NetMgr_getOpMode(void);
 char* NetMgr_getSSID(void);
 char* NetMgr_getPassword(void);
 
-void NetMgr_regCallback(void(*cb)(void));
+void NetMgr_regCallback(void(*cb_evt)(void), void(*cb_discon)(void));
 
 uint32_t NetMgr_getConnectableClient(void);
-void NetMgr_markClientCamera(uint32_t ip);
-void NetMgr_markClientHttp(uint32_t ip);
+void NetMgr_markClientCameraPtp(uint32_t ip);
+void NetMgr_markClientCameraHttp(uint32_t ip);
+void NetMgr_markClientPhoneHttp(uint32_t ip);
 void NetMgr_markClientError(uint32_t ip);
 void NetMgr_markClientDisconnect(uint32_t ip);
 bool NetMgr_shouldReportError(void);

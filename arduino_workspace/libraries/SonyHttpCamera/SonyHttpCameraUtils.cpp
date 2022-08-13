@@ -213,3 +213,18 @@ bool get_txt_within_strtbl(char* tbl, int idx, char* tgt)
     tgt[0] = 0;
     return false;
 }
+
+void strcpy_no_slash(char* dst, char* src)
+{
+    int i, j;
+    int slen = strlen(src);
+    for (i = 0, j = 0; i < src; i++)
+    {
+        char c = src[i];
+        if (c != '\\') {
+            dst[j] = c;
+            dst[j+1] = 0;
+            j += 1;
+        }
+    }
+}

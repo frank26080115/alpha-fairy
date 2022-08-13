@@ -20,6 +20,7 @@ static char* NetMgr_password = NULL;
 static uint32_t gateway_ip = 0;
 
 static void (*callback)(void) = NULL;
+static void (*disconnect_callback)(void) = NULL;
 
 void NetMgr_taskAP(void);
 void NetMgr_taskSTA(void);
@@ -75,14 +76,15 @@ void NetMgr_beginSTA(char* ssid, char* password)
     WiFi.begin(ssid, password);
 }
 
-void NetMgr_regCallback(void(*cb)(void))
+void NetMgr_regCallback(void(*cb_evt)(void), void(*cb_disconn)(void))
 {
     WiFi.onEvent(NetMgr_eventHandler, WiFiEvent_t::ARDUINO_EVENT_WIFI_AP_STAIPASSIGNED);
     WiFi.onEvent(NetMgr_eventHandler, WiFiEvent_t::ARDUINO_EVENT_WIFI_AP_STADISCONNECTED);
     WiFi.onEvent(NetMgr_eventHandler, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_GOT_IP);
     WiFi.onEvent(NetMgr_eventHandler, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
     WiFi.onEvent(NetMgr_eventHandler, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_LOST_IP);
-    callback = cb;
+    callback = cb_evt;
+    disconnect_callback = cb_disconn;
 }
 
 void NetMgr_taskAP()
@@ -120,6 +122,9 @@ void NetMgr_taskSTA()
     }
     else
     {
+        if (status != last_sta_status && last_sta_status == WL_CONNECTED && disconnect_callback != NULL) {
+            disconnect_callback();
+        }
         last_sta_status = status;
     }
 }
@@ -236,24 +241,34 @@ uint32_t NetMgr_getConnectableClient(void)
     return 0;
 }
 
-void NetMgr_markClientCamera(uint32_t ip)
+void NetMgr_markClientCameraPtp(uint32_t ip)
 {
     int8_t i = NetMgr_findInTableIp(ip);
     if (i < 0) {
         return;
     }
     wificli_classifier_t* t = &(wificli_table[i]);
-    t->flags |= WIFICLIFLAG_IS_CAM;
+    t->flags |= WIFICLIFLAG_IS_CAMPTP;
 }
 
-void NetMgr_markClientHttp(uint32_t ip)
+void NetMgr_markClientCameraHttp(uint32_t ip)
 {
     int8_t i = NetMgr_findInTableIp(ip);
     if (i < 0) {
         return;
     }
     wificli_classifier_t* t = &(wificli_table[i]);
-    t->flags |= WIFICLIFLAG_IS_HTTP;
+    t->flags |= WIFICLIFLAG_IS_CAMHTTP;
+}
+
+void NetMgr_markClientPhoneHttp(uint32_t ip)
+{
+    int8_t i = NetMgr_findInTableIp(ip);
+    if (i < 0) {
+        return;
+    }
+    wificli_classifier_t* t = &(wificli_table[i]);
+    t->flags |= WIFICLIFLAG_IS_PHONEHTTP;
 }
 
 void NetMgr_markClientError(uint32_t ip)
@@ -285,7 +300,7 @@ bool NetMgr_shouldReportError(void)
         wificli_classifier_t* t = &(wificli_table[i]);
         if (t->ip != 0) {
             has_cli = true;
-            if ((t->flags & WIFICLIFLAG_IS_ERROR) == 0 || (t->flags & WIFICLIFLAG_IS_HTTP) != 0) {
+            if ((t->flags & WIFICLIFLAG_IS_ERROR) == 0 || (t->flags & WIFICLIFLAG_IS_PHONEHTTP) != 0 || (t->flags & WIFICLIFLAG_IS_CAMHTTP) != 0) {
                 rpt_err = false;
             }
         }

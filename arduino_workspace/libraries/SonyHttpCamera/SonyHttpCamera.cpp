@@ -9,6 +9,9 @@ SonyHttpCamera::SonyHttpCamera()
 
 void SonyHttpCamera::begin(uint32_t ip)
 {
+    if (httpreq == NULL) {
+        httpreq = new AsyncHTTPRequest();
+    }
     ip_addr = ip;
     state = SHCAMSTATE_CONNECTING;
     dd_tries = 0;
@@ -130,6 +133,9 @@ void SonyHttpCamera::get_dd_xml()
 static void SonyHttpCamera::ddRequestCb(void* optParm, AsyncHTTPRequest* req, int readyState)
 {
     SonyHttpCamera* cam = (SonyHttpCamera*)optParm;
+    if (cam->state == SHCAMSTATE_FORBIDDEN) {
+        return;
+    }
     if (readyState == readyStateDone) 
     {
         if (req->responseHTTPcode() == 200)
@@ -140,12 +146,10 @@ static void SonyHttpCamera::ddRequestCb(void* optParm, AsyncHTTPRequest* req, in
         else
         {
             cam->dd_tries++;
-            if (cam->dd_tries < 3)
-            {
+            if (cam->dd_tries < 3) {
                 cam->get_dd_xml();
             }
-            else if (cam->state != SHCAMSTATE_FORBIDDEN)
-            {
+            else {
                 cam->state = SHCAMSTATE_FAILED;
             }
         }
@@ -183,6 +187,10 @@ void SonyHttpCamera::parse_event(char* data, int32_t maxlen)
 static void SonyHttpCamera::eventRequestCb(void* optParm, AsyncHTTPRequest* req, int readyState)
 {
     SonyHttpCamera* cam = (SonyHttpCamera*)optParm;
+
+    if (cam->state == SHCAMSTATE_FORBIDDEN) {
+        return;
+    }
     if (req->available() <= 0) {
         return;
     }
@@ -199,14 +207,17 @@ static void SonyHttpCamera::eventRequestCb(void* optParm, AsyncHTTPRequest* req,
 
     if (readyState == readyStateDone)
     {
-        if (req->responseHTTPcode() == 200) {
-            error_cnt = 0;
+        if (req->responseHTTPcode() == 200)
+        {
+            cam->error_cnt = 0;
+            if (cam->state < SHCAMSTATE_READY && cam->cb_onConnect != NULL) {
+                cam->cb_onConnect();
+            }
+            cam->state = SHCAMSTATE_READY;
         }
-        else {
-            error_cnt++;
-        }
-        if (state != SHCAMSTATE_FORBIDDEN) {
-            state = SHCAMSTATE_READY;
+        else
+        {
+            cam->error_cnt++;
         }
     }
 }
@@ -214,6 +225,10 @@ static void SonyHttpCamera::eventRequestCb(void* optParm, AsyncHTTPRequest* req,
 static void SonyHttpCamera::eventDataCb(void* optParm, AsyncHTTPRequest* req, int avail)
 {
     SonyHttpCamera* cam = (SonyHttpCamera*)optParm;
+
+    if (cam->state == SHCAMSTATE_FORBIDDEN) {
+        return;
+    }
     if (req->available() <= 0) {
         return;
     }
@@ -286,6 +301,9 @@ void SonyHttpCamera::poll()
 
     if (error_cnt > 10) {
         state = SHCAMSTATE_FAILED;
+        if (cb_onDisconnect != NULL) {
+            cb_onDisconnect();
+        }
     }
 }
 
@@ -311,6 +329,11 @@ void SonyHttpCamera::wait_while_busy(uint32_t min_time, uint32_t max_time, volat
 static void SonyHttpCamera::initRequestCb(void* optParm, AsyncHTTPRequest* req, int readyState)
 {
     SonyHttpCamera* cam = (SonyHttpCamera*)optParm;
+
+    if (cam->state == SHCAMSTATE_FORBIDDEN) {
+        return;
+    }
+
     if (readyState == readyStateDone) 
     {
         int rcode;
@@ -323,16 +346,14 @@ static void SonyHttpCamera::initRequestCb(void* optParm, AsyncHTTPRequest* req, 
         else
         {
             cam->dd_tries++;
-            if (cam->dd_tries < 3)
-            {
+            if (cam->dd_tries < 3) {
                 do_next = cam->state - 1; // retry previous step
             }
-            else if (cam->state != SHCAMSTATE_FORBIDDEN)
-            {
+            else {
                 cam->state = SHCAMSTATE_FAILED;
             }
         }
-        if (do_next != 0 && cam->state != SHCAMSTATE_FORBIDDEN)
+        if (do_next != 0)
         {
             cam->state = do_next; // next call to poll will handle it
         }
@@ -342,6 +363,11 @@ static void SonyHttpCamera::initRequestCb(void* optParm, AsyncHTTPRequest* req, 
 static void SonyHttpCamera::genericRequestCb(void* optParm, AsyncHTTPRequest* req, int readyState)
 {
     SonyHttpCamera* cam = (SonyHttpCamera*)optParm;
+
+    if (cam->state == SHCAMSTATE_FORBIDDEN) {
+        return;
+    }
+
     if (readyState == readyStateDone) 
     {
         int rcode;

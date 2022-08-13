@@ -4,12 +4,14 @@
 #include <SpriteMgr.h>
 #include <PtpIpCamera.h>
 #include <PtpIpSonyAlphaCamera.h>
+#include <SonyHttpCamera.h>
 #include <AlphaFairy_NetMgr.h>
 #include <AlphaFairyImu.h>
 #include <SerialCmdLine.h>
 #include <SonyCameraInfraredRemote.h>
 
 PtpIpSonyAlphaCamera ptpcam((char*)"ALPHA-FAIRY", NULL);
+SonyHttpCamera httpcam();
 
 void remote_shutter (void* mip);
 void focus_stack    (void* mip);
@@ -273,22 +275,51 @@ void wifi_onConnect()
             ptpcam.begin(newip);
         }
     }
+    if (httpcam.canNewConnect()) {
+        uint32_t newip = NetMgr_getConnectableClient();
+        if (newip != 0) {
+            httpcam.begin(newip);
+        }
+    }
 }
 
-void cam_onConnect()
+void wifi_onDisconnect()
 {
-    dbg_ser.printf("cam_onConnect\r\n");
-    pwr_tick();
-    NetMgr_markClientCamera(ptpcam.getIp());
+    httpcam.begin(0); // this resets the forbidden flag so it can reconnect again later
 }
 
-void cam_onDisconnect()
+void ptpcam_onConnect()
+{
+    dbg_ser.printf("ptpcam_onConnect\r\n");
+    pwr_tick();
+    if (ptpcam.isOperating()) {
+        NetMgr_markClientCameraPtp(ptpcam.getIp());
+        httpcam.setForbidden();
+    }
+}
+
+void httpcam_onConnect()
+{
+    dbg_ser.printf("httpcam_onConnect\r\n");
+    pwr_tick();
+    if (httpcam.isOperating()) {
+        NetMgr_markClientCameraHttp(httpcam.getIp());
+    }
+}
+
+void ptpcam_onDisconnect()
 {
     pwr_tick();
     NetMgr_markClientDisconnect(ptpcam.getIp());
 }
 
-void cam_onCriticalError()
+void httpcam_onDisconnect()
+{
+    pwr_tick();
+    NetMgr_markClientDisconnect(httpcam.getIp());
+}
+
+void ptpcam_onCriticalError()
 {
     pwr_tick();
     if (ptpcam.critical_error_cnt > 2) {
@@ -299,17 +330,20 @@ void cam_onCriticalError()
     }
 }
 
-void cam_onReject()
+void ptpcam_onReject()
 {
     critical_error("/rejected.png");
 }
 
 void cam_cb_setup()
 {
-    ptpcam.cb_onConnect = cam_onConnect;
-    ptpcam.cb_onDisconnect = cam_onDisconnect;
-    ptpcam.cb_onCriticalError = cam_onCriticalError;
-    ptpcam.cb_onReject = cam_onReject;
+    ptpcam.cb_onConnect = ptpcam_onConnect;
+    ptpcam.cb_onDisconnect = ptpcam_onDisconnect;
+    ptpcam.cb_onCriticalError = ptpcam_onCriticalError;
+    ptpcam.cb_onReject = ptpcam_onReject;
+
+    httpcam.cb_onConnect = ptpcam_onConnect;
+    httpcam.cb_onDisconnect = httpcam_onDisconnect;
 }
 
 void app_waitAnyPress(bool can_sleep)

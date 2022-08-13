@@ -44,10 +44,11 @@ void wifi_init_sta()
 #endif
 
 extern void wifi_onConnect(void);
+extern void wifi_onDisconnect(void);
 
 void wifi_init()
 {
-    NetMgr_regCallback(wifi_onConnect);
+    NetMgr_regCallback(wifi_onConnect, wifi_onDisconnect);
     #ifdef WIFI_ALL_MODES
     if (config_settings.wifi_opmode != WIFIOPMODE_STA) {
     #endif

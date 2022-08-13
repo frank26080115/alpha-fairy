@@ -1,8 +1,8 @@
 #ifndef _ALFY_CONF_H_
 #define _ALFY_CONF_H_
 
-//#define HTTP_SERVER_ENABLE
-//#define WIFI_ALL_MODES
+#define HTTP_SERVER_ENABLE
+#define WIFI_ALL_MODES
 // leave the above disabled until cameras that only have wifi-direct mode are supported
 
 //#define WIFI_AP_UNIQUE_NAME

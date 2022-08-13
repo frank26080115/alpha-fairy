@@ -14,12 +14,14 @@
 #include <SPIFFS.h>
 #include <PtpIpCamera.h>
 #include <PtpIpSonyAlphaCamera.h>
+#include <SonyHttpCamera.h>
 #include <AlphaFairy_NetMgr.h>
 #include <SerialCmdLine.h>
 #include <SonyCameraInfraredRemote.h>
 #include <DebuggingSerial.h>
 
 extern PtpIpSonyAlphaCamera ptpcam;
+extern SonyHttpCamera       httpcam;
 extern DebuggingSerial      dbg_ser;
 extern SerialCmdLine        cmdline;
 extern configsettings_t     config_settings;

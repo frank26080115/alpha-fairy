@@ -54,9 +54,9 @@ class SonyHttpCamera
         void wait_while_busy(uint32_t min_wait, uint32_t max_wait, volatile bool* exit_signal = NULL);
 
         void (*cb_onConnect)(void) = NULL;
-        void (*cb_onCriticalError)(void) = NULL;
+        //void (*cb_onCriticalError)(void) = NULL;
         void (*cb_onDisconnect)(void) = NULL;
-        void (*cb_onReject)(void) = NULL;
+        //void (*cb_onReject)(void) = NULL;
 
     protected:
         uint32_t ip_addr;
@@ -69,12 +69,16 @@ class SonyHttpCamera
         char     rx_buff[SHCAM_RXBUFF_SIZE + 1];
         uint32_t rx_buff_idx;
 
-        AsyncHTTPRequest httpreq;
+        AsyncHTTPRequest* httpreq = NULL;
 
         uint32_t dd_tries;
         uint32_t error_cnt;
 
         uint32_t poll_delay;
+
+        char str_shutterspd[32];
+        char str_shutterspd_clean[32];
+        char str_iso[32];
 
         int8_t   zoom_state;
         uint32_t zoom_time;
@@ -96,12 +100,16 @@ class SonyHttpCamera
         void cmd_ZoomStop(void);
         void cmd_FocusAreaSet16(int16_t x, int16_t y);
         void cmd_FocusAreaSetF(float x, float y);
-        void cmd_ShutterSpeedSet32(uint32_t x);
-        void cmd_ShutterSpeedSetFrac(int16_t numerator, int16_t denominator);
         void cmd_ShutterSpeedSetStr(char*);
         void cmd_IsoSet(uint32_t x);
+        void cmd_IsoSetStr(char*);
 };
 
 void read_in_chunk(AsyncHTTPRequest* req, int32_t chunk, char* buff, int32_t* buff_idx);
 bool scan_json_for_key(char* data, int32_t datalen, char* keystr, signed int* start_idx, signed int* end_idx, char* tgt, int tgtlen);
 int count_commas(char* data);
+void strcpy_no_slash(char* dst, char* src);
+bool get_txt_within_strtbl(char* tbl, int idx, char* tgt);
+int get_idx_within_strtbl(char* tbl, char* needle);
+
+#endif
