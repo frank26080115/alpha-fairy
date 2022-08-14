@@ -1,6 +1,6 @@
 #include "SonyHttpCamera.h"
 
-void read_in_chunk(AsyncHTTPRequest* req, int32_t chunk, char* buff, int32_t* buff_idx)
+int read_in_chunk(AsyncHTTPRequest* req, int32_t chunk, char* buff, uint32_t* buff_idx)
 {
     if (chunk > SHCAM_RXBUFF_UNIT) {
         chunk = SHCAM_RXBUFF_UNIT;
@@ -20,7 +20,7 @@ void read_in_chunk(AsyncHTTPRequest* req, int32_t chunk, char* buff, int32_t* bu
     return r;
 }
 
-bool scan_json_for_key(char* data, int32_t datalen, char* keystr, signed int* start_idx, signed int* end_idx, char* tgt, int tgtlen)
+bool scan_json_for_key(char* data, int32_t datalen, const char* keystr, signed int* start_idx, signed int* end_idx, char* tgt, int tgtlen)
 {
     int32_t slen = datalen;
     if (datalen <= 0) {
@@ -104,6 +104,10 @@ bool scan_json_for_key(char* data, int32_t datalen, char* keystr, signed int* st
                             }
                         }
                     }
+                    else if (c == ',')
+                    {
+                        break;
+                    }
                     else if (c != ' ' && c != '\t' && c != '\r' && c != '\n')
                     {
                         return false;
@@ -120,7 +124,7 @@ bool scan_json_for_key(char* data, int32_t datalen, char* keystr, signed int* st
             *start_idx = sidx;
         }
         if (end_idx != NULL) {
-            *end_idx = sidx;
+            *end_idx = eidx;
         }
         if (tgt != NULL) {
             for (i = sidx, j = 0; i <= eidx && j < tgtlen - 1; i++, j++) {
@@ -185,7 +189,7 @@ bool get_txt_within_strtbl(char* tbl, int idx, char* tgt)
     int comma_cnt = 0;
     bool in_quote = false;
     char c, prev_c = 0;
-    for (i = 0, j = 0; i < slen - nlen; i++)
+    for (i = 0, j = 0; i < slen; i++)
     {
         c = tbl[i];
         if (c == '"' && prev_c != '\\') {
@@ -218,7 +222,7 @@ void strcpy_no_slash(char* dst, char* src)
 {
     int i, j;
     int slen = strlen(src);
-    for (i = 0, j = 0; i < src; i++)
+    for (i = 0, j = 0; i < slen; i++)
     {
         char c = src[i];
         if (c != '\\') {
@@ -227,4 +231,39 @@ void strcpy_no_slash(char* dst, char* src)
             j += 1;
         }
     }
+}
+
+uint32_t parse_shutter_speed_str(char* s)
+{
+    int slen = strlen(s);
+    if (s[slen - 1] == '"')
+    {
+        s[slen - 1] = 0;
+        slen--;
+        if (s[slen - 1] == '\\') {
+            s[slen - 1] = 0;
+            slen--;
+        }
+        double f = atof(s);
+        f *= 10;
+        int fi = lround(f);
+        fi <<= 16;
+        fi |= 10;
+        return fi;
+    }
+    else if (memcmp("1/", s, 2) == 0)
+    {
+        int x = atoi(&(s[2]));
+        x |= 0x10000;
+        return x;
+    }
+    return 0;
+}
+
+uint32_t SonyHttpCamera::get_another_shutterspd(int idx, char* tgt)
+{
+    if (get_txt_within_strtbl(str_shutterspd, idx, tgt)) {
+        return parse_shutter_speed_str(tgt);
+    }
+    return 0;
 }

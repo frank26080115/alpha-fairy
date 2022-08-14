@@ -1,17 +1,20 @@
 #include "AlphaFairy.h"
 #include <M5StickCPlus.h>
 #include <M5DisplayExt.h>
+#include <AsyncHTTPRequest_Generic.h>
 #include <SpriteMgr.h>
 #include <PtpIpCamera.h>
 #include <PtpIpSonyAlphaCamera.h>
 #include <SonyHttpCamera.h>
+#include "AlphaFairyCamera.h"
 #include <AlphaFairy_NetMgr.h>
 #include <AlphaFairyImu.h>
 #include <SerialCmdLine.h>
 #include <SonyCameraInfraredRemote.h>
 
 PtpIpSonyAlphaCamera ptpcam((char*)"ALPHA-FAIRY", NULL);
-SonyHttpCamera httpcam();
+SonyHttpCamera httpcam;
+AlphaFairyCamera fairycam(&ptpcam, &httpcam);
 
 void remote_shutter (void* mip);
 void focus_stack    (void* mip);
@@ -401,6 +404,28 @@ void app_waitAllReleaseConnecting(uint32_t debounce)
         if (ptpcam.isOperating()) {
             return;
         }
+        if (btnSide_isPressed() || btnBig_isPressed()) {
+            last_time = millis();
+            continue;
+        }
+    }
+    while ((last_time - (now = millis())) < debounce);
+}
+
+void app_waitAllReleaseUnsupported(uint32_t debounce)
+{
+    btnAll_clrPressed();
+    if (btnSide_isPressed() == false && btnBig_isPressed() == false)
+    {
+        return;
+    }
+
+    M5Lcd.drawPngFile(SPIFFS, "/unsupported.png", 0, 0);
+
+    uint32_t now = millis();
+    uint32_t last_time = now;
+    do
+    {
         if (btnSide_isPressed() || btnBig_isPressed()) {
             last_time = millis();
             continue;

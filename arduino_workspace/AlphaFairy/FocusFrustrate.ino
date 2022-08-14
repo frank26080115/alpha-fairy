@@ -111,7 +111,12 @@ void focusfrust_execute(void* mip)
 
     if (ptpcam.isOperating() == false) {
         // show user that the camera isn't connected
-        app_waitAllReleaseConnecting(BTN_DEBOUNCE);
+        if (httpcam.isOperating()) {
+            app_waitAllReleaseUnsupported(BTN_DEBOUNCE);
+        }
+        else {
+            app_waitAllReleaseConnecting(BTN_DEBOUNCE);
+        }
         return;
     }
 

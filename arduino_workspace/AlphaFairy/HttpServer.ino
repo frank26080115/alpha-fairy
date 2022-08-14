@@ -113,7 +113,7 @@ void httpsrv_init()
     httpServer->on("/wificonfig", HTTP_GET, [] (AsyncWebServerRequest* request)
     {
         // main page, index page
-        NetMgr_markClientHttp(request->client()->getRemoteAddress());
+        NetMgr_markClientPhoneHttp(request->client()->getRemoteAddress());
         http_is_active = true;
         // show current settings plus show the form for changing the settings
         AsyncResponseStream* response = request->beginResponseStream("text/html");
@@ -150,7 +150,7 @@ void httpsrv_init()
     httpServer->on("/setwifi", HTTP_POST, [] (AsyncWebServerRequest* request)
     {
         // this is the target of the form
-        NetMgr_markClientHttp(request->client()->getRemoteAddress());
+        NetMgr_markClientPhoneHttp(request->client()->getRemoteAddress());
         http_is_active = true;
         AsyncResponseStream* response = request->beginResponseStream("text/html");
         if (request->hasParam("ssid", true) && request->hasParam("password", true) && request->hasParam("opmode", true)) {
@@ -198,7 +198,7 @@ void httpsrv_init()
 
     httpServer->on("/", HTTP_GET, [] (AsyncWebServerRequest* request)
     {
-        NetMgr_markClientHttp(request->client()->getRemoteAddress());
+        NetMgr_markClientPhoneHttp(request->client()->getRemoteAddress());
         http_is_active = true;
         AsyncResponseStream* response = request->beginResponseStream("text/html");
         add_crossDomainHeaders(response);
@@ -214,7 +214,7 @@ void httpsrv_init()
 
     httpServer->on("/getip", HTTP_GET, [] (AsyncWebServerRequest* request)
     {
-        NetMgr_markClientHttp(request->client()->getRemoteAddress());
+        NetMgr_markClientPhoneHttp(request->client()->getRemoteAddress());
         http_is_active = true;
         AsyncResponseStream* response = request->beginResponseStream("text/html");
         add_crossDomainHeaders(response);
@@ -228,7 +228,7 @@ void httpsrv_init()
 
     httpServer->on("/getstate", HTTP_GET, [] (AsyncWebServerRequest* request)
     {
-        NetMgr_markClientHttp(request->client()->getRemoteAddress());
+        NetMgr_markClientPhoneHttp(request->client()->getRemoteAddress());
         http_is_active = true;
         AsyncResponseStream* response = request->beginResponseStream("text/html");
         add_crossDomainHeaders(response);
@@ -248,7 +248,11 @@ void httpsrv_init()
     #if 1
     httpServer->on("/getpreview.jpg", HTTP_GET, [] (AsyncWebServerRequest* request)
     {
-        NetMgr_markClientHttp(request->client()->getRemoteAddress());
+        if (httpcam.isOperating() && httpcam.getLiveviewUrl() != NULL) {
+            request->redirect(httpcam.getLiveviewUrl());
+            return;
+        }
+        NetMgr_markClientPhoneHttp(request->client()->getRemoteAddress());
         http_is_active = true;
         //AsyncResponseStream* response = request->beginResponseStream("image/jpeg", 1024 * 8);
         //add_crossDomainHeaders(response);
@@ -258,7 +262,7 @@ void httpsrv_init()
 
     httpServer->on("/cmd", HTTP_GET, [] (AsyncWebServerRequest* request)
     {
-        NetMgr_markClientHttp(request->client()->getRemoteAddress());
+        NetMgr_markClientPhoneHttp(request->client()->getRemoteAddress());
         http_is_active = true;
         AsyncResponseStream* response = request->beginResponseStream("text/html");
         add_crossDomainHeaders(response);
@@ -412,12 +416,15 @@ void httpsrv_jpgDone(void)
 
 void httpsrv_startJpgStream(AsyncWebServerRequest* request)
 {
+
     char http_resp[256];
     httpsrv_request  = request;
     int i = sprintf(http_resp, "HTTP/1.1 200 OK\r\nContent-Type: image/jpeg\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Headers: Content-Type\r\nAccess-Control-Allow-Methods: POST, GET, OPTIONS\r\n\r\n");
     httpsrv_request->client()->write((const char *)http_resp, (size_t)i);
     if (ptpcam.isOperating()) {
+        #ifdef PTPIP_ENABLE_STREAMING
         ptpcam.get_jpg(httpsrv_jpgStream, httpsrv_jpgDone);
+        #endif
     }
     else {
         httpsrv_jpgDone();

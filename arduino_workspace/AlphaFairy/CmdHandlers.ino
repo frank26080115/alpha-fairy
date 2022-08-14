@@ -58,10 +58,10 @@ void factory_reset_func(void* cmd, char* argstr, Stream* stream)
 void shoot_func(void* cmd, char* argstr, Stream* stream)
 {
   pwr_tick();
-  if (ptpcam.getState() == PTPSTATE_POLLING)
+  if (fairycam.isOperating())
   {
     stream->println("shoot");
-    ptpcam.cmd_Shoot(250);
+    fairycam.cmd_Shoot(250);
   }
   else
   {
@@ -190,8 +190,10 @@ void camdebug_func(void* cmd, char* argstr, Stream* stream)
     pwr_tick();
     int x = atoi(argstr);
     ptpcam.set_debugflags(x);
+    httpcam.set_debugflags(x);
     stream->printf("camera debugging output = %u\r\n", x);
-    ptpcam.test_debug_msg("test from cam debug serport\r\n");
+    ptpcam.test_debug_msg("test from ptpcam debug serport\r\n");
+    httpcam.test_debug_msg("test from httpcam debug serport\r\n");
 }
 
 void infrared_func(void* cmd, char* argstr, Stream* stream)

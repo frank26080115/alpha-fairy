@@ -2,8 +2,8 @@
 #include <M5DisplayExt.h>
 
 extern uint8_t remoteshutter_delay;
-extern uint32_t dual_shutter_next, dual_shutter_iso;
-extern uint32_t dual_shutter_last_tv, dual_shutter_last_iso;
+extern speed_t dual_shutter_next, dual_shutter_iso;
+extern speed_t dual_shutter_last_tv, dual_shutter_last_iso;
 
 bool guimenu_task(menustate_t* m)
 {
@@ -128,12 +128,12 @@ bool guimenu_task(menustate_t* m)
     else if (m->items[m->idx].id == MENUITEM_DUALSHUTTER_REG || m->items[m->idx].id == MENUITEM_DUALSHUTTER_SHOOT)
     {
         gui_startMenuPrint();
-        if (dual_shutter_next == 0)
+        if (dual_shutter_next.flags == SPEEDTYPE_NONE)
         {
             M5Lcd.setTextFont(4);
             M5Lcd.setCursor(0, 70);
             M5Lcd.printf("  ");
-            M5Lcd.setCursor(5, 70);
+            M5Lcd.setCursor(6, 70);
             M5Lcd.printf(" NOT  SET");
             gui_blankRestOfLine();
         }
@@ -144,21 +144,31 @@ bool guimenu_task(menustate_t* m)
             M5Lcd.printf("  ");
             M5Lcd.setCursor(10, 65);
             M5Lcd.printf("Tv ");
-            gui_showVal(dual_shutter_next, TXTFMT_SHUTTER, (Print*)&M5Lcd);
+            if (dual_shutter_next.flags == SPEEDTYPE_PTP) {
+                gui_showVal(dual_shutter_next.u32, TXTFMT_SHUTTER, (Print*)&M5Lcd);
+            }
+            else {
+                M5Lcd.print(dual_shutter_next.str);
+            }
             gui_blankRestOfLine();
             M5Lcd.setCursor(10, 65 + 18);
             M5Lcd.printf("ISO ");
-            gui_showVal(dual_shutter_iso, TXTFMT_ISO, (Print*)&M5Lcd);
+            if (dual_shutter_iso.flags == SPEEDTYPE_PTP) {
+                gui_showVal(dual_shutter_iso.u32, TXTFMT_ISO, (Print*)&M5Lcd);
+            }
+            else {
+                M5Lcd.print(dual_shutter_iso.str);
+            }
             gui_blankRestOfLine();
         }
 
-        if (m->items[m->idx].id == MENUITEM_DUALSHUTTER_SHOOT && ptpcam.isOperating())
+        if (m->items[m->idx].id == MENUITEM_DUALSHUTTER_SHOOT)
         {
-            if (ptpcam.has_property(SONYALPHA_PROPCODE_FocusFound) && ptpcam.get_property(SONYALPHA_PROPCODE_FocusFound) == SONYALPHA_FOCUSSTATUS_FOCUSED)
+            if ((ptpcam.isOperating() && ptpcam.has_property(SONYALPHA_PROPCODE_FocusFound) && ptpcam.get_property(SONYALPHA_PROPCODE_FocusFound) == SONYALPHA_FOCUSSTATUS_FOCUSED) || (httpcam.isOperating() && httpcam.is_focused))
             {
                 // trigger via shutter half press
                 gui_drawTopThickLine(8, TFT_RED); // indicate
-                dual_shutter_shoot(true, false, dual_shutter_last_tv, dual_shutter_last_iso);
+                dual_shutter_shoot(true, false, &dual_shutter_last_tv, &dual_shutter_last_iso);
                 gui_drawTopThickLine(8, TFT_WHITE);
             }
         }
@@ -169,8 +179,10 @@ bool guimenu_task(menustate_t* m)
             uint32_t tv  = ptpcam.get_property(SONYALPHA_PROPCODE_ShutterSpeed);
             uint32_t iso = ptpcam.get_property(SONYALPHA_PROPCODE_ISO);
             // only remember if it's not the same (workaround for the camera not responding to restore commands)
-            dual_shutter_last_tv  = tv  != dual_shutter_next ?  tv : dual_shutter_last_tv;
-            dual_shutter_last_iso = iso != dual_shutter_iso  ? iso : dual_shutter_last_iso;
+            dual_shutter_last_tv.u32    = (tv  != dual_shutter_next.u32 || dual_shutter_next.flags != SPEEDTYPE_PTP) ?  tv : dual_shutter_last_tv.u32;
+            dual_shutter_last_iso.u32   = (iso != dual_shutter_iso.u32  || dual_shutter_iso.flags  != SPEEDTYPE_PTP) ? iso : dual_shutter_last_iso.u32;
+            dual_shutter_last_tv.flags  = SPEEDTYPE_PTP;
+            dual_shutter_last_iso.flags = SPEEDTYPE_PTP;
         }
     }
     else if (m->items[m->idx].id == MENUITEM_FOCUSFRUSTRATION)

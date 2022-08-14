@@ -78,4 +78,19 @@ typedef struct
 }
 configitem_t;
 
+enum
+{
+    SPEEDTYPE_NONE,
+    SPEEDTYPE_PTP,
+    SPEEDTYPE_HTTP,
+};
+
+typedef struct
+{
+    uint8_t  flags;    // use SPEEDTYPE_XXX
+    uint32_t u32;      // use for values from PTP camera
+    char     str[16];  // use for values from HTTP camera
+}
+speed_t;
+
 #endif

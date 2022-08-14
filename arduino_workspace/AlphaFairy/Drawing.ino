@@ -85,7 +85,7 @@ void gui_drawVerticalDots(int x_offset, int y_margin, int y_offset, int dot_radi
 void gui_drawMovieRecStatus()
 {
     uint16_t colour = TFT_WHITE;
-    if (ptpcam.isOperating() && ptpcam.is_movierecording()) {
+    if (fairycam.isOperating() && fairycam.is_movierecording()) {
         colour = TFT_RED;
     }
     uint32_t x = 11, r = 5, y = 47;

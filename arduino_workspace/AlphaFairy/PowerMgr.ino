@@ -119,7 +119,7 @@ void gui_drawStatusBar(bool is_black)
         x += icon_width;
     }
 
-    if (ptpcam.isOperating() == false && http_is_active == false)
+    if (fairycam.isOperating() == false && http_is_active == false)
     {
         if (ptpcam.isPairingWaiting()) {
             gui_prepStatusBarText(x, y, is_black);

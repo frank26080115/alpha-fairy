@@ -3,10 +3,6 @@
 //#define APP_DOES_NOTHING // this is only used for testing purposes
 
 uint8_t remoteshutter_delay = 2;
-uint32_t dual_shutter_next = 0;
-uint32_t dual_shutter_iso = 0;
-uint32_t dual_shutter_last_tv = 0;
-uint32_t dual_shutter_last_iso = 0;
 
 extern bool gui_microphoneActive;
 
@@ -15,6 +11,9 @@ void cam_shootQuick()
     // convenience function for quickly taking a photo without complicated connectivity checks
     if (ptpcam.isOperating()) {
         ptpcam.cmd_Shoot(config_settings.shutter_press_time_ms);
+    }
+    else if (httpcam.isOperating()) {
+        httpcam.cmd_Shoot();
     }
     else if (config_settings.gpio_enabled) {
         cam_shootQuickGpio();
@@ -54,6 +53,9 @@ void cam_shootOpen()
             gpio_time = 0;
         }
     }
+    else if (httpcam.isOperating()) {
+        httpcam.cmd_Shoot();
+    }
     else if (config_settings.gpio_enabled) {
         #ifdef SHUTTER_GPIO_ACTIVE_HIGH
         pinMode(SHUTTER_GPIO, OUTPUT);
@@ -82,6 +84,9 @@ void cam_shootClose()
             pinMode(SHUTTER_GPIO, INPUT);
             gpio_time = 0;
         }
+    }
+    else if (httpcam.isOperating()) {
+        // do nothing
     }
     else if (config_settings.gpio_enabled) {
         gpio_time = 0; // stop the timer
@@ -116,7 +121,7 @@ void remote_shutter(void* mip)
         }
     }
 
-    if (ptpcam.isOperating() == false)
+    if (fairycam.isOperating() == false)
     {
         bool can_still_shoot = false;
         // no camera connected via wifi so use infrared or GPIO if possible
@@ -189,12 +194,12 @@ void remote_shutter(void* mip)
     return;
     #endif
 
-    bool starting_mf = ptpcam.is_manuallyfocused();
+    bool starting_mf = fairycam.is_manuallyfocused();
 
     // start focusing at the beginning of the countdown
     if (starting_mf == false) {
         dbg_ser.printf("rmtshutter AF\r\n");
-        ptpcam.cmd_AutoFocus(true);
+        fairycam.cmd_AutoFocus(true);
     }
 
     tstart = millis();
@@ -204,7 +209,7 @@ void remote_shutter(void* mip)
     {
         dbg_ser.printf("rmtshutter wait delay %u... ", time_delay);
         // wait the countdown time
-        while (((tdiff = ((now = millis()) - tstart)) < (time_delay * 1000)) && ptpcam.isOperating()) {
+        while (((tdiff = ((now = millis()) - tstart)) < (time_delay * 1000)) && fairycam.isOperating()) {
             if (app_poll()) {
                 if (time_delay > 2) {
                     gui_drawVerticalDots(0, 20, -1, 3, time_delay, tdiff / 1000, false, TFT_DARKGREEN, TFT_RED);
@@ -222,7 +227,7 @@ void remote_shutter(void* mip)
             dbg_ser.printf(" user cancelled\r\n");
             // end autofocus
             if (starting_mf == false) {
-                ptpcam.cmd_AutoFocus(false);
+                fairycam.cmd_AutoFocus(false);
             }
             ledblink_off();
             app_waitAllRelease(BTN_DEBOUNCE);
@@ -238,7 +243,7 @@ void remote_shutter(void* mip)
     tstart = millis();
     ledblink_on();
     app_poll();
-    if (ptpcam.is_focused || starting_mf)
+    if ((ptpcam.isOperating() && ptpcam.is_focused) || starting_mf)
     {
         // if the camera is focused or MF, then the shutter should immediately take the picture
         ptpcam.cmd_Shoot(config_settings.shutter_press_time_ms);
@@ -247,18 +252,25 @@ void remote_shutter(void* mip)
     else if (btnBig_isPressed() || time_delay == 0)
     {
         // if the camera is not focused, we try to take the shot anyways if the user is holding the button
-        ptpcam.cmd_Shutter(true);
-        dbg_ser.printf("rmtshutter shutter open\r\n");
-        while ((btnBig_isPressed() || (starting_mf == false && ptpcam.is_focused == false && ((now = millis()) - tstart) < 2000)) && ptpcam.isOperating())
+        if (ptpcam.isOperating())
         {
-            app_poll();
+            ptpcam.cmd_Shutter(true);
+            dbg_ser.printf("rmtshutter shutter open\r\n");
+            while ((btnBig_isPressed() || (starting_mf == false && ptpcam.is_focused == false && ((now = millis()) - tstart) < 2000)) && ptpcam.isOperating())
+            {
+                app_poll();
+            }
+            if (ptpcam.is_focused) {
+                dbg_ser.printf("rmtshutter got focus\r\n");
+                ptpcam.wait_while_busy(config_settings.shutter_press_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+            }
+            ptpcam.cmd_Shutter(false);
+            dbg_ser.printf("rmtshutter shutter close\r\n");
         }
-        if (ptpcam.is_focused) {
-            dbg_ser.printf("rmtshutter got focus\r\n");
-            ptpcam.wait_while_busy(config_settings.shutter_press_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+        else if (httpcam.isOperating())
+        {
+            httpcam.cmd_Shoot();
         }
-        ptpcam.cmd_Shutter(false);
-        dbg_ser.printf("rmtshutter shutter close\r\n");
     }
     else if (gui_microphoneActive == false)
     {
@@ -269,7 +281,7 @@ void remote_shutter(void* mip)
     }
 
     if (starting_mf == false) {
-        ptpcam.cmd_AutoFocus(false);
+        fairycam.cmd_AutoFocus(false);
         dbg_ser.printf("rmtshutter disable AF\r\n");
     }
 
@@ -287,8 +299,13 @@ void focus_stack(void* mip)
     dbg_ser.println("focus_stack");
 
     if (ptpcam.isOperating() == false) {
-        // show user that the camera isn't connected
-        app_waitAllReleaseConnecting(BTN_DEBOUNCE);
+        if (httpcam.isOperating()) {
+            app_waitAllReleaseUnsupported(BTN_DEBOUNCE);
+        }
+        else {
+            // show user that the camera isn't connected
+            app_waitAllReleaseConnecting(BTN_DEBOUNCE);
+        }
         return;
     }
 
@@ -435,7 +452,7 @@ void focus_9point(void* mip)
 {
     dbg_ser.println("focus_9point");
 
-    if (ptpcam.isOperating() == false) {
+    if (fairycam.isOperating()) {
         dbg_ser.println("focus_9point but no camera connected");
         app_waitAllReleaseConnecting(BTN_DEBOUNCE);
         return;
@@ -447,19 +464,6 @@ void focus_9point(void* mip)
     app_waitAllRelease(BTN_DEBOUNCE);
     return;
 #endif
-
-    if (ptpcam.is_spotfocus() == false) {
-        // the camera must be in one of the many spot focus modes
-        // we can't pick one for them
-        // show user the error message
-        gui_startAppPrint();
-        M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);
-        M5Lcd.println("ERROR:");
-        gui_setCursorNextLine();
-        M5Lcd.println("not in spot auto-focus mode");
-        app_waitAllRelease(BTN_DEBOUNCE);
-        return;
-    }
 
     int dot_rad = 5;
     int dot_space = 30;
@@ -474,7 +478,7 @@ void focus_9point(void* mip)
     int x, y, dot_x, dot_y;
 
     int i;
-    for (i = 0; ptpcam.isOperating(); i++)
+    for (i = 0; fairycam.isOperating(); i++)
     {
         app_poll();
         // figure out which point to focus on
@@ -503,30 +507,38 @@ void focus_9point(void* mip)
         }
         // set the point
         dbg_ser.printf("9point x %u y %u\r\n", x, y);
-        ptpcam.cmd_FocusPointSet(x, y);
+        fairycam.cmd_FocusPointSet(x, y);
         ledblink_on();
-        ptpcam.cmd_AutoFocus(true);
-        ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+        fairycam.cmd_AutoFocus(true);
+        fairycam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+
+        if (httpcam.isOperating()) {
+            httpcam.setPollDelay(0);
+        }
 
         // wait for autofocus to lock onto something
         uint32_t tstart = millis();
         uint32_t now;
         uint32_t tlimit = (i < 9) ? 5000 : 2000;
-        while (((now = millis()) - tstart) < 5000 && ptpcam.is_focused == false && ptpcam.isOperating())
+        while (((now = millis()) - tstart) < 5000 && (fairycam.is_focused() == false && fairycam.isOperating()))
         {
             app_poll();
         }
 
         // take the photo
-        ptpcam.cmd_Shoot(config_settings.shutter_press_time_ms);
-        ptpcam.cmd_AutoFocus(false);
+        fairycam.cmd_Shoot(config_settings.shutter_press_time_ms);
+        fairycam.cmd_AutoFocus(false);
         ledblink_off();
-        ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+        fairycam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
 
         if (btnBig_isPressed() == false) {
             // button check here means we get at least one photo
             break;
         }
+    }
+
+    if (httpcam.isOperating()) {
+        httpcam.setPollDelaySlow();
     }
 
     app_waitAllRelease(BTN_DEBOUNCE);
@@ -538,7 +550,7 @@ void shutter_step(void* mip)
 
     dbg_ser.println("shutter_step");
 
-    if (ptpcam.isOperating() == false) {
+    if (fairycam.isOperating() == false) {
         // show user that the camera isn't connected
         app_waitAllReleaseConnecting(BTN_DEBOUNCE);
         return;
@@ -551,18 +563,28 @@ void shutter_step(void* mip)
 
     ledblink_setMode(LEDMODE_OFF);
 
-    bool starting_mf = ptpcam.is_manuallyfocused();
+    bool starting_mf = fairycam.is_manuallyfocused();
 
-    if (starting_mf == false && ptpcam.isOperating())
+    if (starting_mf == false && fairycam.isOperating())
     {
         // use manual focus mode to avoid the complexity of waiting for autofocus
         // assume the user has obtained focus already
-        ptpcam.cmd_ManualFocusMode(true, false);
+        fairycam.cmd_ManualFocusMode(true, false);
     }
 
     config_settings.shutter_speed_step_cnt = config_settings.shutter_speed_step_cnt <= 0 ? 1 : config_settings.shutter_speed_step_cnt; // enforce a minimum
 
-    uint32_t cur_ss = ptpcam.get_property(SONYALPHA_PROPCODE_ShutterSpeed);
+    uint32_t cur_ss;
+    int cur_ss_idx;
+    char next_ss[32] = {0};
+    if (ptpcam.isOperating()) {
+        cur_ss = ptpcam.get_property(SONYALPHA_PROPCODE_ShutterSpeed);
+    }
+    else if (httpcam.isOperating()) {
+        cur_ss = httpcam.get_shutterspd_32();
+        cur_ss_idx = httpcam.get_shutterspd_idx();
+    }
+
     uint32_t shutter_ms = shutter_to_millis(cur_ss);
 
     int dot_idx = 0;
@@ -570,39 +592,55 @@ void shutter_step(void* mip)
     do
     {
         app_poll();
-        if (ptpcam.isOperating() == false) {
+        if (fairycam.isOperating() == false) {
             break;
         }
         ledblink_on();
 
-        ptpcam.cmd_Shutter(true);
+        fairycam.cmd_Shutter(true);
         t = millis(); now = t;
         while (((now = millis()) - t) < shutter_ms && (now - t) < config_settings.shutter_press_time_ms) {
             ptpcam.poll();
+            httpcam.poll();
         }
-        ptpcam.cmd_Shutter(false);
-        while (((now = millis()) - t) < shutter_ms && ptpcam.isOperating() && btnBig_isPressed()) {
+        fairycam.cmd_Shutter(false);
+        while (((now = millis()) - t) < shutter_ms && fairycam.isOperating() && btnBig_isPressed()) {
             ptpcam.poll();
+            httpcam.poll();
         }
 
         ledblink_off();
         gui_drawVerticalDots(0, 20, -1, 3, 5, dot_idx, false, TFT_GREEN, TFT_RED);
         dot_idx++;
-        cur_ss = ptpcam.get_property_enum(SONYALPHA_PROPCODE_ShutterSpeed, cur_ss, -config_settings.shutter_speed_step_cnt);
+        if (ptpcam.isOperating()) {
+            cur_ss = ptpcam.get_property_enum(SONYALPHA_PROPCODE_ShutterSpeed, cur_ss, -config_settings.shutter_speed_step_cnt);
+        }
+        else if (httpcam.isOperating()) {
+            cur_ss_idx -= config_settings.shutter_speed_step_cnt;
+            if (cur_ss_idx <= 0) {
+                cur_ss_idx = 0;
+            }
+            cur_ss = httpcam.get_another_shutterspd(cur_ss_idx, next_ss);
+        }
         shutter_ms = shutter_to_millis(cur_ss);
         dbg_ser.printf("shutter_step next %u\r\n", shutter_ms);
-        ptpcam.wait_while_busy(config_settings.shutter_step_time_ms / 2, DEFAULT_BUSY_TIMEOUT, NULL);
-        ptpcam.cmd_ShutterSpeedSet32(cur_ss);
-        ptpcam.wait_while_busy(config_settings.shutter_step_time_ms / 2, DEFAULT_BUSY_TIMEOUT, NULL);
+        fairycam.wait_while_busy(config_settings.shutter_step_time_ms / 2, DEFAULT_BUSY_TIMEOUT, NULL);
+        if (ptpcam.isOperating()) {
+            ptpcam.cmd_ShutterSpeedSet32(cur_ss);
+        }
+        else if (httpcam.isOperating()) {
+            httpcam.cmd_ShutterSpeedSetStr(next_ss);
+        }
+        fairycam.wait_while_busy(config_settings.shutter_step_time_ms / 2, DEFAULT_BUSY_TIMEOUT, NULL);
     }
     while (btnBig_isPressed() && ptpcam.isOperating());
 
     uint32_t t_end_1 = millis();
 
-    if (starting_mf == false && ptpcam.isOperating()) {
+    if (starting_mf == false && fairycam.isOperating()) {
         // restore AF state
-        ptpcam.wait_while_busy(config_settings.shutter_step_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
-        ptpcam.cmd_ManualFocusMode(true, false);
+        fairycam.wait_while_busy(config_settings.shutter_step_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+        fairycam.cmd_ManualFocusMode(true, false);
     }
 
     // this kinda imposes a minimum button release time
@@ -617,8 +655,13 @@ void focus_pull(void* mip)
     dbg_ser.println("focus_pull");
 
     if (ptpcam.isOperating() == false) {
-        // show user that the camera isn't connected
-        app_waitAllReleaseConnecting(BTN_DEBOUNCE);
+        if (httpcam.isOperating()) {
+            app_waitAllReleaseUnsupported(BTN_DEBOUNCE);
+        }
+        else {
+            // show user that the camera isn't connected
+            app_waitAllReleaseConnecting(BTN_DEBOUNCE);
+        }
         return;
     }
 
@@ -669,7 +712,7 @@ void zoom_pull(void* mip)
 {
     dbg_ser.println("zoom_pull");
 
-    if (ptpcam.isOperating() == false) {
+    if (fairycam.isOperating() == false) {
         // show user that the camera isn't connected
         app_waitAllReleaseConnecting(BTN_DEBOUNCE);
         return;
@@ -684,7 +727,7 @@ void zoom_pull(void* mip)
 
     bool do_one = true;
 
-    while ((btnBig_isPressed() || do_one) && ptpcam.isOperating())
+    while ((btnBig_isPressed() || do_one) && fairycam.isOperating())
     {
         do_one = false;
 
@@ -695,10 +738,22 @@ void zoom_pull(void* mip)
         if (na == 1) {
             dly += 200;
         }
-        if (n != 0) {
-            ptpcam.cmd_ZoomStep((n > 0) ? -1 : +1);
-            ptpcam.wait_while_busy(dly, DEFAULT_BUSY_TIMEOUT, NULL);
+        if (ptpcam.isOperating())
+        {
+            if (n != 0) {
+                ptpcam.cmd_ZoomStep((n > 0) ? -1 : +1);
+                ptpcam.wait_while_busy(dly, DEFAULT_BUSY_TIMEOUT, NULL);
+            }
         }
+        else if (httpcam.isOperating())
+        {
+            httpcam.cmd_ZoomStart(n);
+            httpcam.wait_while_busy(dly, DEFAULT_BUSY_TIMEOUT, NULL);
+        }
+    }
+
+    if (httpcam.isOperating()) {
+        httpcam.cmd_ZoomStop();
     }
 }
 
@@ -861,7 +916,7 @@ void record_movie(void* mip)
 
     ledblink_setMode(LEDMODE_OFF);
 
-    if (ptpcam.isOperating() == false)
+    if (fairycam.isOperating() == false)
     {
         if (config_settings.infrared_enabled) {
             dbg_ser.println("IR - movie");
@@ -880,7 +935,7 @@ void record_movie(void* mip)
     return;
     #endif
 
-    ptpcam.cmd_MovieRecordToggle();
+    fairycam.cmd_MovieRecordToggle();
 
     // slight delay, for debouncing, and a chance for the movie recording status to change so we can indicate on-screen
     uint32_t t = millis();
@@ -889,168 +944,4 @@ void record_movie(void* mip)
         gui_drawMovieRecStatus();
     }
     app_waitAllRelease(BTN_DEBOUNCE);
-}
-
-void dual_shutter(void* mip)
-{
-    dbg_ser.println("dual_shutter");
-
-    if (ptpcam.isOperating() == false) {
-        // show user that the camera isn't connected
-        app_waitAllReleaseConnecting(BTN_DEBOUNCE);
-        return;
-    }
-
-    #ifdef APP_DOES_NOTHING
-    app_waitAllRelease(BTN_DEBOUNCE);
-    return;
-    #endif
-
-    ledblink_setMode(LEDMODE_OFF);
-
-    menuitem_t* menuitm = (menuitem_t*)mip;
-
-    if (menuitm->id == MENUITEM_DUALSHUTTER_REG)
-    {
-        if (ptpcam.has_property(SONYALPHA_PROPCODE_ShutterSpeed) && ptpcam.has_property(SONYALPHA_PROPCODE_ISO))
-        {
-            dual_shutter_next = ptpcam.get_property(SONYALPHA_PROPCODE_ShutterSpeed);
-            dual_shutter_iso = ptpcam.get_property(SONYALPHA_PROPCODE_ISO);
-            dbg_ser.printf("dualshutter 0x%08X %u\r\n", dual_shutter_next, dual_shutter_iso);
-        }
-        else
-        {
-            dbg_ser.println("dualshutter no data from camera");
-        }
-        app_waitAllRelease(BTN_DEBOUNCE);
-        return;
-    }
-
-    // if (menuitm->id == MENUITEM_DUALSHUTTER_SHOOT)
-    gui_drawTopThickLine(8, TFT_RED);
-    dual_shutter_shoot(false, true, dual_shutter_last_tv, dual_shutter_last_iso);
-    gui_drawTopThickLine(8, TFT_WHITE);
-
-    app_waitAllRelease(BTN_DEBOUNCE);
-}
-
-void dual_shutter_shoot(bool already_focused, bool read_button, uint32_t restore_shutter, uint32_t restore_iso)
-{
-    bool starting_mf = false;
-    bool need_restore_af = false;
-    bool need_restore_ss = false;
-    bool need_restore_iso = false;
-
-    if (already_focused == false) {
-        // only care about MF if we are not already focused
-        starting_mf = ptpcam.is_manuallyfocused();
-    }
-
-    if (already_focused == false && starting_mf == false) {
-        // the camera won't actually take a photo if it's not focused (when shutter tries to open, it'll lag to focus)
-        // so we turn on AF
-        ptpcam.cmd_AutoFocus(true);
-        need_restore_af = true;
-    }
-
-    ptpcam.cmd_Shutter(true);
-    uint32_t t = millis(), now = t;
-    uint32_t shutter_ms = shutter_to_millis(restore_shutter == 0 ? ptpcam.get_property(SONYALPHA_PROPCODE_ShutterSpeed) : restore_shutter);
-    // first wait is for minimum press time
-    while (((now = millis()) - t) < shutter_ms && (now - t) < config_settings.shutter_press_time_ms) {
-        ptpcam.poll();
-    }
-    // release button and wait for the rest of the time
-    ptpcam.cmd_Shutter(false);
-    while (((now = millis()) - t) < shutter_ms && ptpcam.isOperating()) {
-        ptpcam.poll();
-        if (read_button) {
-            if (btnBig_isPressed() == false) {
-                break;
-            }
-        }
-    }
-
-    // opportunity for early pause
-    if (read_button && btnBig_isPressed() == false) {
-        goto last_step;
-    }
-
-    // set the shutter speed for second shot
-    need_restore_ss = true;
-    ptpcam.cmd_ShutterSpeedSet32(dual_shutter_next);
-    ptpcam.wait_while_busy(config_settings.shutter_step_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
-
-    if (dual_shutter_iso != restore_iso) {
-        // change ISO if required
-        need_restore_iso = true;
-        ptpcam.cmd_IsoSet(dual_shutter_iso);
-        ptpcam.wait_while_busy(config_settings.shutter_step_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
-    }
-
-    // start second shot
-    ptpcam.cmd_Shutter(true);
-    t = millis(); now = t;
-    shutter_ms = shutter_to_millis(dual_shutter_next);
-    while (((now = millis()) - t) < shutter_ms && (now - t) < config_settings.shutter_press_time_ms) {
-        ptpcam.poll();
-    }
-    ptpcam.cmd_Shutter(false);
-    while (((now = millis()) - t) < shutter_ms && ptpcam.isOperating()) {
-        ptpcam.poll();
-        if (read_button) {
-            if (btnBig_isPressed() == false) {
-                break;
-            }
-        }
-    }
-
-    last_step:
-    // attempt to restore camera to original state if needed
-    // this sends the commands over and over again until the change is effective
-    t = millis(); now = t;
-    uint32_t timeout = 800;
-    if (restore_shutter != 0 && need_restore_ss) {
-        uint32_t cur_ss;
-        do {
-            ptpcam.cmd_ShutterSpeedSet32(restore_shutter);
-            ptpcam.wait_while_busy(100, DEFAULT_BUSY_TIMEOUT, NULL);
-            cur_ss = ptpcam.get_property(SONYALPHA_PROPCODE_ShutterSpeed);
-            if (cur_ss == restore_shutter) {
-                break;
-            }
-        }
-        while (((now = millis()) - t) < timeout || btnBig_isPressed());
-    }
-    t = millis(); now = t;
-    if (need_restore_iso) {
-        uint32_t cur_iso;
-        do {
-            ptpcam.cmd_IsoSet(restore_iso);
-            ptpcam.wait_while_busy(100, DEFAULT_BUSY_TIMEOUT, NULL);
-            cur_iso = ptpcam.get_property(SONYALPHA_PROPCODE_ISO);
-            if (cur_iso == need_restore_iso) {
-                break;
-            }
-        }
-        while (((now = millis()) - t) < timeout || btnBig_isPressed());
-    }
-    if (already_focused) {
-        // wait for user to let go of button
-        t = millis(); now = t;
-        do
-        {
-            app_poll();
-            if (ptpcam.get_property(SONYALPHA_PROPCODE_FocusFound) == SONYALPHA_FOCUSSTATUS_NONE) {
-                break;
-            }
-        }
-        while (((now = millis()) - t) < timeout);
-    }
-    if (need_restore_af) {
-        ptpcam.wait_while_busy(config_settings.shutter_step_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
-        ptpcam.cmd_AutoFocus(false);
-    }
-    app_waitAllRelease(BTN_DEBOUNCE);
-    return;
 }
