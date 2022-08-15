@@ -1,10 +1,10 @@
 #include "SonyHttpCamera.h"
 
-static const char cmd_generic_fmt[]               = "{\"method\": \"%s\", \"params\": [], \"id\": 1, \"version\": \"1.0\"}";
-static const char cmd_generic_strparam_fmt[]      = "{\"method\": \"%s\", \"params\": [\"%s\"], \"id\": 1, \"version\": \"1.0\"}";
-static const char cmd_generic_strintparam_fmt[]   = "{\"method\": \"%s\", \"params\": [\"%u\"], \"id\": 1, \"version\": \"1.0\"}";
-static const char cmd_generic_intparam_fmt[]      = "{\"method\": \"%s\", \"params\": [%u], \"id\": 1, \"version\": \"1.0\"}";
-static const char zoom_cmd_fmt[]                  = "{\"method\": \"actZoom\", \"params\": [\"%s\",\"%s\"], \"id\": 1, \"version\": \"1.0\"}";
+static const char cmd_generic_fmt[]               = "{\"method\": \"%s\", \"params\": [], \"id\": %u, \"version\": \"1.0\"}";
+static const char cmd_generic_strparam_fmt[]      = "{\"method\": \"%s\", \"params\": [\"%s\"], \"id\": %u, \"version\": \"1.0\"}";
+static const char cmd_generic_strintparam_fmt[]   = "{\"method\": \"%s\", \"params\": [\"%u\"], \"id\": %u, \"version\": \"1.0\"}";
+static const char cmd_generic_intparam_fmt[]      = "{\"method\": \"%s\", \"params\": [%u], \"id\": %u, \"version\": \"1.0\"}";
+static const char zoom_cmd_fmt[]                  = "{\"method\": \"actZoom\", \"params\": [\"%s\",\"%s\"], \"id\": %u, \"version\": \"1.0\"}";
 
 void SonyHttpCamera::cmd_prep(void)
 {
@@ -18,15 +18,17 @@ void SonyHttpCamera::cmd_prep(void)
 void SonyHttpCamera::cmd_Shoot(void)
 {
     cmd_prep();
-    sprintf(cmd_buffer, cmd_generic_fmt, "actTakePicture");
+    sprintf(cmd_buffer, cmd_generic_fmt, "actTakePicture", req_id);
     httpreq->send(cmd_buffer);
+    req_id++;
 }
 
 void SonyHttpCamera::cmd_MovieRecord(bool is_start)
 {
     cmd_prep();
-    sprintf(cmd_buffer, cmd_generic_fmt, is_start ? "startMovieRec" : "stopMovieRec");
+    sprintf(cmd_buffer, cmd_generic_fmt, is_start ? "startMovieRec" : "stopMovieRec", req_id);
     httpreq->send(cmd_buffer);
+    req_id++;
     is_movierecording_v = is_start;
 }
 
@@ -41,8 +43,9 @@ void SonyHttpCamera::cmd_ZoomStart(int dir)
     {
         if (dir != 0) {
             cmd_prep();
-            sprintf(cmd_buffer, zoom_cmd_fmt, dir > 0 ? "in" : "out", "start");
+            sprintf(cmd_buffer, zoom_cmd_fmt, dir > 0 ? "in" : "out", "start", req_id);
             httpreq->send(cmd_buffer);
+            req_id++;
             zoom_time = millis();
         }
         else {
@@ -69,8 +72,9 @@ void SonyHttpCamera::cmd_ZoomStop(void)
 {
     wait_while_busy(0, DEFAULT_BUSY_TIMEOUT * 5, NULL);
     cmd_prep();
-    sprintf(cmd_buffer, zoom_cmd_fmt, zoom_state > 0 ? "in" : "out", "stop");
+    sprintf(cmd_buffer, zoom_cmd_fmt, zoom_state > 0 ? "in" : "out", "stop", req_id);
     httpreq->send(cmd_buffer);
+    req_id++;
     zoom_state = 0;
     zoom_time = 0;
 }
@@ -86,8 +90,9 @@ void SonyHttpCamera::cmd_FocusPointSet16(int16_t x, int16_t y)
 void SonyHttpCamera::cmd_FocusPointSetF(float x, float y)
 {
     cmd_prep();
-    sprintf(cmd_buffer, "{\"method\": \"setTouchAFPosition\", \"params\": [%0.1f, %0.1f], \"id\": 1, \"version\": \"1.0\"}", x, y);
+    sprintf(cmd_buffer, "{\"method\": \"setTouchAFPosition\", \"params\": [%0.1f, %0.1f], \"id\": %u, \"version\": \"1.0\"}", x, y, req_id);
     httpreq->send(cmd_buffer);
+    req_id++;
 }
 
 void SonyHttpCamera::cmd_ShutterSpeedSetStr(char* s)
@@ -101,23 +106,26 @@ void SonyHttpCamera::cmd_ShutterSpeedSetStr(char* s)
         tmp[slen - 0] = '"';
         tmp[slen + 1] = 0;
     }
-    sprintf(cmd_buffer, cmd_generic_strparam_fmt, "setShutterSpeed", tmp);
+    sprintf(cmd_buffer, cmd_generic_strparam_fmt, "setShutterSpeed", tmp, req_id);
     free(tmp);
     httpreq->send(cmd_buffer);
+    req_id++;
 }
 
 void SonyHttpCamera::cmd_IsoSet(uint32_t x)
 {
     cmd_prep();
-    sprintf(cmd_buffer, cmd_generic_strintparam_fmt, "setIsoSpeedRate", x);
+    sprintf(cmd_buffer, cmd_generic_strintparam_fmt, "setIsoSpeedRate", x, req_id);
     httpreq->send(cmd_buffer);
+    req_id++;
 }
 
 void SonyHttpCamera::cmd_IsoSetStr(char* s)
 {
     cmd_prep();
-    sprintf(cmd_buffer, cmd_generic_strparam_fmt, "setIsoSpeedRate", s);
+    sprintf(cmd_buffer, cmd_generic_strparam_fmt, "setIsoSpeedRate", s, req_id);
     httpreq->send(cmd_buffer);
+    req_id++;
 }
 
 void SonyHttpCamera::cmd_ManualFocusMode(bool onoff, bool precheck)
@@ -133,7 +141,7 @@ void SonyHttpCamera::cmd_ManualFocusMode(bool onoff, bool precheck)
     if (strlen(str_afmode) <= 0) {
         sprintf(str_afmode, "AF-C");
     }
-    sprintf(cmd_buffer, cmd_generic_strparam_fmt, "setFocusMode", onoff ? "MF" : str_afmode);
+    sprintf(cmd_buffer, cmd_generic_strparam_fmt, "setFocusMode", onoff ? "MF" : str_afmode, req_id);
     httpreq->send(cmd_buffer);
     is_manuallyfocused_v = onoff;
 }
@@ -146,6 +154,6 @@ void SonyHttpCamera::cmd_ManualFocusToggle(bool onoff)
 void SonyHttpCamera::cmd_AutoFocus(bool onoff)
 {
     cmd_prep();
-    sprintf(cmd_buffer, cmd_generic_fmt, onoff ? "actHalfPressShutter" : "cancelHalfPressShutter");
+    sprintf(cmd_buffer, cmd_generic_fmt, onoff ? "actHalfPressShutter" : "cancelHalfPressShutter", req_id);
     httpreq->send(cmd_buffer);
 }

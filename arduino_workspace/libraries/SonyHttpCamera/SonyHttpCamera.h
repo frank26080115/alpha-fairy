@@ -93,6 +93,7 @@ class SonyHttpCamera
     protected:
         uint32_t ip_addr;
         uint8_t  state;
+        uint32_t req_id;
 
         char friendly_name[256];
         char service_url[256];

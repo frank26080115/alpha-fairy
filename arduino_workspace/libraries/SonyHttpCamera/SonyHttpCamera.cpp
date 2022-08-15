@@ -42,6 +42,7 @@ void SonyHttpCamera::begin(uint32_t ip)
     is_movierecording_v = false;
     is_manuallyfocused_v = false;
     is_focused = false;
+    req_id = 1;
     rx_buff_idx = 0;
     rx_buff[0] = 0;
     last_poll_time = 0;
@@ -415,9 +416,10 @@ void SonyHttpCamera::get_event()
     if (openres)
     {
         //httpreq->setReqHeader("Content-Type", "application/json"); // this causes error 415
-        sprintf(cmd_buffer, "{\r\n    \"method\": \"getEvent\",\r\n    \"params\": [false],\r\n    \"id\": 1,\r\n    \"version\": \"1.%u\"\r\n}", event_api_version);
+        sprintf(cmd_buffer, "{\r\n    \"method\": \"getEvent\",\r\n    \"params\": [false],\r\n    \"id\": %u,\r\n    \"version\": \"1.%u\"\r\n}", req_id, event_api_version);
         dbgser_tx->printf("httpcam get_event json: %s\r\n", cmd_buffer);
         httpreq->send(cmd_buffer);
+        req_id++;
         state = SHCAMSTATE_POLLING;
         last_poll_time = millis();
     }
@@ -456,11 +458,15 @@ void SonyHttpCamera::poll()
         {
             //httpreq->setReqHeader("Content-Type", "application/json"); // this causes error 415
             if (state == SHCAMSTATE_INIT_STARTRECMODE) {
-                httpreq->send("{\r\n    \"method\": \"startRecMode\",\r\n    \"params\": [],\r\n    \"id\": 1,\r\n    \"version\": \"1.0\"\r\n}");
+                sprintf(cmd_buffer, "{\r\n    \"method\": \"startRecMode\",\r\n    \"params\": [],\r\n    \"id\": %u,\r\n    \"version\": \"1.0\"\r\n}", req_id);
+                httpreq->send(cmd_buffer);
+                req_id++;
                 dbgser_tx->printf("httpcam init startRecMode\r\n");
             }
             else if (state == SHCAMSTATE_INIT_SETCAMFUNC) {
-                httpreq->send("{\r\n    \"method\": \"cameraFunction\",\r\n    \"params\": [\"Remote Shooting\"],\r\n    \"id\": 1,\r\n    \"version\": \"1.0\"\r\n}");
+                sprintf(cmd_buffer, "{\r\n    \"method\": \"cameraFunction\",\r\n    \"params\": [\"Remote Shooting\"],\r\n    \"id\": %u,\r\n    \"version\": \"1.0\"\r\n}", req_id);
+                httpreq->send(cmd_buffer);
+                req_id++;
                 dbgser_tx->printf("httpcam init cameraFunction\r\n");
             }
             state++; // set the flag for waiting
