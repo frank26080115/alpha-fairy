@@ -215,7 +215,7 @@ void btnAll_clrPressed() {
     btnPwr_clrPressed();
 }
 
-#if defined(HTTP_SERVER_ENABLE) && defined(HTTP_MOCKBTNS_ENABLE)
+#if defined(HTTP_MOCKBTNS_ENABLE)
 
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>

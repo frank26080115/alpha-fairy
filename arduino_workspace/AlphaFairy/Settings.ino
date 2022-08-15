@@ -14,11 +14,7 @@ void settings_default() {
 
   // set the default setting values here
 
-  #ifdef WIFI_ALL_MODES
-  config_settings.wifi_opmode  = 0;
-  config_settings.wifi_ssid[0] = 0;
-  config_settings.wifi_pass[0] = 0;
-  #endif
+  config_settings.wifi_profile = 0;
 
   config_settings.focus_pause_time_ms    = 100;
   config_settings.shutter_press_time_ms  = 200;

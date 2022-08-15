@@ -14,6 +14,8 @@ class AlphaFairyCamera
         PtpIpSonyAlphaCamera* cam_ptp;
         SonyHttpCamera*       cam_http;
     public:
+        uint32_t  getIp           (void);
+        char*     getCameraName   (void);
         void wait_while_busy(uint32_t min_wait, uint32_t max_wait, volatile bool* exit_signal = NULL);
         inline bool isOperating() { return cam_ptp->isOperating() || cam_http->isOperating(); };
         bool is_movierecording(void);

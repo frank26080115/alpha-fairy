@@ -79,11 +79,11 @@ const menuitem_t menu_items_utils[] = {
     // ID                       , FILE-NAME               , FUNCTION POINTER
     { MENUITEM_WIFIINFO         , "/wifiinfo.png"         , wifi_info       },
     { MENUITEM_CONFIG           , "/config.png"           , conf_settings   },
-    #ifdef MENU_INCLUDE_ABOUT
-    { MENUITEM_ABOUT            , "/about.png"            , NULL            },
-    #endif
     #ifdef WIFI_ALL_MODES
     { MENUITEM_WIFICONFIG       , "/wifi_config.png"      , wifi_config     },
+    #endif
+    #ifdef MENU_INCLUDE_ABOUT
+    { MENUITEM_ABOUT            , "/about.png"            , NULL            },
     #endif
     #if !defined(USE_PWR_BTN_AS_EXIT) || defined(USE_PWR_BTN_AS_BACK)
     { MENUITEM_BACK             , "/back.png"             , NULL            },
@@ -207,9 +207,8 @@ bool app_poll()
     #endif
     NetMgr_task();
     ptpcam.task();
-    #if defined(HTTP_SERVER_ENABLE) || defined(WIFI_ALL_MODES)
+    httpcam.task();
     httpsrv_poll();
-    #endif
 
     if (gpio_time != 0)
     {

@@ -47,7 +47,6 @@ enum
     DEBUGFLAG_DEVPROP_CHANGE = 0x20,
 };
 
-int read_in_chunk(AsyncHTTPRequest* req, int32_t chunk, char* buff, uint32_t* buff_idx);
 bool scan_json_for_key(char* data, int32_t datalen, const char* keystr, signed int* start_idx, signed int* end_idx, char* tgt, int tgtlen);
 int count_commas(char* data);
 void strcpy_no_slash(char* dst, char* src);
@@ -61,6 +60,7 @@ class SonyHttpCamera
         SonyHttpCamera();
         void begin(uint32_t ip);
         void poll(void);
+        void task(void);
 
         inline uint32_t  getIp           (void) { return ip_addr; };
         inline char*     getCameraName   (void) { return friendly_name; };
@@ -107,6 +107,7 @@ class SonyHttpCamera
         uint32_t rx_buff_idx;
 
         AsyncHTTPRequest* httpreq = NULL;
+        static int read_in_chunk(AsyncHTTPRequest* req, int32_t chunk, char* buff, uint32_t* buff_idx);
 
         uint32_t dd_tries;
         uint32_t error_cnt;
@@ -133,14 +134,16 @@ class SonyHttpCamera
         uint32_t event_found_flag;
 
         void cmd_prep(void);
+        void request_prep(void);
+        void request_close(void);
 
-        DebuggingSerial* dbgser_important;
-        DebuggingSerial* dbgser_states;
-        DebuggingSerial* dbgser_events;
-        DebuggingSerial* dbgser_rx;
-        DebuggingSerial* dbgser_tx;
-        DebuggingSerial* dbgser_devprop_dump;
-        DebuggingSerial* dbgser_devprop_change;
+        static DebuggingSerial* dbgser_important;
+        static DebuggingSerial* dbgser_states;
+        static DebuggingSerial* dbgser_events;
+        static DebuggingSerial* dbgser_rx;
+        static DebuggingSerial* dbgser_tx;
+        static DebuggingSerial* dbgser_devprop_dump;
+        static DebuggingSerial* dbgser_devprop_change;
 
     private:
         static void ddRequestCb      (void* optParm, AsyncHTTPRequest* request, int readyState);

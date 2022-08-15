@@ -1,5 +1,27 @@
 #include "AlphaFairyCamera.h"
 
+uint32_t AlphaFairyCamera::getIp(void)
+{
+    if (cam_ptp->isOperating()) {
+        return cam_ptp->getIp();
+    }
+    if (cam_http->isOperating()) {
+        return cam_http->getIp();
+    }
+    return 0;
+}
+
+char* AlphaFairyCamera::getCameraName(void)
+{
+    if (cam_ptp->isOperating()) {
+        return cam_ptp->getCameraName();
+    }
+    if (cam_http->isOperating()) {
+        return cam_http->getCameraName();
+    }
+    return NULL;
+}
+
 void AlphaFairyCamera::wait_while_busy(uint32_t min_wait, uint32_t max_wait, volatile bool* exit_signal)
 {
     if (cam_ptp->isOperating()) {

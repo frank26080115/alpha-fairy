@@ -768,11 +768,7 @@ void wifi_info(void* mip)
     bool conn_state = ptpcam.isOperating();
     menustate_t* m = &menustate_wifiinfo;
     m->idx = 0;
-    #ifdef HTTP_SERVER_ENABLE
     m->cnt = 4;
-    #else
-    m->cnt = 1;
-    #endif
 
     btnAll_clrPressed();
     M5Lcd.fillScreen(TFT_WHITE);
@@ -783,22 +779,19 @@ void wifi_info(void* mip)
         pwr_tick();
 
         // redraw if connection changed
-        redraw |= ptpcam.isOperating() != conn_state;
-        conn_state = ptpcam.isOperating();
+        redraw |= fairycam.isOperating() != conn_state;
+        conn_state = fairycam.isOperating();
 
-        #ifdef HTTP_SERVER_ENABLE
         if (btnBig_hasPressed())
         {
             btnAll_clrPressed();
             m->idx = (m->idx + 1) % m->cnt;
             redraw = true;
         }
-        #endif
 
         if (btnSide_hasPressed())
         {
             btnAll_clrPressed();
-            #ifdef HTTP_SERVER_ENABLE
             #if defined(USE_PWR_BTN_AS_BACK) && !defined(USE_PWR_BTN_AS_EXIT)
             m->idx = (m->idx + 1) % m->cnt;
             #else
@@ -809,9 +802,6 @@ void wifi_info(void* mip)
             }
             #endif
             redraw = true;
-            #else
-            break;
-            #endif
         }
 
         if (btnPwr_hasPressed())
@@ -820,21 +810,17 @@ void wifi_info(void* mip)
             break;
         }
 
-        #ifdef HTTP_SERVER_ENABLE
-        if (m->idx == 1 && ptpcam.isOperating() == false) {
+        if (m->idx == 1 && fairycam.isOperating() == false) {
             m->idx = 2;
         }
-        #endif
 
         if (redraw)
         {
             M5Lcd.drawPngFile(SPIFFS, "/wifiinfo_head.png", 0, 0);
             M5Lcd.fillRect(0, 50, M5Lcd.width(), M5Lcd.height() - 16 - 50, TFT_WHITE);
             gui_drawStatusBar(false);
-            #ifdef HTTP_SERVER_ENABLE
             if (m->idx == 0 || m->idx == 1 || m->idx >= m->cnt)
             {
-            #endif
                 int line_space = 16;
                 int top_margin = 7;
                 int left_margin = 55;
@@ -853,7 +839,6 @@ void wifi_info(void* mip)
                 M5Lcd.setCursor(left_margin + 8, top_margin + (line_space * 3));
                 M5Lcd.print(NetMgr_getPassword()); gui_blankRestOfLine();
                 M5Lcd.setCursor(left_margin, top_margin + (line_space * 4));
-                #ifdef HTTP_SERVER_ENABLE
                 if (m->idx != 1)
                 {
                     M5Lcd.print("URL: ");
@@ -863,21 +848,17 @@ void wifi_info(void* mip)
                     M5Lcd.print("/");
                 }
                 else if (m->idx == 1)
-                #else
-                if (ptpcam.isOperating())
-                #endif
                 {
                     M5Lcd.print("Camera: ");
                     M5Lcd.setCursor(left_margin + 8, top_margin + (line_space * 5));
-                    M5Lcd.print(IPAddress(ptpcam.getIp()));
-                    char* cam_name = ptpcam.getCameraName();
+                    M5Lcd.print(IPAddress(fairycam.getIp()));
+                    char* cam_name = fairycam.getCameraName();
                     if (cam_name != NULL && strlen(cam_name) > 0) {
                         M5Lcd.setCursor(left_margin + 8, top_margin + (line_space * 6));
                         M5Lcd.print(cam_name);
                     }
                 }
                 M5Lcd.setRotation(0);
-            #ifdef HTTP_SERVER_ENABLE
             }
             else if (m->idx == 2 || m->idx == 3)
             {
@@ -897,7 +878,6 @@ void wifi_info(void* mip)
                 }
                 M5Lcd.qrcode(qrstr, x, y, width, 7);
             }
-            #endif
             redraw = false;
             if (first) {
                 app_waitAllRelease(BTN_DEBOUNCE);

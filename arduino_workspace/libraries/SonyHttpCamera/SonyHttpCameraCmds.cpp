@@ -9,6 +9,7 @@ static const char zoom_cmd_fmt[]                  = "{\"method\": \"actZoom\", \
 void SonyHttpCamera::cmd_prep(void)
 {
     wait_while_busy(0, DEFAULT_BUSY_TIMEOUT, NULL);
+    request_prep();
     httpreq->onData(NULL, NULL);
     httpreq->onReadyStateChange(genericRequestCb, this);
     httpreq->open("POST", url_buffer);

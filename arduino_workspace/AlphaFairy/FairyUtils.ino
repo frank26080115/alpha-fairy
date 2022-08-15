@@ -7,61 +7,14 @@ void wifi_get_unique_ssid(char* tgt)
     sprintf(tgt, WIFI_DEFAULT_SSID "-%u%u%u", wifi_ap_mac[0], wifi_ap_mac[1], wifi_ap_mac[2]);
 }
 
-void wifi_init_ap(bool force_default)
-{
-    #ifdef WIFI_ALL_MODES
-    if (force_default == false && strlen(config_settings.wifi_ssid) > 0) {
-        Serial.print("WiFi AP Name: ");
-        Serial.println(config_settings.wifi_ssid);
-        NetMgr_beginAP((char*)config_settings.wifi_ssid, (char*)config_settings.wifi_pass);
-        return;
-    }
-    #endif
-
-    #ifdef WIFI_AP_UNIQUE_NAME
-        char wifi_ap_name[64];
-        wifi_get_unique_ssid(wifi_ap_name);
-        Serial.print("WiFi AP Name: ");
-        Serial.println(wifi_ap_name);
-        NetMgr_beginAP((char*)wifi_ap_name, (char*)WIFI_DEFAULT_PASS);
-    #else
-        NetMgr_beginAP((char*)WIFI_DEFAULT_SSID, (char*)WIFI_DEFAULT_PASS);
-    #endif
-}
-
-#ifdef WIFI_ALL_MODES
-
-void wifi_init_sta()
-{
-    if (strlen(config_settings.wifi_ssid) <= 0) {
-        Serial.println("ERROR: WiFi STA mode specified without SSID");
-        wifi_init_ap(true);
-        return;
-    }
-    NetMgr_beginSTA((char*)config_settings.wifi_ssid, (char*)config_settings.wifi_pass);
-}
-
-#endif
-
 extern void wifi_onConnect(void);
 extern void wifi_onDisconnect(void);
 
 void wifi_init()
 {
     NetMgr_regCallback(wifi_onConnect, wifi_onDisconnect);
-    #ifdef WIFI_ALL_MODES
-    if (config_settings.wifi_opmode != WIFIOPMODE_STA) {
-    #endif
-        wifi_init_ap(false);
-    #ifdef WIFI_ALL_MODES
-    }
-    else {
-        wifi_init_sta();
-    }
-    #endif
-    #ifdef HTTP_SERVER_ENABLE
+    wifiprofile_connect(config_settings.wifi_profile);
     httpsrv_init();
-    #endif
 }
 
 uint32_t shutter_to_millis(uint32_t x)

@@ -1,6 +1,6 @@
 #include "SonyHttpCamera.h"
 
-int read_in_chunk(AsyncHTTPRequest* req, int32_t chunk, char* buff, uint32_t* buff_idx)
+int SonyHttpCamera::read_in_chunk(AsyncHTTPRequest* req, int32_t chunk, char* buff, uint32_t* buff_idx)
 {
     if (chunk > SHCAM_RXBUFF_UNIT) {
         chunk = SHCAM_RXBUFF_UNIT;
@@ -14,7 +14,12 @@ int read_in_chunk(AsyncHTTPRequest* req, int32_t chunk, char* buff, uint32_t* bu
         i -= SHCAM_RXBUFF_UNIT;
         (*buff_idx) -= SHCAM_RXBUFF_UNIT;
     }
-    int32_t r = req->responseRead((uint8_t*)(&(buff[(*buff_idx)])), chunk);
+    uint8_t* tgt = (uint8_t*)(&(buff[(*buff_idx)]));
+    if ((*buff_idx) == 0) {
+        dbgser_rx->println("httpcam rx: ");
+    }
+    int32_t r = req->responseRead(tgt, chunk);
+    dbgser_rx->write(tgt, r);
     (*buff_idx) += r;
     buff[(*buff_idx)] = 0;
     return r;

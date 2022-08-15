@@ -13,8 +13,6 @@ implement a simple web page interface for the user to change Wi-Fi configuration
 
 bool http_is_active = false;
 
-#if defined(HTTP_SERVER_ENABLE) || defined(WIFI_ALL_MODES)
-
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <DNSServer.h>
@@ -22,7 +20,7 @@ bool http_is_active = false;
 void add_crossDomainHeaders(AsyncResponseStream* response);
 
 void send_css(AsyncResponseStream* response);
-void send_cur_wifi_settings(AsyncResponseStream* response);
+void send_wifi_settings(AsyncResponseStream* response, uint8_t idx, bool readonly);
 
 static AsyncWebServerRequest* httpsrv_request  = NULL;
 
@@ -60,58 +58,93 @@ void send_css(AsyncResponseStream* response)
     response->println("</style>");
 }
 
-void send_cur_wifi_settings(AsyncResponseStream* response)
+void send_wifi_settings(AsyncResponseStream* response, uint8_t idx, bool readonly)
 {
-    response->print("<table border='1' width='100%'><tr><td class='col-left'>SSID:</td><td class='col-right'>");
-    #if defined(WIFI_ALL_MODES)
-    if (strlen(config_settings.wifi_ssid) > 0) {
-        response->print(config_settings.wifi_ssid);
-        response->print("</td></tr>\r\n<tr><td class='col-left'>Password:</td><td class='col-right'>");
-        response->print(config_settings.wifi_pass);
-        response->print("</td></tr><tr><td class='col-left'>Mode:</td><td class='col-right'>");
-        if (config_settings.wifi_opmode == WIFIOPMODE_STA) {
+    if (idx == 0) {
+        readonly = true;
+    }
+    wifiprofile_t profile;
+    bool has_profile = wifiprofile_getProfile(idx, &profile);
+    response->printf("<fieldset><legend>Wi-Fi Profile #%u</legend>\r\n", idx);
+    if (readonly == false) {
+        response->printf("<form action='/setwifi' method='post'><input id='profilenum' name='profilenum' type='hidden' value='%u' />\r\n", idx);
+    }
+    response->print("<table border='1' width='100%'>\r\n");
+
+    response->printf("<tr><td class='col-left'><label for='ssid%u'>SSID:</label></td><td class='col-right'>", idx);
+    char* sp;
+    sp = profile.ssid;
+    if (has_profile == false) {
+        sp[0] = 0;
+    }
+    if (readonly) {
+        if (sp[0] == 0) {
+            response->print("&nbsp;");
+        }
+        else {
+            response->print(sp);
+        }
+    }
+    else {
+        response->printf("<input type='text' id='ssid%u' name='ssid' style='width:80%%' value='%s' />", idx, sp);
+    }
+    response->print("</td></tr>\r\n");
+
+    response->printf("<tr><td class='col-left'><label for='password%u'>Password:</label></td><td class='col-right'>", idx);
+    sp = profile.password;
+    if (has_profile == false || profile.ssid[0] == 0) {
+        sp[0] = 0;
+    }
+    if (readonly) {
+        if (sp[0] == 0) {
+            response->print("&nbsp;");
+        }
+        else {
+            response->print(sp);
+        }
+    }
+    else {
+        response->printf("<input type='text' id='password%u' name='password' style='width:80%%' value='%s' />", idx, sp);
+    }
+    response->print("</td></tr>\r\n");
+
+    response->printf("<tr><td class='col-left'><label for='opmode%u'>Mode:</label></td><td class='col-right'>", idx);
+    if (readonly) {
+        if (profile.opmode == WIFIOPMODE_STA) {
             response->print("Direct");
         }
         else {
             response->print("Access Point");
         }
-        response->print("</td></tr></table></fieldset>");
     }
-    else
-    #endif
-    {
-        #ifdef WIFI_AP_UNIQUE_NAME
-        char wifi_ap_name[64];
-        wifi_get_unique_ssid(wifi_ap_name);
-        response->print(wifi_ap_name);
-        #else
-        response->print(WIFI_DEFAULT_SSID);
-        #endif
-        response->print("</td></tr>\r\n<tr><td class='col-left'>Password:</td><td class='col-right'>");
-        response->print(WIFI_DEFAULT_PASS);
-        response->print("</td></tr><tr><td class='col-left'>Mode:</td><td class='col-right'>Access Point</td></tr></table>");
+    else {
+        response->printf("<select id='opmode%u' name='opmode'><option value='ap'>Access Point</option><option value='sta'", idx);
+        if (has_profile && profile.opmode == 2) {
+        response->print(" selected");
+        }
+        response->print(">Direct</option></select>");
     }
+    response->print("</td></tr>\r\n");
+
+    if (readonly == false) {
+        response->printf("<tr><td colspan='2'><input type='submit' value='Save Profile #%u' style='min-width:50%%' /></td></tr></table></form>", idx);
+    }
+    else {
+        response->printf("</table>", idx);
+    }
+    response->print("</fieldset>\r\n");
 }
 
 void httpsrv_init()
 {
-    if (NetMgr_getOpMode() != WIFIOPMODE_AP)
-    {
-        // switch mode if required
-        #ifdef WIFI_ALL_MODES
-        wifi_init_ap(true);
-        #else
-        wifi_init_ap(false);
-        #endif
-    }
-
     httpServer = new AsyncWebServer(80);
     dnsServer = new DNSServer();
     dnsServer->start(DNS_PORT, "*", WiFi.softAPIP());
 
-#ifdef WIFI_ALL_MODES
     httpServer->on("/wificonfig", HTTP_GET, [] (AsyncWebServerRequest* request)
     {
+        dbg_ser.println("http server wificonfig");
+
         // main page, index page
         NetMgr_markClientPhoneHttp(request->client()->getRemoteAddress());
         http_is_active = true;
@@ -120,73 +153,71 @@ void httpsrv_init()
         response->print("<!DOCTYPE html><html><head><title>Alpha Fairy Wi-Fi Config</title>");
         send_css(response);
         response->print("</head><body><h1>Alpha Fairy Wi-Fi Config</h1><br />\r\n");
-        response->print("<fieldset><legend>Current Settings</legend>\r\n");
-        send_cur_wifi_settings(response);
-        response->print("</fieldset>\r\n");
-        response->print("<fieldset><legend>New Settings</legend><form method='post' action='/setwifi'><table border='1' width='100%'>");
-        response->print("<tr><td class='col-left'><label for='ssid'>SSID:</lable></td><td class='col-right'>");
-        response->print("<input type='text' id='ssid' name='ssid' style='width:80%' value='");
-        if (strlen(config_settings.wifi_ssid) > 0) {
-            response->print(config_settings.wifi_ssid);
+
+        int i;
+        for (i = 0; i <= 9; i++) {
+            send_wifi_settings(response, i, false);
+            response->print("<br />\r\n");
         }
-        response->print("' /></td></tr>");
-        response->print("<tr><td class='col-left'><label for='password'>Password:</label></td><td class='col-right'>");
-        response->print("<input type='text' id='password' name='password' style='width:80%' value='");
-        if (strlen(config_settings.wifi_ssid) > 0) {
-            response->print(config_settings.wifi_pass);
-        }
-        response->print("' /></td></tr>");
-        response->print("<tr><td class='col-left'><label for='opmode'>Mode:</label></td><td class='col-right'>");
-        response->print("<select id='opmode' name='opmode'><option value='ap'>Access Point</option><option value='sta'");
-        if (strlen(config_settings.wifi_ssid) > 0 && config_settings.wifi_opmode == WIFIOPMODE_STA) {
-            response->print(" selected");
-        }
-        response->print(">Direct</option></select></td></tr>\r\n");
-        response->print("<tr><td colspan='2'><input type='submit' value='Save' style='width:50%' /></td></tr></table></form></fieldset>\r\n");
+
         response->print("</body></html>\r\n");
         request->send(response);
     });
 
     httpServer->on("/setwifi", HTTP_POST, [] (AsyncWebServerRequest* request)
     {
+        dbg_ser.println("http server setwifi");
+
         // this is the target of the form
         NetMgr_markClientPhoneHttp(request->client()->getRemoteAddress());
         http_is_active = true;
         AsyncResponseStream* response = request->beginResponseStream("text/html");
-        if (request->hasParam("ssid", true) && request->hasParam("password", true) && request->hasParam("opmode", true)) {
-            AsyncWebParameter* paramSsid   = request->getParam("ssid", true);
-            AsyncWebParameter* paramPass   = request->getParam("password", true);
-            AsyncWebParameter* paramOpMode = request->getParam("opmode", true);
+        if (request->hasParam("profilenum", true) && request->hasParam("ssid", true) && request->hasParam("password", true) && request->hasParam("opmode", true)) {
+            AsyncWebParameter* paramNum    = request->getParam("profilenum", true);
+            AsyncWebParameter* paramSsid   = request->getParam("ssid"      , true);
+            AsyncWebParameter* paramPass   = request->getParam("password"  , true);
+            AsyncWebParameter* paramOpMode = request->getParam("opmode"    , true);
             response = request->beginResponseStream("text/html");
-            int32_t opmode = 0;
+            int pnum = atoi(paramNum->value().c_str());
+
+            if (pnum < 1 || pnum > 9) {
+                response->print("bad value for profile number\r\n");
+                request->send(response);
+                return;
+            }
+
+            wifiprofile_t profile;
+
+            profile.opmode = 0;
             if (paramOpMode->value() == "ap" || paramOpMode->value() == "AP") {
-                opmode = WIFIOPMODE_AP;
+                profile.opmode = WIFIOPMODE_AP;
             }
             else if (paramOpMode->value() == "sta" || paramOpMode->value() == "STA") {
-                opmode = WIFIOPMODE_STA;
+                profile.opmode = WIFIOPMODE_STA;
             }
             else {
                 response->print("unknown op mode\r\n");
+                request->send(response);
+                return;
             }
-            if (opmode != 0)
-            {
-                strncpy(config_settings.wifi_ssid, paramSsid->value().c_str(), 30);
-                if (strlen(config_settings.wifi_ssid) > 0) {
-                    strncpy(config_settings.wifi_pass, paramPass->value().c_str(), 30);
-                }
-                else {
-                    // no password if default SSID is set
-                    config_settings.wifi_pass[0] = 0;
-                }
-                config_settings.wifi_opmode = opmode;
-                settings_save();
-                response->print("<!DOCTYPE html><html><head><title>Alpha Fairy Wi-Fi Config</title>");
-                send_css(response);
-                response->print("</head><body><h1>Alpha Fairy Wi-Fi Config</h1><h2>New Settings Saved Successfully</h2><br />\r\n");
-                send_cur_wifi_settings(response);
-                // show a footer
-                response->print("<br />reboot the remote to apply new settings<br /><a href='/'>go back to re-config</a></body></html>\r\n");
+            strncpy(profile.ssid, paramSsid->value().c_str(), 30);
+            if (strlen(profile.ssid) > 0) {
+                strncpy(profile.password, paramPass->value().c_str(), 30);
             }
+            else {
+                // no password if default SSID is set
+                profile.password[0] = 0;
+            }
+
+            wifiprofile_writeProfile(pnum, &profile);
+
+            response->print("<!DOCTYPE html><html><head><title>Alpha Fairy Wi-Fi Config</title>");
+            send_css(response);
+            response->print("</head><body><h1>Alpha Fairy Wi-Fi Config</h1><h2>New Settings Saved Successfully</h2><br />\r\n");
+            send_wifi_settings(response, pnum, true);
+            // show a footer
+            response->print("<br />reboot the remote to apply new settings<br /><a href='/wificonfig'>go back to re-config</a></body></html>\r\n");
+            redraw_flag = true;
         }
         else {
             response = request->beginResponseStream("text/html");
@@ -194,22 +225,26 @@ void httpsrv_init()
         }
         request->send(response);
     });
-#endif
 
     httpServer->on("/", HTTP_GET, [] (AsyncWebServerRequest* request)
     {
         NetMgr_markClientPhoneHttp(request->client()->getRemoteAddress());
         http_is_active = true;
+        #if 0
         AsyncResponseStream* response = request->beginResponseStream("text/html");
         add_crossDomainHeaders(response);
         if (ptpcam.isOperating()) {
-            //response->printf("<html>camera: %s</html>", ptpcam.getCameraName());
-            response->printf("<html>camera: %s<br /><img src='/getpreview.jpg?a=b' /></html>", ptpcam.getCameraName());
+            response->printf("<html>camera: %s</html>", ptpcam.getCameraName());
+            //response->printf("<html>camera: %s<br /><img src='/getpreview.jpg?a=b' /></html>", ptpcam.getCameraName());
         }
         else {
             response->printf("<html>no camera</html>");
         }
         request->send(response);
+        #else
+        dbg_ser.println("http server root redirect");
+        request->redirect("/wificonfig");
+        #endif
     });
 
     httpServer->on("/getip", HTTP_GET, [] (AsyncWebServerRequest* request)
@@ -245,7 +280,6 @@ void httpsrv_init()
         request->send(response);
     });
 
-    #if 1
     httpServer->on("/getpreview.jpg", HTTP_GET, [] (AsyncWebServerRequest* request)
     {
         if (httpcam.isOperating() && httpcam.getLiveviewUrl() != NULL) {
@@ -258,7 +292,6 @@ void httpsrv_init()
         //add_crossDomainHeaders(response);
         httpsrv_startJpgStream(request);
     });
-    #endif
 
     httpServer->on("/cmd", HTTP_GET, [] (AsyncWebServerRequest* request)
     {
@@ -381,11 +414,12 @@ void httpsrv_init()
         response->print("</body></html>");
         request->send(response);
         #else
+        dbg_ser.println("http server 404 redirect");
         request->redirect("/");
         #endif
     });
 
-    #if defined(HTTP_SERVER_ENABLE) && defined(HTTP_MOCKBTNS_ENABLE)
+    #if defined(HTTP_MOCKBTNS_ENABLE)
     btn_installMockServer();
     #endif
 
@@ -450,12 +484,14 @@ void httpsrv_task()
     #endif
 }
 
-#if defined(WIFI_ALL_MODES)
-
 menustate_t menustate_wificonfig;
 
 void wifi_config(void* mip)
 {
+    wifiprofile_t wifi_profile;
+    wifiprofile_getProfile(config_settings.wifi_profile, &wifi_profile);
+    int profile_idx = config_settings.wifi_profile;
+
     bool redraw = true;
     menustate_t* m = &menustate_wificonfig;
     m->idx = 0;
@@ -488,21 +524,40 @@ void wifi_config(void* mip)
         }
         #endif
 
-        // note: page index 4 is the current settings, which might change, so it's constantly redrawn without flickering
+        if (m->idx == 3 && m->last_idx != m->idx)  {
+            profile_idx = config_settings.wifi_profile;
+            imu.resetSpin();
+        }
+
+        if (m->idx == 3)
+        {
+            if (imu.getSpin() > 0) {
+                profile_idx = (profile_idx + 1) % 10;
+                imu.resetSpin();
+                redraw = true;
+            }
+            else if (imu.getSpin() < 0) {
+                if (profile_idx <= 0) {
+                    profile_idx = 9;
+                }
+                else {
+                    profile_idx -= 1;
+                }
+                imu.resetSpin();
+                redraw = true;
+            }
+        }
 
         gui_drawStatusBar(false);
+        redraw |= redraw_flag;
 
-        if (redraw || (m->idx == 4))
+        if (redraw)
         {
-            #ifdef QUICK_HTTP_TEST
-            m->idx = 4;
-            #endif
-
             M5Lcd.drawPngFile(SPIFFS, "/wificfg_head.png", 0, 0);
             if (redraw) {
                 M5Lcd.fillRect(0, 50, M5Lcd.width(), M5Lcd.height() - 16 - 50, TFT_WHITE);
             }
-            if (m->idx == 0 || m->idx == 4)
+            if (m->idx == 0)
             {
                 int line_space = 16;
                 int top_margin = 7;
@@ -514,31 +569,22 @@ void wifi_config(void* mip)
                 M5Lcd.setTextColor(TFT_BLACK, TFT_WHITE);
                 M5Lcd.setCursor(left_margin, top_margin);
                 M5Lcd.setTextFont(2);
-                M5Lcd.println((m->idx == 0) ? "use phone browser" : "current config:");
+                M5Lcd.println("use phone browser");
                 M5Lcd.setCursor(left_margin, top_margin + line_space);
                 M5Lcd.print("Wi-Fi SSID: ");
                 M5Lcd.setCursor(left_margin + 8, top_margin + line_space + (line_space * 1));
-                M5Lcd.print((m->idx == 0 || config_settings.wifi_ssid[0] == 0) ? NetMgr_getSSID() : config_settings.wifi_ssid); gui_blankRestOfLine();
+                M5Lcd.print(NetMgr_getSSID()); gui_blankRestOfLine();
                 M5Lcd.setCursor(left_margin, top_margin + line_space + (line_space * 2));
                 M5Lcd.print("password: ");
                 M5Lcd.setCursor(left_margin + 8, top_margin + line_space + (line_space * 3));
-                M5Lcd.print((m->idx == 0 || config_settings.wifi_ssid[0] == 0) ? NetMgr_getPassword() : config_settings.wifi_pass); gui_blankRestOfLine();
+                M5Lcd.print(NetMgr_getPassword()); gui_blankRestOfLine();
                 M5Lcd.setCursor(left_margin, top_margin + line_space + (line_space * 4));
-                M5Lcd.print((m->idx == 0) ? "URL:   " : "mode:   ");
+                M5Lcd.print("URL:   ");
                 M5Lcd.setCursor(left_margin + 8, top_margin + line_space + (line_space * 5));
-                if (m->idx == 0) {
-                    M5Lcd.print("http://");
-                    M5Lcd.print(WiFi.softAPIP());
-                    M5Lcd.print("/");
-                }
-                else {
-                    if (config_settings.wifi_opmode == 2) {
-                        M5Lcd.print("direct          ");
-                    }
-                    else {
-                        M5Lcd.print("access point   ");
-                    }
-                }
+
+                M5Lcd.print("http://");
+                M5Lcd.print(WiFi.softAPIP());
+                M5Lcd.print("/");
                 M5Lcd.setRotation(0);
             }
             else if (m->idx == 1 || m->idx == 2)
@@ -561,12 +607,35 @@ void wifi_config(void* mip)
             }
             else if (m->idx == 3)
             {
+                // TODO: choose profile
+                M5Lcd.drawPngFile(SPIFFS, "/wificfg_selprofile.png", 0, 0);
+                M5Lcd.setRotation(0);
+                M5Lcd.highlight(true);
+                M5Lcd.setTextWrap(true);
+                M5Lcd.setHighlightColor(TFT_WHITE);
+                M5Lcd.setTextColor(TFT_BLACK, TFT_WHITE);
+                M5Lcd.setTextFont(4);
+                int top_margin = 94;
+                int left_margin = 5;
+                M5Lcd.setCursor((M5Lcd.width() / 2) - 5, top_margin);
+                M5Lcd.println(profile_idx, DEC);
+                M5Lcd.setCursor(5, M5Lcd.getCursorY());
+                M5Lcd.setTextFont(2);
+                wifiprofile_getProfile(profile_idx, &wifi_profile);
+                char* ssid_str = wifi_profile.ssid;
+                if (memcmp("DIRECT-", ssid_str, 7) == 0) {
+                    ssid_str += 4;
+                    ssid_str[0] = '.';
+                    ssid_str[1] = '.';
+                    ssid_str[2] = '.';
+                }
+                M5Lcd.println(ssid_str);
+            }
+            else if (m->idx == 4)
+            {
                 M5Lcd.drawPngFile(SPIFFS, "/wificfg_frst.png", 0, 0);
             }
 
-            if (redraw) {
-                btnSide_clrPressed();
-            }
             redraw = false;
         }
 
@@ -574,18 +643,42 @@ void wifi_config(void* mip)
         {
             btnBig_clrPressed();
 
-            if (m->idx == 3) { // factory reset activated
+            if (m->idx == 3)
+            { // profile selected
+                config_settings.wifi_profile = profile_idx;
+                settings_save();
+                M5Lcd.drawPngFile(SPIFFS, "/wificfg_profilesave.png", 95, 53);
+                uint32_t now, t = millis();
+                bool held = true;
+                while (((now = millis()) - t) < 2000 && btnBig_isPressed()) {
+                    app_poll();
+                }
+                if (btnBig_isPressed())
+                {
+                    esp_wifi_disconnect();
+                    esp_wifi_stop();
+                    esp_wifi_deinit();
+                    srand(t + lroundf(imu.accX) + lroundf(imu.accY) + lroundf(imu.accZ));
+                    while (btnBig_isPressed())
+                    {
+                        int x = rand() % M5Lcd.width();
+                        int y = rand() % M5Lcd.height();
+                        M5Lcd.fillRect(x, y, 1, 1, TFT_WHITE);
+                    }
+                    ESP.restart();
+                }
+            }
+            else if (m->idx == 4)
+            { // factory reset activated
                 settings_default();
                 settings_save();
+                wifiprofile_deleteAll();
                 M5Lcd.drawPngFile(SPIFFS, "/wificfg_frstdone.png", 0, 0);
                 delay(1000);
                 ESP.restart();
             }
         }
-        
+
+        m->last_idx = m->idx;
     }
 }
-
-#endif // WIFI_ALL_MODES
-
-#endif  // WIFI_ALL_MODES or HTTP_SERVER_ENABLE

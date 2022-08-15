@@ -1,5 +1,13 @@
 #include "SonyHttpCamera.h"
 
+DebuggingSerial* SonyHttpCamera::dbgser_important;
+DebuggingSerial* SonyHttpCamera::dbgser_states;
+DebuggingSerial* SonyHttpCamera::dbgser_events;
+DebuggingSerial* SonyHttpCamera::dbgser_rx;
+DebuggingSerial* SonyHttpCamera::dbgser_tx;
+DebuggingSerial* SonyHttpCamera::dbgser_devprop_dump;
+DebuggingSerial* SonyHttpCamera::dbgser_devprop_change;
+
 SonyHttpCamera::SonyHttpCamera()
 {
     tbl_iso = NULL;
@@ -16,12 +24,9 @@ SonyHttpCamera::SonyHttpCamera()
     dbgser_important->enabled = true;
     dbgser_states->   enabled = true;
     dbgser_events->   enabled = true;
-    dbgser_rx->       enabled = false;
-    #ifdef PTPIP_DEBUG_RX
-    dbgser_rx->enabled = true;
-    #endif
-    dbgser_tx->enabled = false;
-    dbgser_devprop_dump->  enabled = false;
+    dbgser_rx->       enabled = true;
+    dbgser_tx->       enabled = true;
+    dbgser_devprop_dump->  enabled = true;
     dbgser_devprop_change->enabled = true;
 
     begin(0);
@@ -29,14 +34,11 @@ SonyHttpCamera::SonyHttpCamera()
 
 void SonyHttpCamera::begin(uint32_t ip)
 {
-    if (httpreq == NULL) {
-        httpreq = new AsyncHTTPRequest();
-    }
     ip_addr = ip;
     state = SHCAMSTATE_CONNECTING;
     dd_tries = 0;
     error_cnt = 0;
-    event_api_version = 3;
+    event_api_version = 0;
     is_movierecording_v = false;
     is_manuallyfocused_v = false;
     is_focused = false;
@@ -49,7 +51,7 @@ void SonyHttpCamera::begin(uint32_t ip)
 
     zoom_state = 0;
     zoom_time = 0;
-    poll_delay = 500;
+    poll_delay = 10000;
 
     if (tbl_iso != NULL) {
         free(tbl_iso);
@@ -63,6 +65,26 @@ void SonyHttpCamera::begin(uint32_t ip)
     }
 }
 
+void SonyHttpCamera::request_prep(void)
+{
+    //if (httpreq != NULL) {
+    //    delete httpreq;
+    //    httpreq = NULL;
+    //}
+    if (httpreq == NULL) {
+        httpreq = new AsyncHTTPRequest();
+    }
+    rx_buff_idx = 0;
+}
+
+void SonyHttpCamera::request_close(void)
+{
+    //if (httpreq != NULL) {
+    //    delete httpreq;
+    //    httpreq = NULL;
+    //}
+}
+
 void SonyHttpCamera::parse_dd_xml(char* data, int32_t maxlen)
 {
     int32_t i, j, k;
@@ -70,8 +92,14 @@ void SonyHttpCamera::parse_dd_xml(char* data, int32_t maxlen)
     if (maxlen <= 0) {
         slen = strlen(data);
     }
+
+    dbgser_rx->printf("dd.xml data %u:\r\n", slen);
+    dbgser_rx->print(data);
+    dbgser_rx->print("\r\n");
+
+    char c;
     bool hasName = false;
-    char keyFriendlyName[] = "<friendly_name>";
+    char keyFriendlyName[] = "<friendlyName>";
     int32_t keyLen = strlen(keyFriendlyName);
     for (i = 0; i < slen - keyLen; i++)
     {
@@ -81,7 +109,7 @@ void SonyHttpCamera::parse_dd_xml(char* data, int32_t maxlen)
             i += keyLen;
             for (k = 0; i < slen - keyLen; i++, k++)
             {
-                char c = data[i];
+                c = data[i];
                 if (c == '<' && data[i + 1] == '/')
                 {
                     friendly_name[k] = 0;
@@ -98,8 +126,12 @@ void SonyHttpCamera::parse_dd_xml(char* data, int32_t maxlen)
         }
     }
 
+    if (hasName == false) {
+        i = 0;
+    }
+
     bool hasUrl = false;
-    char keySrvTypeCam[] = "X_ScalarWebAPI_ServiceType>camera<";
+    char keySrvTypeCam[] = "X_ScalarWebAPI_ServiceType>camera</";
     keyLen = strlen(keySrvTypeCam);
     for (; i < slen - keyLen && hasUrl == false; i++)
     {
@@ -117,7 +149,7 @@ void SonyHttpCamera::parse_dd_xml(char* data, int32_t maxlen)
                     i += keyLen - 7;
                     for (k = 0; i < slen - keyLen; i++, k++)
                     {
-                        char c = data[i];
+                        c = data[i];
                         if (c == '<' && data[i + 1] == '/')
                         {
                             sprintf((char*)(&service_url[k]),"/camera");
@@ -134,6 +166,10 @@ void SonyHttpCamera::parse_dd_xml(char* data, int32_t maxlen)
         }
     }
 
+    if (hasUrl == false) {
+        i = 0;
+    }
+
     char keyLiveView[] = "_LiveView_Single_URL>http://";
     keyLen = strlen(keyLiveView);
     for (; i < slen - keyLen; i++)
@@ -147,7 +183,7 @@ void SonyHttpCamera::parse_dd_xml(char* data, int32_t maxlen)
             i += keyLen - 7;
             for (k = 0; i < slen - keyLen; i++, k++)
             {
-                char c = data[i];
+                c = data[i];
                 if (c == '<' && data[i + 1] == '/')
                 {
                     liveview_url[k] = 0;
@@ -177,10 +213,17 @@ void SonyHttpCamera::get_dd_xml()
 {
     sprintf(url_buffer, "http://%s:64321/dd.xml", IPAddress(ip_addr).toString().c_str());
     dbgser_states->printf("getting dd.xml from URL: %s\r\n", url_buffer);
+    request_prep();
     httpreq->onData(NULL, NULL);
     httpreq->onReadyStateChange(ddRequestCb, this);
-    httpreq->open("GET", url_buffer);
-    state = SHCAMSTATE_CONNECTING;
+    bool openres = httpreq->open("GET", url_buffer);
+    if (openres) {
+        httpreq->send();
+        state = SHCAMSTATE_CONNECTING;
+    }
+    else {
+        dbgser_states->printf("httpcam unable to get dd.xml\r\n");
+    }
 }
 
 void SonyHttpCamera::ddRequestCb(void* optParm, AsyncHTTPRequest* req, int readyState)
@@ -194,23 +237,24 @@ void SonyHttpCamera::ddRequestCb(void* optParm, AsyncHTTPRequest* req, int ready
         int respcode;
         if ((respcode = req->responseHTTPcode()) == 200)
         {
-            cam->dbgser_states->printf("got dd.xml\r\n");
+            dbgser_states->printf("got dd.xml\r\n");
             // expect about 3 kilobytes of data
             cam->parse_dd_xml(req->responseLongText());
         }
         else
         {
-            cam->dbgser_states->printf("failed to get dd.xml, code %d", respcode);
+            dbgser_states->printf("failed to get dd.xml, code %d", respcode);
             cam->dd_tries++;
             if (cam->dd_tries < 3) {
-                cam->dbgser_states->printf(", retrying (%u)\r\n", cam->dd_tries);
+                dbgser_states->printf(", retrying (%u)\r\n", cam->dd_tries);
                 cam->get_dd_xml();
             }
             else {
-                cam->dbgser_states->printf(", giving up (%u)\r\n", cam->dd_tries);
+                dbgser_states->printf(", giving up (%u)\r\n", cam->dd_tries);
                 cam->state = SHCAMSTATE_FAILED;
             }
         }
+        cam->request_close();
     }
 }
 
@@ -294,9 +338,8 @@ void SonyHttpCamera::eventRequestCb(void* optParm, AsyncHTTPRequest* req, int re
     if (cam->state == SHCAMSTATE_FORBIDDEN) {
         return;
     }
-    if (req->available() <= 0) {
-        return;
-    }
+
+    dbgser_rx->printf("httpcam rx eventRequestCb %d %u\r\n", readyState, req->available());
 
     int32_t chunk;
     while ((chunk = req->available()) > 0)
@@ -310,9 +353,10 @@ void SonyHttpCamera::eventRequestCb(void* optParm, AsyncHTTPRequest* req, int re
 
     if (readyState == readyStateDone)
     {
-        if (req->responseHTTPcode() == 200)
+        int respcode;
+        if ((respcode = req->responseHTTPcode()) == 200)
         {
-            cam->dbgser_devprop_dump->printf("\r\nhttpcam polled event 0x%08X\r\n", cam->event_found_flag);
+            dbgser_devprop_dump->printf("\r\nhttpcam polled event 0x%08X\r\n", cam->event_found_flag);
             if (strlen(cam->str_focusstatus) <= 0) {
                 if (cam->event_api_version > 1) {
                     cam->event_api_version--;
@@ -320,7 +364,7 @@ void SonyHttpCamera::eventRequestCb(void* optParm, AsyncHTTPRequest* req, int re
             }
             cam->error_cnt = 0;
             if (cam->state < SHCAMSTATE_READY) {
-                cam->dbgser_states->printf("httpcam connected\r\n");
+                dbgser_states->printf("httpcam connected\r\n");
                 if (cam->cb_onConnect != NULL) {
                     cam->cb_onConnect();
                 }
@@ -329,8 +373,10 @@ void SonyHttpCamera::eventRequestCb(void* optParm, AsyncHTTPRequest* req, int re
         }
         else
         {
+            dbgser_states->printf("httpcam event resp err %d\r\n", respcode);
             cam->error_cnt++;
         }
+        cam->request_close();
     }
 }
 
@@ -342,8 +388,10 @@ void SonyHttpCamera::eventDataCb(void* optParm, AsyncHTTPRequest* req, int avail
         return;
     }
     if (req->available() <= 0) {
+        dbgser_rx->printf("httpcam rx eventDataCb %u\r\n", req->available());
         return;
     }
+    dbgser_rx->printf("httpcam rx eventDataCb %u\r\n", req->available());
 
     int32_t chunk;
     while ((chunk = req->available()) > 0)
@@ -360,14 +408,28 @@ void SonyHttpCamera::get_event()
 {
     event_found_flag = 0;
     rx_buff_idx = 0;
+    request_prep();
     httpreq->onData(eventDataCb, this);
     httpreq->onReadyStateChange(eventRequestCb, this);
-    httpreq->open("POST", url_buffer);
-    sprintf(cmd_buffer, "{\"method\": \"getEvent\", \"params\": [false], \"id\": 1, \"version\": \"1.%u\"}", event_api_version);
-    dbgser_tx->printf("httpcam get_event json: %s\r\n", cmd_buffer);
-    httpreq->send(cmd_buffer);
-    state = SHCAMSTATE_POLLING;
-    last_poll_time = millis();
+    bool openres = httpreq->open("POST", url_buffer);
+    if (openres)
+    {
+        //httpreq->setReqHeader("Content-Type", "application/json"); // this causes error 415
+        sprintf(cmd_buffer, "{\r\n    \"method\": \"getEvent\",\r\n    \"params\": [false],\r\n    \"id\": 1,\r\n    \"version\": \"1.%u\"\r\n}", event_api_version);
+        dbgser_tx->printf("httpcam get_event json: %s\r\n", cmd_buffer);
+        httpreq->send(cmd_buffer);
+        state = SHCAMSTATE_POLLING;
+        last_poll_time = millis();
+    }
+    else
+    {
+        dbgser_tx->printf("httpcam unable to send get_event\r\n");
+    }
+}
+
+void SonyHttpCamera::task()
+{
+    poll();
 }
 
 void SonyHttpCamera::poll()
@@ -384,22 +446,26 @@ void SonyHttpCamera::poll()
         dd_tries = 0;
     }
 
-    if (state == SHCAMSTATE_INIT_STARTRECMODE || state == SHCAMSTATE_INIT_SETCAMFUNC)
+    if ((state == SHCAMSTATE_INIT_STARTRECMODE || state == SHCAMSTATE_INIT_SETCAMFUNC) && (httpreq->readyState() == readyStateUnsent || httpreq->readyState() == readyStateDone))
     {
-        rx_buff_idx = 0;
+        request_prep();
         httpreq->onData(NULL, NULL);
         httpreq->onReadyStateChange(initRequestCb, this);
-        httpreq->open("POST", url_buffer);
-        if (state == SHCAMSTATE_INIT_STARTRECMODE) {
-            httpreq->send("{\"method\": \"startRecMode\", \"params\": [], \"id\": 1, \"version\": \"1.0\"}");
-            dbgser_tx->printf("httpcam init startRecMode\r\n");
+        bool openres = httpreq->open("POST", url_buffer);
+        if (openres)
+        {
+            //httpreq->setReqHeader("Content-Type", "application/json"); // this causes error 415
+            if (state == SHCAMSTATE_INIT_STARTRECMODE) {
+                httpreq->send("{\r\n    \"method\": \"startRecMode\",\r\n    \"params\": [],\r\n    \"id\": 1,\r\n    \"version\": \"1.0\"\r\n}");
+                dbgser_tx->printf("httpcam init startRecMode\r\n");
+            }
+            else if (state == SHCAMSTATE_INIT_SETCAMFUNC) {
+                httpreq->send("{\r\n    \"method\": \"cameraFunction\",\r\n    \"params\": [\"Remote Shooting\"],\r\n    \"id\": 1,\r\n    \"version\": \"1.0\"\r\n}");
+                dbgser_tx->printf("httpcam init cameraFunction\r\n");
+            }
+            state++; // set the flag for waiting
+            last_poll_time = millis();
         }
-        else if (state == SHCAMSTATE_INIT_SETCAMFUNC) {
-            httpreq->send("{\"method\": \"cameraFunction\", \"params\": [\"Remote Shooting\"], \"id\": 1, \"version\": \"1.0\"}");
-            dbgser_tx->printf("httpcam init cameraFunction\r\n");
-        }
-        state++; // set the flag for waiting
-        last_poll_time = millis();
     }
 
     if (state == SHCAMSTATE_INIT_DONE)
@@ -464,23 +530,30 @@ void SonyHttpCamera::initRequestCb(void* optParm, AsyncHTTPRequest* req, int rea
         int do_next = 0;
         if ((rcode = req->responseHTTPcode()) == 200)
         {
+            dbgser_states->printf("httpcam init state %u done\r\n", cam->state);
             do_next = cam->state + 1; // go to next step
             cam->dd_tries = 0;
         }
         else
         {
+            dbgser_states->printf("httpcam init state %u error %d", cam->state, rcode);
             cam->dd_tries++;
-            if (cam->dd_tries < 3) {
+            if (cam->dd_tries < 2) {
+                dbgser_states->printf(", retry %d\r\n", cam->dd_tries);
                 do_next = cam->state - 1; // retry previous step
             }
             else {
-                cam->state = SHCAMSTATE_FAILED;
+                dbgser_states->printf(", skipping %d, do next\r\n", cam->dd_tries);
+                //cam->state = SHCAMSTATE_FAILED;
+                do_next = cam->state + 1;
+                cam->dd_tries = 0;
             }
         }
         if (do_next != 0)
         {
             cam->state = do_next; // next call to poll will handle it
         }
+        cam->request_close();
     }
 }
 
@@ -504,12 +577,13 @@ void SonyHttpCamera::genericRequestCb(void* optParm, AsyncHTTPRequest* req, int 
         {
             cam->error_cnt++;
         }
+        cam->request_close();
     }
 }
 
 void SonyHttpCamera::set_debugflags(uint32_t x)
 {
-    this->debug_flags = x;
+    debug_flags = x;
     dbgser_states->        enabled = ((x & DEBUGFLAG_STATES        ) != 0);
     dbgser_events->        enabled = ((x & DEBUGFLAG_EVENTS        ) != 0);
     dbgser_rx->            enabled = ((x & DEBUGFLAG_RX            ) != 0);
