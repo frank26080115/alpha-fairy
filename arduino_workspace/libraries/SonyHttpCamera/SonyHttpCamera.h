@@ -11,6 +11,7 @@
 #include <DebuggingSerial.h>
 
 #include "AsyncHTTPRequest_Generic.hpp"
+#include <WiFiUDP.h>
 
 #define SHCAM_RXBUFF_UNIT     64
 #define SHCAM_RXBUFF_UNIT_CNT (4 * 4)
@@ -20,17 +21,24 @@
 #define DEFAULT_BUSY_TIMEOUT  5000
 #endif
 
+#define SHCAM_NEED_ENTER_MOVIE_MODE
+
 enum
 {
     SHCAMSTATE_NONE                = 0,
-    SHCAMSTATE_CONNECTING          = 1,
-    SHCAMSTATE_INIT_GOTDD          = 2,
-    SHCAMSTATE_INIT_STARTRECMODE   = 4,
-    SHCAMSTATE_INIT_SETCAMFUNC     = 6,
-    SHCAMSTATE_INIT_DONE           = 8,
-    SHCAMSTATE_READY               = 12,
-    SHCAMSTATE_POLLING             = 13,
-    SHCAMSTATE_COMMANDING          = 15,
+    SHCAMSTATE_WAIT                = 1,
+    SHCAMSTATE_CONNECTING          = 2,
+    SHCAMSTATE_INIT_SSDP           = 4,
+    SHCAMSTATE_INIT_GETDD          = 5,
+    SHCAMSTATE_INIT_GOTDD          = 6,
+    SHCAMSTATE_INIT_GETVERSION     = 8,
+    SHCAMSTATE_INIT_GETAPILIST     = 10,
+    SHCAMSTATE_INIT_STARTRECMODE   = 12,
+    SHCAMSTATE_INIT_SETCAMFUNC     = 14,
+    SHCAMSTATE_INIT_DONE           = 20,
+    SHCAMSTATE_READY               = 22,
+    SHCAMSTATE_POLLING             = 24,
+    SHCAMSTATE_COMMANDING          = 26,
     SHCAMSTATE_FAILED              = 0x80,
     SHCAMSTATE_DISCONNECTED        = 0x81,
     SHCAMSTATE_FORBIDDEN           = 0x82,
@@ -47,6 +55,12 @@ enum
     DEBUGFLAG_DEVPROP_CHANGE = 0x20,
 };
 
+enum
+{
+    SHOOTMODE_STILLS,
+    SHOOTMODE_MOVIE,
+};
+
 bool scan_json_for_key(char* data, int32_t datalen, const char* keystr, signed int* start_idx, signed int* end_idx, char* tgt, int tgtlen);
 int count_commas(char* data);
 void strcpy_no_slash(char* dst, char* src);
@@ -58,6 +72,10 @@ class SonyHttpCamera
 {
     public:
         SonyHttpCamera();
+
+        typedef std::function<void(void*, AsyncHTTPRequest*, int readyState)> readyStateChangeCB;
+        typedef std::function<void(void*, AsyncHTTPRequest*, size_t available)> onDataCB;
+
         void begin(uint32_t ip);
         void poll(void);
         void task(void);
@@ -77,6 +95,7 @@ class SonyHttpCamera
         inline bool      is_movierecording (void) { return is_movierecording_v; };
         inline bool      is_manuallyfocused(void) { return is_manuallyfocused_v; };
         bool             is_focused;
+        inline bool      is_moviemode      (void) { return shoot_mode == SHOOTMODE_MOVIE; };
 
         inline char*     getLiveviewUrl(void) { return liveview_url; };
 
@@ -92,8 +111,9 @@ class SonyHttpCamera
 
     protected:
         uint32_t ip_addr;
-        uint8_t  state;
+        uint8_t  state, state_after_wait;
         uint32_t req_id;
+        uint32_t wait_until;
 
         char friendly_name[256];
         char service_url[256];
@@ -109,8 +129,9 @@ class SonyHttpCamera
 
         AsyncHTTPRequest* httpreq = NULL;
         static int read_in_chunk(AsyncHTTPRequest* req, int32_t chunk, char* buff, uint32_t* buff_idx);
+        WiFiUDP ssdp_udp;
 
-        uint32_t dd_tries;
+        uint32_t init_retries;
         uint32_t error_cnt;
         uint8_t  event_api_version;
 
@@ -127,6 +148,7 @@ class SonyHttpCamera
         uint32_t zoom_time;
         bool     is_movierecording_v;
         bool     is_manuallyfocused_v;
+        uint8_t  shoot_mode;
 
         bool parse_event(char* data, int32_t maxlen = 0);
         void parse_dd_xml(char* data, int32_t maxlen = 0);
@@ -134,9 +156,16 @@ class SonyHttpCamera
         void get_dd_xml(void);
         uint32_t event_found_flag;
 
+        void ssdp_start(void);
         void cmd_prep(void);
-        void request_prep(void);
+        bool request_prep(const char* method, const char* url, const char* contentType, readyStateChangeCB cb_s, onDataCB cb_d);
         void request_close(void);
+
+        static const char cmd_generic_fmt[];
+        static const char cmd_generic_strparam_fmt[];
+        static const char cmd_generic_strintparam_fmt[];
+        static const char cmd_generic_intparam_fmt[];
+        static const char cmd_zoom_fmt[];
 
         static DebuggingSerial* dbgser_important;
         static DebuggingSerial* dbgser_states;
@@ -174,6 +203,9 @@ class SonyHttpCamera
         void cmd_ManualFocusMode(bool onoff, bool precheck = false);
         void cmd_ManualFocusToggle(bool onoff);
         void cmd_AutoFocus(bool onoff);
+        #ifdef SHCAM_NEED_ENTER_MOVIE_MODE
+        void cmd_MovieMode(bool onoff);
+        #endif
 };
 
 #endif

@@ -1,18 +1,15 @@
 #include "SonyHttpCamera.h"
 
-static const char cmd_generic_fmt[]               = "{\"method\": \"%s\", \"params\": [], \"id\": %u, \"version\": \"1.0\"}";
-static const char cmd_generic_strparam_fmt[]      = "{\"method\": \"%s\", \"params\": [\"%s\"], \"id\": %u, \"version\": \"1.0\"}";
-static const char cmd_generic_strintparam_fmt[]   = "{\"method\": \"%s\", \"params\": [\"%u\"], \"id\": %u, \"version\": \"1.0\"}";
-static const char cmd_generic_intparam_fmt[]      = "{\"method\": \"%s\", \"params\": [%u], \"id\": %u, \"version\": \"1.0\"}";
-static const char zoom_cmd_fmt[]                  = "{\"method\": \"actZoom\", \"params\": [\"%s\",\"%s\"], \"id\": %u, \"version\": \"1.0\"}";
+const char SonyHttpCamera::cmd_generic_fmt[]               = "{\"method\": \"%s\", \"params\": [], \"id\": %u, \"version\": \"1.0\"}";
+const char SonyHttpCamera::cmd_generic_strparam_fmt[]      = "{\"method\": \"%s\", \"params\": [\"%s\"], \"id\": %u, \"version\": \"1.0\"}";
+const char SonyHttpCamera::cmd_generic_strintparam_fmt[]   = "{\"method\": \"%s\", \"params\": [\"%u\"], \"id\": %u, \"version\": \"1.0\"}";
+const char SonyHttpCamera::cmd_generic_intparam_fmt[]      = "{\"method\": \"%s\", \"params\": [%u], \"id\": %u, \"version\": \"1.0\"}";
+const char SonyHttpCamera::cmd_zoom_fmt[]                  = "{\"method\": \"actZoom\", \"params\": [\"%s\",\"%s\"], \"id\": %u, \"version\": \"1.0\"}";
 
 void SonyHttpCamera::cmd_prep(void)
 {
     wait_while_busy(0, DEFAULT_BUSY_TIMEOUT, NULL);
-    request_prep();
-    httpreq->onData(NULL, NULL);
-    httpreq->onReadyStateChange(genericRequestCb, this);
-    httpreq->open("POST", url_buffer);
+    request_prep("POST", url_buffer, "application/json", genericRequestCb, NULL);
 }
 
 void SonyHttpCamera::cmd_Shoot(void)
@@ -25,11 +22,21 @@ void SonyHttpCamera::cmd_Shoot(void)
 
 void SonyHttpCamera::cmd_MovieRecord(bool is_start)
 {
+    #ifdef SHCAM_NEED_ENTER_MOVIE_MODE
+    if (is_start && shoot_mode != SHOOTMODE_MOVIE) {
+        cmd_MovieMode(true);
+    }
+    #endif
     cmd_prep();
     sprintf(cmd_buffer, cmd_generic_fmt, is_start ? "startMovieRec" : "stopMovieRec", req_id);
     httpreq->send(cmd_buffer);
     req_id++;
     is_movierecording_v = is_start;
+    #ifdef SHCAM_NEED_ENTER_MOVIE_MODE
+    if (is_start == false && shoot_mode == SHOOTMODE_MOVIE) {
+        cmd_MovieMode(false);
+    }
+    #endif
 }
 
 void SonyHttpCamera::cmd_MovieRecordToggle(void)
@@ -37,13 +44,26 @@ void SonyHttpCamera::cmd_MovieRecordToggle(void)
     cmd_MovieRecord(is_movierecording_v == false);
 }
 
+#ifdef SHCAM_NEED_ENTER_MOVIE_MODE
+
+void SonyHttpCamera::cmd_MovieMode(bool onoff)
+{
+    cmd_prep();
+    sprintf(cmd_buffer, cmd_generic_strparam_fmt, "setShootMode", onoff ? "movie" : "still", req_id);
+    httpreq->send(cmd_buffer);
+    req_id++;
+    shoot_mode = onoff ? SHOOTMODE_MOVIE : SHOOTMODE_STILLS;
+}
+
+#endif
+
 void SonyHttpCamera::cmd_ZoomStart(int dir)
 {
     if (zoom_state == 0)
     {
         if (dir != 0) {
             cmd_prep();
-            sprintf(cmd_buffer, zoom_cmd_fmt, dir > 0 ? "in" : "out", "start", req_id);
+            sprintf(cmd_buffer, cmd_zoom_fmt, dir > 0 ? "in" : "out", "start", req_id);
             httpreq->send(cmd_buffer);
             req_id++;
             zoom_time = millis();
@@ -72,7 +92,7 @@ void SonyHttpCamera::cmd_ZoomStop(void)
 {
     wait_while_busy(0, DEFAULT_BUSY_TIMEOUT * 5, NULL);
     cmd_prep();
-    sprintf(cmd_buffer, zoom_cmd_fmt, zoom_state > 0 ? "in" : "out", "stop", req_id);
+    sprintf(cmd_buffer, cmd_zoom_fmt, zoom_state > 0 ? "in" : "out", "stop", req_id);
     httpreq->send(cmd_buffer);
     req_id++;
     zoom_state = 0;

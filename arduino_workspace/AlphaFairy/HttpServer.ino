@@ -492,6 +492,10 @@ void wifi_config(void* mip)
     wifiprofile_getProfile(config_settings.wifi_profile, &wifi_profile);
     int profile_idx = config_settings.wifi_profile;
 
+    if (NetMgr_getOpMode() == WIFIOPMODE_STA) {
+        wifiprofile_connect(0);
+    }
+
     bool redraw = true;
     menustate_t* m = &menustate_wificonfig;
     m->idx = 0;
@@ -531,6 +535,7 @@ void wifi_config(void* mip)
 
         if (m->idx == 3)
         {
+            // switch profile by spinning
             if (imu.getSpin() > 0) {
                 profile_idx = (profile_idx + 1) % 10;
                 imu.resetSpin();
@@ -549,7 +554,7 @@ void wifi_config(void* mip)
         }
 
         gui_drawStatusBar(false);
-        redraw |= redraw_flag;
+        redraw |= redraw_flag; // http server is able to signal an update to the SSID string
 
         if (redraw)
         {

@@ -272,3 +272,68 @@ uint32_t SonyHttpCamera::get_another_shutterspd(int idx, char* tgt)
     }
     return 0;
 }
+
+bool SonyHttpCamera::request_prep(const char* method, const char* url, const char* contentType, readyStateChangeCB cb_s, onDataCB cb_d)
+{
+    //if (httpreq != NULL) {
+    //    delete httpreq;
+    //    httpreq = NULL;
+    //}
+    if (httpreq == NULL) {
+        httpreq = new AsyncHTTPRequest();
+    }
+    rx_buff_idx = 0;
+    httpreq->onData(cb_d, cb_d == NULL ? NULL : this);
+    httpreq->onReadyStateChange(cb_s == NULL ? genericRequestCb : cb_s, this);
+    bool openres = httpreq->open(method, url);
+    if (openres) {
+        if (contentType != NULL) {
+            httpreq->setReqHeader("Content-Type", contentType);
+        }
+        return true;
+    }
+    return false;
+}
+
+void SonyHttpCamera::request_close(void)
+{
+    //if (httpreq != NULL) {
+    //    delete httpreq;
+    //    httpreq = NULL;
+    //}
+}
+
+void SonyHttpCamera::ssdp_start(void)
+{
+    ssdp_udp.beginPacket("239.255.255.250", 1900);
+    ssdp_udp.print("M-SEARCH * HTTP/1.1\r\n");
+    ssdp_udp.print("HOST: 239.255.255.250:1900\r\n");
+    ssdp_udp.print("MAN: \"ssdp:discover\"\r\n");
+    ssdp_udp.print("MX: 2\r\n");
+    ssdp_udp.print("ST: urn:schemas-sony-com:service:ScalarWebAPI:1\r\n");
+    ssdp_udp.print("USER-AGENT: xyz/1.0 abc/1.0\r\n");
+    ssdp_udp.print("\r\n");
+    ssdp_udp.endPacket();
+}
+
+void SonyHttpCamera::wait_while_busy(uint32_t min_time, uint32_t max_time, volatile bool* exit_signal)
+{
+    volatile bool to_exit = false;
+    uint32_t start_time = millis();
+    uint32_t now = start_time;
+    uint32_t old_poll_delay = poll_delay;
+    poll_delay = 50;
+    while ((canSend() == false && isOperating() == true && (now - start_time) < max_time) || (now - start_time) < min_time) {
+        now = millis();
+        poll(); // poll, not task, because poll only reads and never sends
+        // note: poll calls yield
+        if (exit_signal != NULL)
+        {
+            to_exit |= *exit_signal;
+            if (to_exit && (now - start_time) >= min_time) {
+                break;
+            }
+        }
+    }
+    poll_delay = old_poll_delay;
+}

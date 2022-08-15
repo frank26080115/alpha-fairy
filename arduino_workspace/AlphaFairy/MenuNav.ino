@@ -53,6 +53,20 @@ bool guimenu_task(menustate_t* m)
         focusfrust_reset();
     }
 
+    #ifdef SHCAM_NEED_ENTER_MOVIE_MODE
+    #if 0
+    if (m->last_idx != m->idx && httpcam.isOperating())
+    {
+        if (m->items[m->idx].id == MENUITEM_RECORDMOVIE) {
+            httpcam.cmd_MovieMode(true);
+        }
+        else if (m->items[m->last_idx].id == MENUITEM_RECORDMOVIE) {
+            httpcam.cmd_MovieMode(false);
+        }
+    }
+    #endif
+    #endif
+
     if (m->last_idx != m->idx || redraw_flag) { // prevent unnecessary re-draws
         redraw_flag = false;
 
