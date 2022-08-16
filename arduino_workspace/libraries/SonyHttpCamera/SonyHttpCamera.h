@@ -14,8 +14,6 @@
 #include <WiFiUDP.h>
 
 #define SHCAM_RXBUFF_UNIT     64
-#define SHCAM_RXBUFF_UNIT_CNT (4 * 4)
-#define SHCAM_RXBUFF_SIZE     (SHCAM_RXBUFF_UNIT * SHCAM_RXBUFF_UNIT_CNT)
 
 #ifndef DEFAULT_BUSY_TIMEOUT
 #define DEFAULT_BUSY_TIMEOUT  5000
@@ -31,11 +29,13 @@ enum
     SHCAMSTATE_INIT_SSDP           = 4,
     SHCAMSTATE_INIT_GETDD          = 5,
     SHCAMSTATE_INIT_GOTDD          = 6,
-    SHCAMSTATE_INIT_GETVERSION     = 8,
-    SHCAMSTATE_INIT_GETAPILIST     = 10,
-    SHCAMSTATE_INIT_STARTRECMODE   = 12,
-    SHCAMSTATE_INIT_SETCAMFUNC     = 14,
-    SHCAMSTATE_INIT_DONE           = 20,
+    SHCAMSTATE_INIT_ACCESSCONTROL  = 8,
+    SHCAMSTATE_INIT_GETVERSION     = 10,
+    SHCAMSTATE_INIT_GETAPILIST     = 12,
+    SHCAMSTATE_INIT_STARTRECMODE   = 14,
+    SHCAMSTATE_INIT_SETCAMFUNC     = 16,
+    SHCAMSTATE_INIT_DONE1,
+    SHCAMSTATE_INIT_DONE2          = 20,
     SHCAMSTATE_READY               = 22,
     SHCAMSTATE_POLLING             = 24,
     SHCAMSTATE_COMMANDING          = 26,
@@ -83,7 +83,7 @@ class SonyHttpCamera
         inline uint32_t  getIp           (void) { return ip_addr; };
         inline char*     getCameraName   (void) { return friendly_name; };
         inline uint8_t   getState        (void) { return state; };
-        inline bool      canSend         (void) { return state >= SHCAMSTATE_READY && (state & 1) == 0; };
+        inline bool      canSend         (void) { return state >= SHCAMSTATE_READY && (state & 1) == 0 && (httpreq->readyState() == readyStateUnsent || httpreq->readyState() == readyStateDone); };
         inline bool      isOperating     (void) { return state >= SHCAMSTATE_READY && state < SHCAMSTATE_FAILED; };
         inline bool      canNewConnect   (void) { return state == SHCAMSTATE_NONE || state == SHCAMSTATE_FAILED || state == SHCAMSTATE_DISCONNECTED; };
         inline void      setForbidden    (void) { state = SHCAMSTATE_FORBIDDEN; }
@@ -105,6 +105,8 @@ class SonyHttpCamera
         void (*cb_onConnect)(void) = NULL;
         void (*cb_onDisconnect)(void) = NULL;
 
+        void borrowBuffer(char*, uint32_t);
+
         virtual void set_debugflags(uint32_t x);
         uint32_t debug_flags;
         void test_debug_msg(const char*);
@@ -117,6 +119,7 @@ class SonyHttpCamera
 
         char friendly_name[256];
         char service_url[256];
+        char access_url[256];
         char url_buffer[256];
         char cmd_buffer[256];
         char* liveview_url;
@@ -124,8 +127,9 @@ class SonyHttpCamera
         char* tbl_shutterspd;
         char* tbl_iso;
 
-        char     rx_buff[SHCAM_RXBUFF_SIZE + 1];
+        char*    rx_buff = NULL;
         uint32_t rx_buff_idx;
+        static uint32_t rx_buff_size;
 
         AsyncHTTPRequest* httpreq = NULL;
         static int read_in_chunk(AsyncHTTPRequest* req, int32_t chunk, char* buff, uint32_t* buff_idx);
@@ -157,6 +161,7 @@ class SonyHttpCamera
         uint32_t event_found_flag;
 
         void ssdp_start(void);
+        bool ssdp_checkurl(void);
         void cmd_prep(void);
         bool request_prep(const char* method, const char* url, const char* contentType, readyStateChangeCB cb_s, onDataCB cb_d);
         void request_close(void);

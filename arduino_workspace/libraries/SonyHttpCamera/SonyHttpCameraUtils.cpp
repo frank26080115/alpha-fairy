@@ -1,23 +1,28 @@
 #include "SonyHttpCamera.h"
 
+uint32_t SonyHttpCamera::rx_buff_size;
+
 int SonyHttpCamera::read_in_chunk(AsyncHTTPRequest* req, int32_t chunk, char* buff, uint32_t* buff_idx)
 {
+    if ((*buff_idx) == 0) {
+        dbgser_rx->println("httpcam rx: ");
+    }
     if (chunk > SHCAM_RXBUFF_UNIT) {
         chunk = SHCAM_RXBUFF_UNIT;
     }
+    if (chunk > req->available()) {
+        chunk = req->available();
+    }
     int32_t i = (*buff_idx) + chunk;
-    while (i > SHCAM_RXBUFF_SIZE) {
+    while (i > rx_buff_size) {
         int32_t j, k;
-        for (j = 0, k = SHCAM_RXBUFF_UNIT; k < (*buff_idx); j++, k++) {
+        for (j = 0, k = SHCAM_RXBUFF_UNIT; k < (*buff_idx) && k < rx_buff_size; j++, k++) {
             buff[j] = buff[k];
         }
         i -= SHCAM_RXBUFF_UNIT;
         (*buff_idx) -= SHCAM_RXBUFF_UNIT;
     }
     uint8_t* tgt = (uint8_t*)(&(buff[(*buff_idx)]));
-    if ((*buff_idx) == 0) {
-        dbgser_rx->println("httpcam rx: ");
-    }
     int32_t r = req->responseRead(tgt, chunk);
     dbgser_rx->write(tgt, r);
     (*buff_idx) += r;
@@ -40,7 +45,7 @@ bool scan_json_for_key(char* data, int32_t datalen, const char* keystr, signed i
     bool found = false;
     for (i = 0; i < slen && found == false; i++)
     {
-        if (data[i] == '"' && data[i + keylen + 2] == '"')
+        if (data[i] == '"' && data[i + keylen + 1] == '"')
         {
             if (memcmp(&(data[i + 1]), keystr, keylen) == 0)
             {
@@ -303,19 +308,6 @@ void SonyHttpCamera::request_close(void)
     //}
 }
 
-void SonyHttpCamera::ssdp_start(void)
-{
-    ssdp_udp.beginPacket("239.255.255.250", 1900);
-    ssdp_udp.print("M-SEARCH * HTTP/1.1\r\n");
-    ssdp_udp.print("HOST: 239.255.255.250:1900\r\n");
-    ssdp_udp.print("MAN: \"ssdp:discover\"\r\n");
-    ssdp_udp.print("MX: 2\r\n");
-    ssdp_udp.print("ST: urn:schemas-sony-com:service:ScalarWebAPI:1\r\n");
-    ssdp_udp.print("USER-AGENT: xyz/1.0 abc/1.0\r\n");
-    ssdp_udp.print("\r\n");
-    ssdp_udp.endPacket();
-}
-
 void SonyHttpCamera::wait_while_busy(uint32_t min_time, uint32_t max_time, volatile bool* exit_signal)
 {
     volatile bool to_exit = false;
@@ -336,4 +328,10 @@ void SonyHttpCamera::wait_while_busy(uint32_t min_time, uint32_t max_time, volat
         }
     }
     poll_delay = old_poll_delay;
+}
+
+void SonyHttpCamera::borrowBuffer(char* buff, uint32_t size)
+{
+    rx_buff_size = size;
+    rx_buff = buff;
 }

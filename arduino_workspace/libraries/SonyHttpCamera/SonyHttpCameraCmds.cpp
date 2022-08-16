@@ -9,7 +9,7 @@ const char SonyHttpCamera::cmd_zoom_fmt[]                  = "{\"method\": \"act
 void SonyHttpCamera::cmd_prep(void)
 {
     wait_while_busy(0, DEFAULT_BUSY_TIMEOUT, NULL);
-    request_prep("POST", url_buffer, "application/json", genericRequestCb, NULL);
+    request_prep("POST", service_url, "application/json", genericRequestCb, NULL);
 }
 
 void SonyHttpCamera::cmd_Shoot(void)

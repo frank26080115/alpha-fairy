@@ -90,6 +90,8 @@ class PtpIpCamera
         bool send_oper_req(uint32_t opcode, uint32_t* params, uint8_t params_cnt, uint8_t* payload, int32_t payload_len);
         void wait_while_busy(uint32_t min_wait, uint32_t max_wait, volatile bool* exit_signal = NULL);
 
+        inline char* donateBuffer(void) { return (char*)databuff; };
+
         void (*cb_onConnect)(void) = NULL;
         void (*cb_onCriticalError)(void) = NULL;
         void (*cb_onDisconnect)(void) = NULL;

@@ -30,10 +30,7 @@ void conf_settings  (void* mip);
 void submenu_enter  (void* mip);
 void intervalometer_config(void* mip);
 void focusfrust_execute(void* mip);
-
-#ifdef WIFI_ALL_MODES
 void wifi_config(void* mip);
-#endif
 
 const menuitem_t menu_items_main[] = {
     // ID                   , FILE-NAME            , FUNCTION POINTER
@@ -79,9 +76,7 @@ const menuitem_t menu_items_utils[] = {
     // ID                       , FILE-NAME               , FUNCTION POINTER
     { MENUITEM_WIFIINFO         , "/wifiinfo.png"         , wifi_info       },
     { MENUITEM_CONFIG           , "/config.png"           , conf_settings   },
-    #ifdef WIFI_ALL_MODES
     { MENUITEM_WIFICONFIG       , "/wifi_config.png"      , wifi_config     },
-    #endif
     #ifdef MENU_INCLUDE_ABOUT
     { MENUITEM_ABOUT            , "/about.png"            , NULL            },
     #endif
@@ -149,6 +144,8 @@ void setup()
     #ifdef QUICK_HTTP_TEST
     wifi_config(NULL);
     #endif
+
+    httpcam.borrowBuffer(ptpcam.donateBuffer(), DATA_BUFFER_SIZE);
 
     cam_cb_setup();
     wifi_init();

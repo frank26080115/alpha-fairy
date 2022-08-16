@@ -67,13 +67,16 @@ void SonyHttpCamera::parse_dd_xml(char* data, int32_t maxlen)
                         c = data[i];
                         if (c == '<' && data[i + 1] == '/')
                         {
+                            strcpy(access_url, service_url);
                             sprintf((char*)(&service_url[k]),"/camera");
+                            sprintf((char*)(&access_url[k]),"/accessControl");
                             hasUrl = true;
                             break;
                         }
                         else
                         {
                             service_url[k] = c;
+                            service_url[k + 1] = 0;
                         }
                     }
                 }
@@ -126,7 +129,9 @@ void SonyHttpCamera::parse_dd_xml(char* data, int32_t maxlen)
 
 void SonyHttpCamera::get_dd_xml()
 {
-    sprintf(url_buffer, "http://%s:64321/dd.xml", IPAddress(ip_addr).toString().c_str());
+    if (strlen(url_buffer) <= 0) {
+        sprintf(url_buffer, "http://%s:64321/dd.xml", IPAddress(ip_addr).toString().c_str());
+    }
     dbgser_states->printf("getting dd.xml from URL: %s\r\n", url_buffer);
     bool openres = request_prep("GET", url_buffer, NULL, ddRequestCb, NULL);
     if (openres) {
@@ -209,4 +214,46 @@ void SonyHttpCamera::initRequestCb(void* optParm, AsyncHTTPRequest* req, int rea
         }
         cam->request_close();
     }
+}
+
+void SonyHttpCamera::ssdp_start(void)
+{
+    ssdp_udp.beginMulticast(IPAddress(239,255,255,250), 1900);
+    ssdp_udp.beginMulticastPacket();
+    ssdp_udp.print("M-SEARCH * HTTP/1.1\r\n");
+    ssdp_udp.print("HOST: 239.255.255.250:1900\r\n");
+    ssdp_udp.print("MAN: \"ssdp:discover\"\r\n");
+    ssdp_udp.print("MX: 2\r\n");
+    ssdp_udp.print("ST: urn:schemas-sony-com:service:ScalarWebAPI:1\r\n");
+    ssdp_udp.print("USER-AGENT: xyz/1.0 abc/1.0\r\n");
+    ssdp_udp.print("\r\n");
+    ssdp_udp.endPacket();
+}
+
+bool SonyHttpCamera::ssdp_checkurl(void)
+{
+    String s;
+    while (ssdp_udp.available())
+    {
+        s = ssdp_udp.readStringUntil('\n');
+        if (s.startsWith("LOCATION:"))
+        {
+            char* ss = (char*)&(s.c_str()[9]);
+            int i, j;
+            for (i = 0; ; i++) {
+                char c = ss[i];
+                if (c == 'h') {
+                    for (j = 0; ; i++, j++) {
+                        c = ss[i];
+                        if (c == '\r' || c == '\n' || c == 0) {
+                            return true;
+                        }
+                        url_buffer[j] = c;
+                        url_buffer[j + 1] = 0;
+                    }
+                }
+            }
+        }
+    }
+    return false;
 }
