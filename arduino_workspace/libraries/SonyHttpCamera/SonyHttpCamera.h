@@ -12,6 +12,7 @@
 
 #include "AsyncHTTPRequest_Generic.hpp"
 #include <WiFiUDP.h>
+#include <HTTPClient.h>
 
 #define SHCAM_RXBUFF_UNIT     64
 
@@ -20,6 +21,7 @@
 #endif
 
 #define SHCAM_NEED_ENTER_MOVIE_MODE
+//#define SHCAM_USE_ASYNC
 
 enum
 {
@@ -73,8 +75,10 @@ class SonyHttpCamera
     public:
         SonyHttpCamera();
 
+        #ifdef SHCAM_USE_ASYNC
         typedef std::function<void(void*, AsyncHTTPRequest*, int readyState)> readyStateChangeCB;
         typedef std::function<void(void*, AsyncHTTPRequest*, size_t available)> onDataCB;
+        #endif
 
         void begin(uint32_t ip);
         void poll(void);
@@ -83,7 +87,11 @@ class SonyHttpCamera
         inline uint32_t  getIp           (void) { return ip_addr; };
         inline char*     getCameraName   (void) { return friendly_name; };
         inline uint8_t   getState        (void) { return state; };
-        inline bool      canSend         (void) { return state >= SHCAMSTATE_READY && (state & 1) == 0 && (httpreq->readyState() == readyStateUnsent || httpreq->readyState() == readyStateDone); };
+        inline bool      canSend         (void) { return state >= SHCAMSTATE_READY && (state & 1) == 0
+                                                    #ifdef SHCAM_USE_ASYNC
+                                                    && (httpreq->readyState() == readyStateUnsent || httpreq->readyState() == readyStateDone)
+                                                    #endif
+                                                    ; };
         inline bool      isOperating     (void) { return state >= SHCAMSTATE_READY && state < SHCAMSTATE_FAILED; };
         inline bool      canNewConnect   (void) { return state == SHCAMSTATE_NONE || state == SHCAMSTATE_FAILED || state == SHCAMSTATE_DISCONNECTED; };
         inline void      setForbidden    (void) { state = SHCAMSTATE_FORBIDDEN; }
@@ -131,13 +139,27 @@ class SonyHttpCamera
         uint32_t rx_buff_idx;
         static uint32_t rx_buff_size;
 
+        #ifdef SHCAM_USE_ASYNC
         AsyncHTTPRequest* httpreq = NULL;
-        static int read_in_chunk(AsyncHTTPRequest* req, int32_t chunk, char* buff, uint32_t* buff_idx);
+        #else
+        HTTPClient httpclient;
+        int32_t    http_content_len;
+        #endif
+        static int read_in_chunk(
+                                    #ifdef SHCAM_USE_ASYNC
+                                    AsyncHTTPRequest* stream
+                                    #else
+                                    WiFiClient* stream
+                                    #endif
+                                    , int32_t chunk, char* buff, uint32_t* buff_idx);
         WiFiUDP ssdp_udp;
 
         uint32_t init_retries;
         uint32_t error_cnt;
         uint8_t  event_api_version;
+        #ifndef SHCAM_USE_ASYNC
+        int last_http_resp_code;
+        #endif
 
         uint32_t last_poll_time;
         uint32_t poll_delay;
@@ -163,8 +185,11 @@ class SonyHttpCamera
         void ssdp_start(void);
         bool ssdp_checkurl(void);
         void cmd_prep(void);
+        #ifdef SHCAM_USE_ASYNC
         bool request_prep(const char* method, const char* url, const char* contentType, readyStateChangeCB cb_s, onDataCB cb_d);
         void request_close(void);
+        #endif
+        bool cmd_send(char* data, char* alt_url = NULL, bool callend = true);
 
         static const char cmd_generic_fmt[];
         static const char cmd_generic_strparam_fmt[];

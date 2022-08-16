@@ -2,7 +2,13 @@
 
 uint32_t SonyHttpCamera::rx_buff_size;
 
-int SonyHttpCamera::read_in_chunk(AsyncHTTPRequest* req, int32_t chunk, char* buff, uint32_t* buff_idx)
+int SonyHttpCamera::read_in_chunk(
+    #ifdef SHCAM_USE_ASYNC
+    AsyncHTTPRequest* stream
+    #else
+    WiFiClient* stream
+    #endif
+    , int32_t chunk, char* buff, uint32_t* buff_idx)
 {
     if ((*buff_idx) == 0) {
         dbgser_rx->println("httpcam rx: ");
@@ -10,8 +16,8 @@ int SonyHttpCamera::read_in_chunk(AsyncHTTPRequest* req, int32_t chunk, char* bu
     if (chunk > SHCAM_RXBUFF_UNIT) {
         chunk = SHCAM_RXBUFF_UNIT;
     }
-    if (chunk > req->available()) {
-        chunk = req->available();
+    if (chunk > stream->available()) {
+        chunk = stream->available();
     }
     int32_t i = (*buff_idx) + chunk;
     while (i > rx_buff_size) {
@@ -23,7 +29,13 @@ int SonyHttpCamera::read_in_chunk(AsyncHTTPRequest* req, int32_t chunk, char* bu
         (*buff_idx) -= SHCAM_RXBUFF_UNIT;
     }
     uint8_t* tgt = (uint8_t*)(&(buff[(*buff_idx)]));
-    int32_t r = req->responseRead(tgt, chunk);
+    int r = 
+        #ifdef SHCAM_USE_ASYNC
+            stream->responseRead
+        #else
+            stream->readBytes
+        #endif
+            (tgt, chunk);
     dbgser_rx->write(tgt, r);
     (*buff_idx) += r;
     buff[(*buff_idx)] = 0;
@@ -278,6 +290,7 @@ uint32_t SonyHttpCamera::get_another_shutterspd(int idx, char* tgt)
     return 0;
 }
 
+#ifdef SHCAM_USE_ASYNC
 bool SonyHttpCamera::request_prep(const char* method, const char* url, const char* contentType, readyStateChangeCB cb_s, onDataCB cb_d)
 {
     //if (httpreq != NULL) {
@@ -307,6 +320,7 @@ void SonyHttpCamera::request_close(void)
     //    httpreq = NULL;
     //}
 }
+#endif
 
 void SonyHttpCamera::wait_while_busy(uint32_t min_time, uint32_t max_time, volatile bool* exit_signal)
 {

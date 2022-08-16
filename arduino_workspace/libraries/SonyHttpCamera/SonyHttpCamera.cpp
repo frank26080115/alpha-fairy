@@ -156,6 +156,7 @@ bool SonyHttpCamera::parse_event(char* data, int32_t maxlen)
     return ret;
 }
 
+#ifdef SHCAM_USE_ASYNC
 void SonyHttpCamera::eventRequestCb(void* optParm, AsyncHTTPRequest* req, int readyState)
 {
     SonyHttpCamera* cam = (SonyHttpCamera*)optParm;
@@ -228,20 +229,26 @@ void SonyHttpCamera::eventDataCb(void* optParm, AsyncHTTPRequest* req, int avail
         cam->parse_event(cam->rx_buff, cam->rx_buff_idx);
     }
 }
+#endif
 
 void SonyHttpCamera::get_event()
 {
     event_found_flag = 0;
+    #ifdef SHCAM_USE_ASYNC
     bool openres = request_prep("POST", service_url, "application/json", eventRequestCb, eventDataCb);
     if (openres)
+    #endif
     {
         sprintf(cmd_buffer, "{ \"method\": \"getEvent\", \"params\": [false], \"id\": %u, \"version\": \"1.%u\" }", req_id, event_api_version);
         dbgser_tx->printf("httpcam get_event json: %s\r\n", cmd_buffer);
-        httpreq->send(cmd_buffer);
+        cmd_send(cmd_buffer, NULL, false);
         req_id++;
+        #ifdef SHCAM_USE_ASYNC
         state = SHCAMSTATE_POLLING + 1;
+        #endif
         last_poll_time = millis();
     }
+    #ifdef SHCAM_USE_ASYNC
     else
     {
         dbgser_tx->printf("httpcam unable to send get_event\r\n");
@@ -249,11 +256,36 @@ void SonyHttpCamera::get_event()
         state_after_wait = SHCAMSTATE_INIT_DONE2;
         wait_until = millis() + 500;
     }
+    #endif
 }
 
 void SonyHttpCamera::poll()
 {
     yield();
+    #ifndef SHCAM_USE_ASYNC
+    if (state == SHCAMSTATE_POLLING + 1)
+    {
+        bool no_len = http_content_len < 0;
+        WiFiClient* cli = httpclient.getStreamPtr();
+        int avail;
+        while ((avail = cli->available()) > 0)
+        {
+            int r = read_in_chunk(cli, avail, rx_buff, &rx_buff_idx);
+            if (http_content_len >= 0) {
+                http_content_len -= r;
+            }
+            if (r == 0) {
+                break;
+            }
+            parse_event(rx_buff, rx_buff_idx);
+        }
+        if ((no_len && httpclient.connected() == false) || (no_len == false && http_content_len <= 0) || httpclient.connected() == false)
+        {
+            httpclient.end();
+            state = SHCAMSTATE_POLLING;
+        }
+    }
+    #endif
 }
 
 void SonyHttpCamera::task()
@@ -320,6 +352,13 @@ void SonyHttpCamera::task()
         }
     }
 
+    #ifndef SHCAM_USE_ASYNC
+    if (state == SHCAMSTATE_INIT_GETDD && init_retries > 0)
+    {
+        get_dd_xml();
+    }
+    #endif
+
     if (state == SHCAMSTATE_INIT_GOTDD)
     {
         #if 0
@@ -332,15 +371,22 @@ void SonyHttpCamera::task()
     }
 
     if ((state == SHCAMSTATE_INIT_ACCESSCONTROL || state == SHCAMSTATE_INIT_GETVERSION || state == SHCAMSTATE_INIT_GETAPILIST || state == SHCAMSTATE_INIT_STARTRECMODE || state == SHCAMSTATE_INIT_SETCAMFUNC) && (state & 1) == 0
-        && (httpreq->readyState() == readyStateUnsent || httpreq->readyState() == readyStateDone))
+        #ifdef SHCAM_USE_ASYNC
+        && (httpreq->readyState() == readyStateUnsent || httpreq->readyState() == readyStateDone)
+        #endif
+        )
     {
+        bool success;
+        #ifdef SHCAM_USE_ASYNC
         bool openres = request_prep("POST", (state == SHCAMSTATE_INIT_ACCESSCONTROL) ? access_url : service_url, "application/json", initRequestCb, NULL);
         if (openres)
+        #endif
         {
             #if 0
             if (state == SHCAMSTATE_INIT_ACCESSCONTROL) {
                 sprintf(cmd_buffer, "{\"version\": \"1.0\", \"params\": [{\"developerName\": \"\", \"sg\": \"\", \"methods\": \"\", \"developerID\": \"\"}], \"method\": \"actEnableMethods\", \"id\": %u}", req_id);
-                httpreq->send(cmd_buffer);
+                success = cmd_send(cmd_buffer, access_url, true);
+                endif
                 req_id++;
                 dbgser_tx->printf("httpcam init accessControl\r\n");
             }
@@ -348,34 +394,58 @@ void SonyHttpCamera::task()
             #endif
             if (state == SHCAMSTATE_INIT_GETVERSION) {
                 sprintf(cmd_buffer, cmd_generic_fmt, "getVersions", req_id);
-                httpreq->send(cmd_buffer);
+                success = cmd_send(cmd_buffer);
                 req_id++;
                 dbgser_tx->printf("httpcam init getVersions\r\n");
             }
             else if (state == SHCAMSTATE_INIT_GETAPILIST) {
                 sprintf(cmd_buffer, cmd_generic_fmt, "getAvailableApiList", req_id);
-                httpreq->send(cmd_buffer);
+                success = cmd_send(cmd_buffer);
                 req_id++;
                 dbgser_tx->printf("httpcam init getAvailableApiList\r\n");
             }
             else if (state == SHCAMSTATE_INIT_STARTRECMODE) {
                 sprintf(cmd_buffer, cmd_generic_fmt, "startRecMode", req_id);
-                httpreq->send(cmd_buffer);
+                success = cmd_send(cmd_buffer);
                 req_id++;
                 dbgser_tx->printf("httpcam init startRecMode\r\n");
             }
             else if (state == SHCAMSTATE_INIT_SETCAMFUNC) {
                 sprintf(cmd_buffer, cmd_generic_fmt, "cameraFunction", req_id);
-                httpreq->send(cmd_buffer);
+                success = cmd_send(cmd_buffer);
                 req_id++;
                 dbgser_tx->printf("httpcam init cameraFunction\r\n");
             }
+            #ifdef SHCAM_USE_ASYNC
             state++; // set the flag for waiting
+            #else
+            if (success)
+            {
+                state += 2;
+                dbgser_states->printf("httpcam init next state %u\r\n", state);
+            }
+            else
+            {
+                init_retries++;
+                if (init_retries > 2) {
+                    state += 2;
+                    dbgser_states->printf("httpcam init err %d, giving up, next state %u\r\n", last_http_resp_code, state);
+                    init_retries = 0;
+                }
+                else {
+                    dbgser_states->printf("httpcam init err %d, state %u, try %u\r\n", last_http_resp_code, state, init_retries);
+                }
+            }
+            #endif
             last_poll_time = millis();
         }
     }
 
-    if ((state > SHCAMSTATE_INIT_DONE1 && state < SHCAMSTATE_POLLING) && (state & 1) == 0 && (httpreq->readyState() == readyStateUnsent || httpreq->readyState() == readyStateDone))
+    if ((state > SHCAMSTATE_INIT_DONE1 && state < SHCAMSTATE_POLLING) && (state & 1) == 0
+        #ifdef SHCAM_USE_ASYNC
+        && (httpreq->readyState() == readyStateUnsent || httpreq->readyState() == readyStateDone)
+        #endif
+        )
     {
         dbgser_states->print("httpcam performing first getEvent\r\n");
         get_event();
@@ -401,6 +471,7 @@ void SonyHttpCamera::task()
     }
 }
 
+#ifdef SHCAM_USE_ASYNC
 void SonyHttpCamera::genericRequestCb(void* optParm, AsyncHTTPRequest* req, int readyState)
 {
     SonyHttpCamera* cam = (SonyHttpCamera*)optParm;
@@ -424,6 +495,7 @@ void SonyHttpCamera::genericRequestCb(void* optParm, AsyncHTTPRequest* req, int 
         cam->request_close();
     }
 }
+#endif
 
 void SonyHttpCamera::set_debugflags(uint32_t x)
 {

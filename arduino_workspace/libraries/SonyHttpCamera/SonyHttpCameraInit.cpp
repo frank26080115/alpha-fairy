@@ -133,16 +133,40 @@ void SonyHttpCamera::get_dd_xml()
         sprintf(url_buffer, "http://%s:64321/dd.xml", IPAddress(ip_addr).toString().c_str());
     }
     dbgser_states->printf("getting dd.xml from URL: %s\r\n", url_buffer);
+    #ifdef SHCAM_USE_ASYNC
     bool openres = request_prep("GET", url_buffer, NULL, ddRequestCb, NULL);
     if (openres) {
         httpreq->send();
         state = SHCAMSTATE_INIT_GETDD;
     }
+    #else
+    httpclient.begin(url_buffer);
+    last_http_resp_code = httpclient.GET();
+    http_content_len = httpclient.getSize();
+    if (last_http_resp_code == 200)
+    {
+        dbgser_states->printf("httpcam success got dd.xml\r\n");
+        parse_dd_xml((char*)httpclient.getString().c_str());
+    }
+    #endif
     else {
-        dbgser_states->printf("httpcam unable to get dd.xml\r\n");
+        dbgser_states->printf("httpcam unable to get dd.xml");
+        #ifndef SHCAM_USE_ASYNC
+        init_retries++;
+        if (init_retries > 3) {
+            dbgser_states->printf(", resp code %d, giving up", last_http_resp_code);
+            state = SHCAMSTATE_FORBIDDEN;
+        }
+        else {
+            dbgser_states->printf(", resp code %d, try %u", last_http_resp_code, init_retries);
+            state = SHCAMSTATE_INIT_GETDD;
+        }
+        #endif
+        dbgser_states->printf("\r\n");
     }
 }
 
+#ifdef SHCAM_USE_ASYNC
 void SonyHttpCamera::ddRequestCb(void* optParm, AsyncHTTPRequest* req, int readyState)
 {
     SonyHttpCamera* cam = (SonyHttpCamera*)optParm;
@@ -215,6 +239,7 @@ void SonyHttpCamera::initRequestCb(void* optParm, AsyncHTTPRequest* req, int rea
         cam->request_close();
     }
 }
+#endif
 
 void SonyHttpCamera::ssdp_start(void)
 {
