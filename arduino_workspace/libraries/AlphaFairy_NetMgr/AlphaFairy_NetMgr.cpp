@@ -135,6 +135,9 @@ void NetMgr_eventHandler(WiFiEvent_t event, WiFiEventInfo_t info)
         NetMgr_taskAP();
     }
     else if (wifi_op_mode == WIFIOPMODE_STA) {
+        if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED && last_sta_status == WL_CONNECTED) {
+            WiFi.reconnect();
+        }
         NetMgr_taskSTA();
     }
 }
