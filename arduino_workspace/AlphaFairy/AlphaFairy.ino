@@ -284,6 +284,9 @@ void wifi_onConnect()
             {
                 ptpcam.begin(newip);
             }
+            wifiprofile_t wp;
+            bool has_profile = wifiprofile_getProfile(config_settings.wifi_profile, &wp);
+            ptpcam.install_guid((config_settings.wifi_profile == 0 || has_profile == false) ? NULL : wp.guid);
         }
     }
     if (httpcam.canNewConnect()) {

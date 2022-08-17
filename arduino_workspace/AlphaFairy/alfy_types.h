@@ -94,6 +94,7 @@ typedef struct
     char ssid[32];
     char password[32];
     uint8_t opmode;
+    char guid[16 + 1];
 }
 wifiprofile_t;
 

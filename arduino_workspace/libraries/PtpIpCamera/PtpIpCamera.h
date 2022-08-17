@@ -34,6 +34,8 @@ enum
 
 #define DEFAULT_BUSY_TIMEOUT 1000
 
+#define PTP_GUID_LEN 16
+
 //#define USE_ASYNC_SOCK
 #ifdef USE_ASYNC_SOCK
 #include <AsyncTCP.h>
@@ -91,6 +93,8 @@ class PtpIpCamera
         void wait_while_busy(uint32_t min_wait, uint32_t max_wait, volatile bool* exit_signal = NULL);
 
         inline char* donateBuffer(void) { return (char*)databuff; };
+        void generate_guid(char*);
+        void install_guid(char*);
 
         void (*cb_onConnect)(void) = NULL;
         void (*cb_onCriticalError)(void) = NULL;
@@ -134,6 +138,7 @@ class PtpIpCamera
         virtual bool decode_pkt    (uint8_t buff[], uint32_t buff_len);
         bool         try_decode_pkt(uint8_t buff[], uint32_t* buff_idx, uint32_t buff_max, bool can_force);
         virtual bool check_name    (void);
+        void         fill_guid     (char*);
 
         uint32_t last_rx_time;
         uint32_t pending_data; // technically this should be 64 bits
@@ -161,6 +166,7 @@ class PtpIpCamera
         // name strings
         char my_name [NAME_BUFFER_SIZE];
         char cam_name[NAME_BUFFER_SIZE];
+        char* custom_guid = NULL;
 
         // derived class must fill this
         ptpip_init_substep_t* init_substeps;

@@ -66,7 +66,7 @@ bool send_wifi_settings(AsyncResponseStream* response, uint8_t idx, bool readonl
     wifiprofile_t profile;
     bool ret = true;
     bool has_profile = wifiprofile_getProfile(idx, &profile);
-    response->printf("<fieldset><legend>Wi-Fi Profile #%u</legend>\r\n", idx);
+    response->printf("<fieldset><legend>Wi-Fi Profile #%u%s</legend>\r\n", idx, has_profile ? "" : " (new)");
     if (readonly == false) {
         response->printf("<form action='/setwifi' method='post'><input id='profilenum' name='profilenum' type='hidden' value='%u' />\r\n", idx);
     }
@@ -88,7 +88,7 @@ bool send_wifi_settings(AsyncResponseStream* response, uint8_t idx, bool readonl
         }
     }
     else {
-        response->printf("<input type='text' id='ssid%u' name='ssid' style='width:80%%' value='%s' />", idx, sp);
+        response->printf("<input type='text' id='ssid%u' name='ssid' style='width:80%%' placeholder='%sWi-Fi SSID' required='required' value='%s' />", idx, has_profile ? "" : "New ", sp);
     }
     response->print("</td></tr>\r\n");
 
@@ -107,7 +107,7 @@ bool send_wifi_settings(AsyncResponseStream* response, uint8_t idx, bool readonl
         }
     }
     else {
-        response->printf("<input type='text' id='password%u' name='password' style='width:80%%' value='%s' />", idx, sp);
+        response->printf("<input type='text' id='password%u' name='password' style='width:80%%' placeholder='%sWi-Fi password' value='%s' />", idx, has_profile ? "" : "New ", sp);
     }
     response->print("</td></tr>\r\n");
 
@@ -126,6 +126,21 @@ bool send_wifi_settings(AsyncResponseStream* response, uint8_t idx, bool readonl
         response->print(" selected");
         }
         response->print(">Direct</option></select>");
+    }
+    response->print("</td></tr>\r\n");
+
+    response->printf("<tr><td class='col-left'><label for='guid%u'>GUID:</label></td><td class='col-right'>", idx);
+    sp = profile.guid;
+    if (readonly) {
+        if (sp[0] == 0) {
+            response->print("&nbsp;");
+        }
+        else {
+            response->print(sp);
+        }
+    }
+    else {
+        response->printf("<input type='text' id='guid%u' name='guid' style='width:80%%' maxlength='16' placeholder='GUID for PTP mode' value='%s' />", idx, sp);
     }
     response->print("</td></tr>\r\n");
 
@@ -185,6 +200,10 @@ void httpsrv_init()
             AsyncWebParameter* paramSsid   = request->getParam("ssid"      , true);
             AsyncWebParameter* paramPass   = request->getParam("password"  , true);
             AsyncWebParameter* paramOpMode = request->getParam("opmode"    , true);
+            AsyncWebParameter* paramGuid = NULL;
+            if (request->hasParam("guid", true)) {
+                paramGuid = request->getParam("guid", true);
+            }
             response = request->beginResponseStream("text/html");
             int pnum = atoi(paramNum->value().c_str());
 
@@ -215,6 +234,13 @@ void httpsrv_init()
             else {
                 // no password if default SSID is set
                 profile.password[0] = 0;
+            }
+
+            if (paramGuid != NULL) {
+                strncpy(profile.guid, paramGuid->value().c_str(), PTP_GUID_LEN);
+            }
+            else {
+                profile.guid[0] = 0;
             }
 
             wifiprofile_writeProfile(pnum, &profile);

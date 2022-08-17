@@ -1,3 +1,4 @@
+#include "PtpIpCamera.h"
 #include "ptpip_utils.h"
 #include <Arduino.h>
 #include <math.h>
@@ -167,4 +168,57 @@ bool camera_name_check(char* instr, const char* needle)
         }
     }
     return false;
+}
+
+void PtpIpCamera::generate_guid(char* s)
+{
+    uint8_t guid_src[PTP_GUID_LEN];
+    WiFi.macAddress(guid_src);
+    memcpy(&(guid_src[6]), my_name, 10);
+    sprintf((char*)s, "%02x%02x%02x%02x-%02x%02x-%02x", guid_src[0], guid_src[1], guid_src[2], guid_src[3], guid_src[4], guid_src[5], guid_src[6]);
+}
+
+void PtpIpCamera::fill_guid(char* s)
+{
+    if (custom_guid == NULL)
+    {
+        generate_guid(s);
+    }
+    else
+    {
+        if (custom_guid[0] == 0)
+        {
+            generate_guid(s);
+        }
+        else
+        {
+            memcpy(s, custom_guid, PTP_GUID_LEN + 1);
+        }
+    }
+}
+
+void PtpIpCamera::install_guid(char* s)
+{
+    bool uninstall = false;
+    
+    if (s == NULL) {
+        uninstall = true;
+    }
+    else if (s[0] == 0) {
+        uninstall = true;
+    }
+    if (uninstall) {
+        if (custom_guid != NULL) {
+            free(custom_guid);
+            custom_guid = NULL;
+        }
+        return;
+    }
+
+    if (custom_guid == NULL) {
+        custom_guid = (char*)malloc(PTP_GUID_LEN+2);
+        custom_guid[0] = 0;
+        custom_guid[PTP_GUID_LEN] = 0;
+    }
+    memcpy(custom_guid, s, PTP_GUID_LEN + 1);
 }

@@ -1,5 +1,5 @@
-#include "PtpIpCamera.h"
 #include <Arduino.h>
+#include "PtpIpCamera.h"
 #include "ptpip_utils.h"
 
 #define PTPSEND_DEBUG(x)    do { if (dbgser_tx->enabled) { send_debug((char*)x); } } while (0)
@@ -124,13 +124,8 @@ bool PtpIpCamera::send_cmd_req()
     uint32_t* version_ptr;
     ptpip_pkt_cmdreq_t* pktstruct = (ptpip_pkt_cmdreq_t*)outbuff;
     pktstruct->header.pkt_type = PTP_PKTTYPE_INITCMDREQ;
-    uint8_t guid_src[16];
-    WiFi.macAddress(guid_src);
-    memcpy(&(guid_src[6]), my_name, 10);
-    sprintf((char*)(pktstruct->guid), "%02x%02x%02x%02x-%02x%02x-%02x", guid_src[0], guid_src[1], guid_src[2], guid_src[3], guid_src[4], guid_src[5], guid_src[6]);
-    //sprintf((char*)(pktstruct->guid), "be420903-1567-48"); // extracted from sniff
-    //sprintf((char*)(pktstruct->guid), "90f4b2qa-c206-43"); // extracted from sniff
-    len = 8 + 16;
+    fill_guid((char*)(pktstruct->guid));
+    len = 8 + PTP_GUID_LEN;
     len += copy_bytes_to_utf16(pktstruct->name, my_name);
     version_ptr = (uint32_t*)&(outbuff[len]);
     (*version_ptr) = 0x00010000;

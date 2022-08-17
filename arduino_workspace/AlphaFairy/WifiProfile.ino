@@ -29,7 +29,7 @@ int wifiprofile_fileReadLine(File* f, char* tgt, int charlimit)
     return i;
 }
 
-bool wifiprofile_getProfileRaw(uint8_t idx, char* ssid, char* password, uint8_t* opmode)
+bool wifiprofile_getProfileRaw(uint8_t idx, char* ssid, char* password, uint8_t* opmode, char* guid)
 {
     if (idx == 0)
     {
@@ -42,6 +42,9 @@ bool wifiprofile_getProfileRaw(uint8_t idx, char* ssid, char* password, uint8_t*
         strcpy(password, (char*)WIFI_DEFAULT_PASS);
         #endif
         *opmode = WIFIOPMODE_AP;
+        if (guid != NULL) {
+            ptpcam.generate_guid(guid);
+        }
         return true;
     }
 
@@ -53,6 +56,9 @@ bool wifiprofile_getProfileRaw(uint8_t idx, char* ssid, char* password, uint8_t*
         ssid[0] = 0;
         password[0] = 0;
         *opmode = 0;
+        if (guid != NULL) {
+            guid[0] = 0;
+        }
         return false;
     }
 
@@ -82,11 +88,17 @@ bool wifiprofile_getProfileRaw(uint8_t idx, char* ssid, char* password, uint8_t*
             *opmode = WIFIOPMODE_AP;
         }
     }
+    if (guid != NULL) {
+        r = wifiprofile_fileReadLine(&f, guid, 16 + 1);
+        if (r < 0) {
+            guid[0] = 0;
+        }
+    }
     f.close();
     return true;
 }
 
-bool wifiprofile_writeProfileRaw(uint8_t idx, char* ssid, char* password, uint8_t opmode)
+bool wifiprofile_writeProfileRaw(uint8_t idx, char* ssid, char* password, uint8_t opmode, char* guid)
 {
     if (idx == 0) {
         return false;
@@ -104,18 +116,23 @@ bool wifiprofile_writeProfileRaw(uint8_t idx, char* ssid, char* password, uint8_
     f.println(ssid);
     f.println(password);
     f.println(opmode, DEC);
+    if (guid != NULL) {
+        if (guid[0] != 0) {
+            f.println(guid);
+        }
+    }
     f.close();
     return true;
 }
 
 bool wifiprofile_getProfile(uint8_t idx, wifiprofile_t* p)
 {
-    return wifiprofile_getProfileRaw(idx, (char*)(p->ssid), (char*)(p->password), (uint8_t*)&(p->opmode));
+    return wifiprofile_getProfileRaw(idx, (char*)(p->ssid), (char*)(p->password), (uint8_t*)&(p->opmode), (char*)(p->guid));
 }
 
 bool wifiprofile_writeProfile(uint8_t idx, wifiprofile_t* p)
 {
-    return wifiprofile_writeProfileRaw(idx, (char*)(p->ssid), (char*)(p->password), p->opmode);
+    return wifiprofile_writeProfileRaw(idx, (char*)(p->ssid), (char*)(p->password), p->opmode, (char*)(p->guid));
 }
 
 bool wifiprofile_connect(uint8_t idx)
@@ -154,7 +171,7 @@ void wifiprofile_deleteAll()
     int i;
     for (i = 1; i <= 9; i++)
     {
-        wifiprofile_writeProfileRaw(i, (char*)"", (char*)"", 0);
+        wifiprofile_writeProfileRaw(i, (char*)"", (char*)"", 0, NULL);
     }
 }
 
@@ -204,7 +221,7 @@ void wifiprofile_scanFill()
                     bool hasfile = wifiprofile_getProfile(j, &pfile);
                     if (hasfile == false || pfile.ssid[0] == 0)
                     {
-                        wifiprofile_writeProfileRaw(j, pscan.ssid, (char*)"", WIFIOPMODE_STA);
+                        wifiprofile_writeProfileRaw(j, pscan.ssid, (char*)"", WIFIOPMODE_STA, NULL);
                         Serial.printf("\t; wrote to profile #%u", j);
                         found = true;
                         break;
