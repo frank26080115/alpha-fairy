@@ -456,7 +456,7 @@ void focus_9point(void* mip)
 {
     dbg_ser.println("focus_9point");
 
-    if (fairycam.isOperating()) {
+    if (fairycam.isOperating() == false) {
         dbg_ser.println("focus_9point but no camera connected");
         app_waitAllReleaseConnecting(BTN_DEBOUNCE);
         return;

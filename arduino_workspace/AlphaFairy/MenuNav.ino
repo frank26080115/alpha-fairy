@@ -111,7 +111,7 @@ bool guimenu_task(menustate_t* m)
         // indicate a tally light on the screen
         gui_drawMovieRecStatus();
     }
-    else if (m->items[m->idx].id == MENUITEM_FOCUS_PULL || m->items[m->idx].id == MENUITEM_ZOOM_PULL) {
+    else if ((m->items[m->idx].id == MENUITEM_FOCUS_PULL && httpcam.isOperating() == false) || m->items[m->idx].id == MENUITEM_ZOOM_PULL) {
         gui_drawFocusPullState();
     }
     else if (m->items[m->idx].id == MENUITEM_REMOTESHUTTER_DLY)

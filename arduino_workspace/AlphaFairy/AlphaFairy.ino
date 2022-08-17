@@ -404,7 +404,7 @@ void app_waitAllReleaseConnecting(uint32_t debounce)
             continue;
         }
     }
-    while ((last_time - (now = millis())) < debounce);
+    while (((now = millis()) - last_time) < debounce);
 }
 
 void app_waitAllReleaseUnsupported(uint32_t debounce)
@@ -426,7 +426,8 @@ void app_waitAllReleaseUnsupported(uint32_t debounce)
             continue;
         }
     }
-    while ((last_time - (now = millis())) < debounce);
+    while (((now = millis()) - last_time) < debounce);
+    redraw_flag = true;
 }
 
 void critical_error(const char* fp)
