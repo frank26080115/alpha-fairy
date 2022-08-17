@@ -39,8 +39,6 @@ void NetMgr_beginAP(char* ssid, char* password)
     if (wifi_op_mode != WIFIOPMODE_NONE)
     {
         esp_wifi_disconnect();
-        esp_wifi_stop();
-        esp_wifi_deinit();
     }
 
     wifi_op_mode = WIFIOPMODE_AP;
@@ -60,8 +58,6 @@ void NetMgr_beginSTA(char* ssid, char* password)
     if (wifi_op_mode != WIFIOPMODE_NONE)
     {
         esp_wifi_disconnect();
-        esp_wifi_stop();
-        esp_wifi_deinit();
     }
 
     wifi_op_mode = WIFIOPMODE_STA;
@@ -330,8 +326,6 @@ void NetMgr_reboot()
 {
     NetMgr_reset();
     esp_wifi_disconnect();
-    esp_wifi_stop();
-    esp_wifi_deinit();
     if (wifi_op_mode == WIFIOPMODE_AP) {
         WiFi.mode(WIFI_AP);
         WiFi.softAP(NetMgr_ssid, NetMgr_password);
