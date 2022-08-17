@@ -76,6 +76,7 @@ void strcpy_no_slash(char* dst, char* src);
 bool get_txt_within_strtbl(char* tbl, int idx, char* tgt);
 int get_idx_within_strtbl(char* tbl, char* needle);
 uint32_t parse_shutter_speed_str(char* s);
+bool parse_json_err_num(const char* data, int* outnum);
 
 class SonyHttpCamera
 {

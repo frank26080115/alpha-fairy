@@ -160,6 +160,30 @@ bool scan_json_for_key(char* data, int32_t datalen, const char* keystr, signed i
     return found;
 }
 
+bool parse_json_err_num(const char* data, int* outnum)
+{
+    char tmp[16];
+    int slen = strlen(data);
+    int i, j;
+    for (i = 0, j = 0; i < slen; i++)
+    {
+        char c = data[i];
+        if (c >= '0' && c <= '9') {
+            tmp[j] = c; // record numeric character into temp string
+            tmp[j + 1] = 0;
+            j += 1;
+        }
+        else if (i > 0 && j > 0) {
+            break; // stop on non-numeric, but only after we actually have a number
+        }
+    }
+    if (j > 0) {
+        *outnum = atoi(tmp);
+        return true;
+    }
+    return false;
+}
+
 int count_commas(char* data)
 {
     uint32_t slen = strlen(data);

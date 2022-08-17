@@ -173,8 +173,13 @@ bool SonyHttpCamera::parse_event(char* data, int32_t maxlen)
     found = scan_json_for_key(rx_buff, maxlen, "error", &i, &j, (char*)res_buff, 64);
     if (found) {
         dbgser_devprop_dump->printf("httpcam event key \"res_buff\" = \"%s\"\r\n", res_buff);
-        if (event_api_version > 0) {
-            event_api_version--;
+        int eno;
+        if (parse_json_err_num((const char*)res_buff, &eno))
+        {
+            // check error number, 14 means unsupported, downgrade the version number for event fetching
+            if (eno == 14 && event_api_version > 0) {
+                event_api_version--;
+            }
         }
     }
     else {
