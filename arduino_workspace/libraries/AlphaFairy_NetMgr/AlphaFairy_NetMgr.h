@@ -38,6 +38,7 @@ char* NetMgr_getPassword(void);
 void NetMgr_regCallback(void(*cb_evt)(void), void(*cb_discon)(void));
 
 uint32_t NetMgr_getConnectableClient(void);
+bool NetMgr_hasActiveClients(void);
 void NetMgr_markClientCameraPtp(uint32_t ip);
 void NetMgr_markClientCameraHttp(uint32_t ip);
 void NetMgr_markClientPhoneHttp(uint32_t ip);

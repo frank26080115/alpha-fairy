@@ -119,6 +119,9 @@ class SonyHttpCamera
 
         void (*cb_onConnect)(void) = NULL;
         void (*cb_onDisconnect)(void) = NULL;
+        void (*cb_onCriticalError)(void) = NULL;
+
+        uint32_t critical_error_cnt = 0;
 
         void borrowBuffer(char*, uint32_t);
 

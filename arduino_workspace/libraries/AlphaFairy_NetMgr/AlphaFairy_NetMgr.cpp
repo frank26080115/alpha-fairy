@@ -22,6 +22,8 @@ static uint32_t gateway_ip = 0;
 static void (*callback)(void) = NULL;
 static void (*disconnect_callback)(void) = NULL;
 
+static uint32_t last_sta_reconn_time = 0;
+
 void NetMgr_taskAP(void);
 void NetMgr_taskSTA(void);
 void NetMgr_eventHandler(WiFiEvent_t event, WiFiEventInfo_t info);
@@ -70,6 +72,7 @@ void NetMgr_beginSTA(char* ssid, char* password)
 
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
+    last_sta_reconn_time = millis();
 }
 
 void NetMgr_regCallback(void(*cb_evt)(void), void(*cb_disconn)(void))
@@ -134,6 +137,12 @@ void NetMgr_eventHandler(WiFiEvent_t event, WiFiEventInfo_t info)
     else if (wifi_op_mode == WIFIOPMODE_STA) {
         if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED && last_sta_status == WL_CONNECTED) {
             WiFi.reconnect();
+            last_sta_reconn_time = millis();
+        }
+        else if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED && (millis() - last_sta_reconn_time) > 200) {
+            WiFi.disconnect();
+            WiFi.begin();
+            last_sta_reconn_time = millis();
         }
         NetMgr_taskSTA();
     }
@@ -141,6 +150,17 @@ void NetMgr_eventHandler(WiFiEvent_t event, WiFiEventInfo_t info)
 
 void NetMgr_task()
 {
+    if (wifi_op_mode == WIFIOPMODE_STA && WiFi.status() != WL_CONNECTED)
+    {
+        if (NetMgr_hasActiveClients() == false)
+        {
+            uint32_t now = millis();
+            if ((now - last_sta_reconn_time) > 1000) {
+                WiFi.reconnect();
+                last_sta_reconn_time = now;
+            }
+        }
+    }
     if (callback != NULL) {
         return;
     }
@@ -311,6 +331,18 @@ bool NetMgr_shouldReportError(void)
     return rpt_err;
 }
 
+bool NetMgr_hasActiveClients(void)
+{
+    int i;
+    for (i = 0; i < WIFICLI_TABLE_SIZE; i++) {
+        wificli_classifier_t* t = &(wificli_table[i]);
+        if (t->ip != 0 && (t->flags & WIFICLIFLAG_IS_ERROR) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 uint8_t NetMgr_getOpMode()
 {
     return wifi_op_mode;
@@ -334,6 +366,7 @@ void NetMgr_reboot()
     else if (wifi_op_mode == WIFIOPMODE_STA) {
         WiFi.mode(WIFI_STA);
         WiFi.begin(NetMgr_ssid, NetMgr_password);
+        last_sta_reconn_time = millis();
     }
 }
 

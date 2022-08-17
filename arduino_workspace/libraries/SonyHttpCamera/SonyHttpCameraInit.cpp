@@ -154,8 +154,12 @@ void SonyHttpCamera::get_dd_xml()
         #ifndef SHCAM_USE_ASYNC
         init_retries++;
         if (init_retries > 3) {
+            critical_error_cnt++;
             dbgser_states->printf(", resp code %d, giving up", last_http_resp_code);
             state = SHCAMSTATE_FORBIDDEN;
+            if (cb_onCriticalError != NULL) {
+                cb_onCriticalError();
+            }
         }
         else {
             dbgser_states->printf(", resp code %d, try %u", last_http_resp_code, init_retries);

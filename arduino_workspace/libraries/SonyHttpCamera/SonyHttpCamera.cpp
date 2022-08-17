@@ -174,6 +174,11 @@ bool SonyHttpCamera::parse_event(char* data, int32_t maxlen)
             event_api_version--;
         }
     }
+    else {
+        if (event_found_flag != 0) {
+            critical_error_cnt = 0;
+        }
+    }
 
     #if 0
     dbgser_devprop_dump->printf(rx_buff);
@@ -374,8 +379,9 @@ void SonyHttpCamera::task()
             }
             if (got_ssdp == false) {
                 init_retries++;
-                if (init_retries >= 20) {
+                if (init_retries >= 15) {
                     got_ssdp = true; // give up and get dd.xml anyways
+                    critical_error_cnt++;
                     dbgser_states->println("httpcam SSDP give up");
                 }
                 else {
@@ -383,7 +389,7 @@ void SonyHttpCamera::task()
                     if (init_retries < 5) {
                         ssdp_start();
                     }
-                    wait_until = now + 500;
+                    wait_until = now + 750;
                 }
             }
         }

@@ -274,6 +274,9 @@ void wifi_onConnect()
             #if 1
             if (NetMgr_getOpMode() == WIFIOPMODE_STA)
             {
+                // if the mode is STA then it is more likely that the camera is HTTP
+                // it seems like some of those cameras do not like being connected to over the PTP port first
+                // so add an extra delay for the PTP initialization just in case
                 ptpcam.begin(newip, 5000);
             }
             else
@@ -332,7 +335,18 @@ void ptpcam_onCriticalError()
     pwr_tick();
     if (ptpcam.critical_error_cnt > 2) {
         NetMgr_markClientError(ptpcam.getIp());
-        if (NetMgr_shouldReportError()) {
+        if (NetMgr_shouldReportError() && httpcam.isOperating() == false) {
+            critical_error("/crit_error.png");
+        }
+    }
+}
+
+void httpcam_onCriticalError()
+{
+    pwr_tick();
+    if (httpcam.critical_error_cnt > 0) {
+        NetMgr_markClientError(httpcam.getIp());
+        if (NetMgr_shouldReportError() && ptpcam.isOperating() == false) {
             critical_error("/crit_error.png");
         }
     }
@@ -352,6 +366,7 @@ void cam_cb_setup()
 
     httpcam.cb_onConnect = ptpcam_onConnect;
     httpcam.cb_onDisconnect = httpcam_onDisconnect;
+    httpcam.cb_onCriticalError = httpcam_onCriticalError;
 }
 
 void app_waitAnyPress(bool can_sleep)
