@@ -4,6 +4,7 @@ I've written a bunch of libraries when appropriate, things that can be used inde
 
  * the PTP-over-TCP/IP stuff and the Sony camera object is in one library called PtpIpCamera
     * in theory it is extendable to Canon and Nikon
+ * the HTTP and JSON-RPC library for Sony cameras, called SonyHttpCamera
  * infrared command sending
  * low level Wi-Fi initialization and new client detection
  * extended image file decoding for LCD display
@@ -31,7 +32,7 @@ It's fun trying to create a good user experience with only two buttons and a scr
 
 The M5StickC library provides an implementation of the AHRS filter to calculate angles from accelerometer and gyroscope data. The output isn't very good but is good enough for me to not bother re-writing the filter.
 
-For focus pulling, the user tilts the device left or right to determine both the direction and speed of focus change.
+For focus pulling and zooming, the user tilts the device left or right to determine both the direction and speed of focus change.
 
 To adjust values in the configuration screens, tilting left means the user wants the value to go down, tilting right means the user wants the value to go up.
 
@@ -41,12 +42,18 @@ To set the shutter speed and ISO for the dual-shutter, the setting is actually o
 
 My original implementation had one long chain of menu items, and the user could tilt left to navigate backwards. But after adding more features, I decided to go with nested menus instead of just one flat menu.
 
+### HTTP Server for Smartphones
+
+When I added support for cameras that used the HTTP protocol, I also had to add a way for the user to input the camera's own Wi-Fi SSID and password. This is done by serving up a web page interface. The user can use a smartphone to type the Wi-Fi credentials into this web page.
+
+There are a total of 9 profile slots for Wi-Fi credentials, so theoretically the user can own 9 different cameras and use them all with the same remote. The profile number can be selected from the Wi-Fi configuration menu (without using a smartphone).
+
 ## Resource Usage
 
-The built process (on August 7 2022) reports that
+The built process (on August 16 2022) reports that
 
-    Sketch uses 851353 bytes (64%) of program storage space. Maximum is 1310720 bytes.
-    Global variables use 66608 bytes (20%) of dynamic memory, leaving 261072 bytes for local variables. Maximum is 327680 bytes.
+    Sketch uses 1131497 bytes (86%) of program storage space. Maximum is 1310720 bytes.
+    Global variables use 70936 bytes (21%) of dynamic memory, leaving 256744 bytes for local variables. Maximum is 327680 bytes.
 
 The local variable memory is further used for image sprites. It actually does not have enough memory to store every single sprite that I can come up with, so the sprite manager is constantly being unloaded.
 

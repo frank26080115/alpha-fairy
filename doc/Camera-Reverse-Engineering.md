@@ -14,6 +14,16 @@ Conveniently other people have worked on similar projects and I was able to get 
 
 There are two parts to the handshake. The first part is pretty well described by the protocol documentation. The second part involves a series of operation requests using Sony's own operation codes. This appears to be slightly different between camera models, so it adds to the difficulty of supporting camera models that I do not own. However, I did write my source code in a way that this sequence is described in a table, so new camera models can be supported very easily once I get some sniffed data from the new camera model.
 
+#### August 2022
+
+It seems like the handshake is the same across at least two camera models, I'm fairly confident it will be the same across all camera models. Also, the act of "pairing" is simply a delay after the host sends the "initialization command request" which contains the host's friendly name, the name is shown on the camera's screen and the user has to press OK. When OK is pressed, "initialization command acknowledgement" is returned to the host. The host's GUID is memorized by the camera so it won't be prompted for any future handshakes.
+
+#### Warning About Pairing!!!
+
+It looks like when a camera is "paired" to an application, you cannot unpair it!!! The only way to unpair is through a factory reset, which would cause you to lose all of your custom key mappings and memory recall slots.
+
+Please use the "Connect Without Pairing" option!!!
+
 ## Device Properties
 
 One key feature for me to implement is to read the camera's status (current settings, battery level, etc). This is done by requesting all device properties, and then getting a gigantic chunk of data as a reply. There are a few annoying things about the way this works:
@@ -46,3 +56,9 @@ Sony does list the cameras that support wireless communication with the Imaging 
 Other cameras supports wireless control from the Imaging Edge Remote smartphone application. It is a lot more difficult to packet-sniff the communication between a smartphone and the camera as it is a direct connection. At this point I have not attempted to do so. I did attempt to do a port-scan on my A6600 and it revealed that it uses port number 10000. It accepts a TCP connection but as soon as any PTP commands are sent, it disconnects.
 
 Also, [Sony does actually provide a SDK](https://support.d-imaging.sony.co.jp/app/sdk/en/index.html) for some cameras! But the SDK is meant for Windows, MacOS, and Linux (with a heavy focus on Raspberry Pi in the documentation, thanks Sony! Did you know Sony UK manufactures Raspberry Pis?). The SDK does not expose any of the protocol and its codes, and cannot be used for a microcontroller platform.
+
+## Adding the HTTP JSON-RPC Protocol, mid August 2022
+
+I figured out that older cameras use a deprecated API and SDK that Sony used to offer: https://developer.sony.com/develop/cameras/api-information/supported-features-and-compatible-cameras
+
+It's a totally proprietary protocol (no standard organization), and is missing manual focusing (so focus stacking is impossible, as is any other feature that requires manual focus). It uses plain JSON and is fairly well documented.
