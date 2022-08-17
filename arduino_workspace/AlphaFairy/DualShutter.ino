@@ -70,16 +70,22 @@ void dual_shutter(void* mip)
 void dual_shutter_shoot(bool already_focused, bool read_button, speed_t* restore_shutter, speed_t* restore_iso)
 {
     bool starting_mf = false;
+    bool starting_mf_ignore = false;
     bool need_restore_af = false;
     bool need_restore_ss = false;
     bool need_restore_iso = false;
+
+    if (httpcam.isOperating() && httpcam.is_manuallyfocused() == SHCAM_FOCUSMODE_NONE) {
+        starting_mf_ignore = true;
+    }
+
 
     if (already_focused == false) {
         // only care about MF if we are not already focused
         starting_mf = fairycam.is_manuallyfocused();
     }
 
-    if (already_focused == false && starting_mf == false) {
+    if (already_focused == false && starting_mf == false && starting_mf_ignore == false) {
         // the camera won't actually take a photo if it's not focused (when shutter tries to open, it'll lag to focus)
         // so we turn on AF
         fairycam.cmd_AutoFocus(true);
@@ -255,7 +261,7 @@ void dual_shutter_shoot(bool already_focused, bool read_button, speed_t* restore
         }
         while (((now = millis()) - t) < timeout);
     }
-    if (need_restore_af) {
+    if (need_restore_af && starting_mf_ignore == false) {
         fairycam.wait_while_busy(config_settings.shutter_step_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
         fairycam.cmd_AutoFocus(false);
     }

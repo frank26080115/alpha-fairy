@@ -24,7 +24,7 @@ SonyHttpCamera::SonyHttpCamera()
     dbgser_important->enabled = false;
     dbgser_states->   enabled = false;
     dbgser_events->   enabled = false;
-    dbgser_rx->       enabled = true;
+    dbgser_rx->       enabled = false;
     dbgser_tx->       enabled = false;
     dbgser_devprop_dump->  enabled = false;
     dbgser_devprop_change->enabled = false;
@@ -39,7 +39,7 @@ void SonyHttpCamera::begin(uint32_t ip)
     error_cnt = 0;
     event_api_version = 3;
     is_movierecording_v = false;
-    is_manuallyfocused_v = false;
+    is_manuallyfocused_v = 0;
     is_focused = false;
     req_id = 1;
     rx_buff_idx = 0;
@@ -61,7 +61,7 @@ void SonyHttpCamera::begin(uint32_t ip)
 
     zoom_state = 0;
     zoom_time = 0;
-    poll_delay = 10000;
+    poll_delay = 500;
 
     if (tbl_iso != NULL) {
         free(tbl_iso);
@@ -136,7 +136,9 @@ bool SonyHttpCamera::parse_event(char* data, int32_t maxlen)
 
     found = scan_json_for_key(rx_buff, maxlen, "currentFocusMode", &i, &j, (char*)res_buff, 64);
     if (found && strlen(res_buff) > 0) {
-        is_manuallyfocused_v = (memcmp(res_buff, "MF", 2) == 0);
+        // warning, it seems like this item is missing, even from my a6600
+        is_manuallyfocused_v = (memcmp(res_buff, "AF", 2) == 0) ? SHCAM_FOCUSMODE_AF : is_manuallyfocused_v;
+        is_manuallyfocused_v = (memcmp(res_buff, "MF", 2) == 0) ? SHCAM_FOCUSMODE_MF : is_manuallyfocused_v;
         if (is_manuallyfocused_v == false) {
             strcpy(str_afmode, res_buff);
         }
@@ -184,7 +186,7 @@ void SonyHttpCamera::eventRequestCb(void* optParm, AsyncHTTPRequest* req, int re
         {
             dbgser_devprop_dump->printf("\r\nhttpcam polled event 0x%08X\r\n", cam->event_found_flag);
             if (strlen(cam->str_focusstatus) <= 0) {
-                if (cam->event_api_version > 1) {
+                if (cam->event_api_version >= 1) {
                     cam->event_api_version--;
                 }
             }
@@ -243,9 +245,7 @@ void SonyHttpCamera::get_event()
         dbgser_tx->printf("httpcam get_event json: %s\r\n", cmd_buffer);
         cmd_send(cmd_buffer, NULL, false);
         req_id++;
-        #ifdef SHCAM_USE_ASYNC
         state = SHCAMSTATE_POLLING + 1;
-        #endif
         last_poll_time = millis();
     }
     #ifdef SHCAM_USE_ASYNC
@@ -266,22 +266,37 @@ void SonyHttpCamera::poll()
     if (state == SHCAMSTATE_POLLING + 1)
     {
         bool no_len = http_content_len < 0;
-        WiFiClient* cli = httpclient.getStreamPtr();
-        int avail;
-        while ((avail = cli->available()) > 0)
+        WiFiClient* cli = NULL;
+        if (httpclient.connected())
         {
-            int r = read_in_chunk(cli, avail, rx_buff, &rx_buff_idx);
-            if (http_content_len >= 0) {
-                http_content_len -= r;
+            cli = httpclient.getStreamPtr();
+            int avail;
+            while ((avail = cli->available()) > 0)
+            {
+                int r = read_in_chunk(cli, avail, rx_buff, &rx_buff_idx);
+                if (http_content_len >= 0) {
+                    http_content_len -= r;
+                }
+                if (r == 0) {
+                    break;
+                }
+                //parse_event(rx_buff, rx_buff_idx);
             }
-            if (r == 0) {
-                break;
-            }
-            parse_event(rx_buff, rx_buff_idx);
+            //dbgser_states->printf("httpcam event read with rem=%d\r\n", http_content_len);
         }
         if ((no_len && httpclient.connected() == false) || (no_len == false && http_content_len <= 0) || httpclient.connected() == false)
         {
-            httpclient.end();
+            dbgser_rx->println();
+            parse_event(rx_buff, rx_buff_idx);
+            if (cli != NULL) {
+                while (cli->available() > 0) {
+                    cli->read();
+                }
+            }
+            if (httpclient.connected()) {
+                httpclient.end();
+            }
+            dbgser_states->printf("httpcam finalizing poll, evt 0x%08X\r\n", event_found_flag);
             state = SHCAMSTATE_POLLING;
         }
     }
@@ -457,7 +472,7 @@ void SonyHttpCamera::task()
         {
             get_event();
         }
-        else if ((now - zoom_time) > 5000)
+        else if ((now - zoom_time) > 5000 && zoom_time != 0 && zoom_state != 0)
         {
             cmd_ZoomStop();
         }

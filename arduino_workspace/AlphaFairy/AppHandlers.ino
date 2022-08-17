@@ -195,9 +195,13 @@ void remote_shutter(void* mip)
     #endif
 
     bool starting_mf = fairycam.is_manuallyfocused();
+    bool starting_mf_ignore = false;
+    if (httpcam.isOperating() && httpcam.is_manuallyfocused() == SHCAM_FOCUSMODE_NONE) {
+        starting_mf_ignore = true;
+    }
 
     // start focusing at the beginning of the countdown
-    if (starting_mf == false) {
+    if (starting_mf == false && starting_mf_ignore == false) {
         dbg_ser.printf("rmtshutter AF\r\n");
         fairycam.cmd_AutoFocus(true);
     }
@@ -226,7 +230,7 @@ void remote_shutter(void* mip)
         if (quit) {
             dbg_ser.printf(" user cancelled\r\n");
             // end autofocus
-            if (starting_mf == false) {
+            if (starting_mf == false && starting_mf_ignore == false) {
                 fairycam.cmd_AutoFocus(false);
             }
             ledblink_off();
@@ -280,7 +284,7 @@ void remote_shutter(void* mip)
         fail_shown = true;
     }
 
-    if (starting_mf == false) {
+    if (starting_mf == false && starting_mf_ignore == false) {
         fairycam.cmd_AutoFocus(false);
         dbg_ser.printf("rmtshutter disable AF\r\n");
     }

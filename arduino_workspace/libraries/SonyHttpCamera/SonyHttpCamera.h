@@ -63,6 +63,13 @@ enum
     SHOOTMODE_MOVIE,
 };
 
+enum
+{
+    SHCAM_FOCUSMODE_NONE = 0,
+    SHCAM_FOCUSMODE_MF,
+    SHCAM_FOCUSMODE_AF,
+};
+
 bool scan_json_for_key(char* data, int32_t datalen, const char* keystr, signed int* start_idx, signed int* end_idx, char* tgt, int tgtlen);
 int count_commas(char* data);
 void strcpy_no_slash(char* dst, char* src);
@@ -101,7 +108,7 @@ class SonyHttpCamera
         inline void      setPollDelaySlow(void)       { poll_delay = 500; };
 
         inline bool      is_movierecording (void) { return is_movierecording_v; };
-        inline bool      is_manuallyfocused(void) { return is_manuallyfocused_v; };
+        inline uint8_t   is_manuallyfocused(void) { return is_manuallyfocused_v; };
         bool             is_focused;
         inline bool      is_moviemode      (void) { return shoot_mode == SHOOTMODE_MOVIE; };
 
@@ -173,7 +180,7 @@ class SonyHttpCamera
         int8_t   zoom_state;
         uint32_t zoom_time;
         bool     is_movierecording_v;
-        bool     is_manuallyfocused_v;
+        uint8_t  is_manuallyfocused_v;
         uint8_t  shoot_mode;
 
         bool parse_event(char* data, int32_t maxlen = 0);
@@ -206,11 +213,13 @@ class SonyHttpCamera
         static DebuggingSerial* dbgser_devprop_change;
 
     private:
+        #ifdef SHCAM_USE_ASYNC
         static void ddRequestCb      (void* optParm, AsyncHTTPRequest* request, int readyState);
         static void eventRequestCb   (void* optParm, AsyncHTTPRequest* request, int readyState);
         static void initRequestCb    (void* optParm, AsyncHTTPRequest* request, int readyState);
         static void genericRequestCb (void* optParm, AsyncHTTPRequest* request, int readyState);
         static void eventDataCb      (void* optParm, AsyncHTTPRequest* req, int avail);
+        #endif
     public:
         inline char*    get_shutterspd_str  (void) { return str_shutterspd_clean; };
         inline uint32_t get_shutterspd_32   (void) { return parse_shutter_speed_str(str_shutterspd_clean); };

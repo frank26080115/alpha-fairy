@@ -62,7 +62,8 @@ bool scan_json_for_key(char* data, int32_t datalen, const char* keystr, signed i
             if (memcmp(&(data[i + 1]), keystr, keylen) == 0)
             {
                 i += keylen + 2;
-                char c;
+                char c = data[i];
+                char prev_c = c;
                 for (; i < slen && c != 0 && found == false; i++)
                 {
                     c = data[i];
@@ -96,7 +97,7 @@ bool scan_json_for_key(char* data, int32_t datalen, const char* keystr, signed i
                                 sidx = i;
                                 i++;
                                 bool in_quote = false;
-                                char prev_c = c;
+                                prev_c = c;
                                 for (; i < slen && c != 0 && found == false; i++)
                                 {
                                     c = data[i];
@@ -134,8 +135,9 @@ bool scan_json_for_key(char* data, int32_t datalen, const char* keystr, signed i
                     {
                         return false;
                     }
+                    prev_c = c;
                 }
-            }
+            } // memcmp
         }
     }
     if (sidx < 0 || eidx < 0) {

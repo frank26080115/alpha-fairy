@@ -49,7 +49,7 @@ bool AlphaFairyCamera::is_manuallyfocused(void)
         return cam_ptp->is_manuallyfocused();
     }
     if (cam_http->isOperating()) {
-        return cam_http->is_manuallyfocused();
+        return cam_http->is_manuallyfocused() == SHCAM_FOCUSMODE_MF;
     }
     return false;
 }
