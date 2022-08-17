@@ -41,7 +41,7 @@ PtpIpCamera::PtpIpCamera(char* name) {
     dbgser_devprop_change->enabled = true;
 }
 
-void PtpIpCamera::begin(uint32_t ip) {
+void PtpIpCamera::begin(uint32_t ip, uint32_t wait) {
     if (ip == 0) {
         //dbgser_important->printf("PTP camera got an empty IP address\r\n");
         return;
@@ -54,6 +54,7 @@ void PtpIpCamera::begin(uint32_t ip) {
     ip_addr = ip;
     state = PTPSTATE_START_WAIT;
     last_rx_time = millis();
+    conn_wait = wait;
 }
 
 void PtpIpCamera::task()
@@ -62,7 +63,7 @@ void PtpIpCamera::task()
     if (state == PTPSTATE_INIT) {
         return;
     }
-    if (state == PTPSTATE_START_WAIT && (now - last_rx_time) > PTPIP_CONN_WAIT) {
+    if (state == PTPSTATE_START_WAIT && (now - last_rx_time) > conn_wait) {
         reset_buffers();
         error_cnt = 0;
 

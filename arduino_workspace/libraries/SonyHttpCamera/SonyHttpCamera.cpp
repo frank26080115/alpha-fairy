@@ -22,11 +22,11 @@ SonyHttpCamera::SonyHttpCamera()
     dbgser_devprop_change  = new DebuggingSerial(&Serial);
 
     dbgser_important->enabled = false;
-    dbgser_states->   enabled = false;
+    dbgser_states->   enabled = true;
     dbgser_events->   enabled = false;
     dbgser_rx->       enabled = false;
     dbgser_tx->       enabled = false;
-    dbgser_devprop_dump->  enabled = false;
+    dbgser_devprop_dump->  enabled = true;
     dbgser_devprop_change->enabled = false;
 
     begin(0);
@@ -52,7 +52,8 @@ void SonyHttpCamera::begin(uint32_t ip)
     {
         state = SHCAMSTATE_WAIT;
         state_after_wait = SHCAMSTATE_CONNECTING;
-        wait_until = millis() + 500;
+        wait_until = millis() + 1000;
+        dbgser_states->printf("httpcam hello IP %08X\r\n", ip);
     }
     else if (ip == 0)
     {
@@ -85,6 +86,7 @@ bool SonyHttpCamera::parse_event(char* data, int32_t maxlen)
     found = scan_json_for_key(rx_buff, maxlen, "cameraStatus", &i, &j, (char*)res_buff, 64);
     if (found) {
         is_movierecording_v = (memcmp(res_buff, "Movie", 5) == 0);
+        dbgser_devprop_dump->printf("httpcam event key \"cameraStatus\" = \"%s\"\r\n", res_buff);
         ret |= true;
         event_found_flag |= (1 << 0);
     }
@@ -92,6 +94,7 @@ bool SonyHttpCamera::parse_event(char* data, int32_t maxlen)
     found = scan_json_for_key(rx_buff, maxlen, "focusStatus", &i, &j, (char*)res_buff, 64);
     if (found) {
         strcpy(str_focusstatus, res_buff);
+        dbgser_devprop_dump->printf("httpcam event key \"focusStatus\" = \"%s\"\r\n", res_buff);
         is_focused = (memcmp(res_buff, "Focused", 7) == 0);
         ret |= true;
         event_found_flag |= (1 << 1);
@@ -100,6 +103,7 @@ bool SonyHttpCamera::parse_event(char* data, int32_t maxlen)
     found = scan_json_for_key(rx_buff, maxlen, "currentIsoSpeedRate", &i, &j, (char*)res_buff, 64);
     if (found && strlen(res_buff) > 0) {
         strcpy(str_iso, res_buff);
+        dbgser_devprop_dump->printf("httpcam event key \"currentIsoSpeedRate\" = \"%s\"\r\n", res_buff);
         ret |= true;
         event_found_flag |= (1 << 2);
     }
@@ -110,6 +114,7 @@ bool SonyHttpCamera::parse_event(char* data, int32_t maxlen)
             k = j - i + 3;
             tbl_iso = (char*)malloc(k);
             found = scan_json_for_key(rx_buff, maxlen, "isoSpeedRateCandidates", &i, &j, (char*)tbl_iso, k - 1);
+            dbgser_devprop_dump->printf("httpcam event key \"isoSpeedRateCandidates\" = \"%s\"\r\n", tbl_iso);
             ret |= true;
             event_found_flag |= (1 << 3);
         }
@@ -119,6 +124,7 @@ bool SonyHttpCamera::parse_event(char* data, int32_t maxlen)
     if (found && strlen(res_buff) > 0) {
         strcpy(str_shutterspd, res_buff);
         strcpy_no_slash(str_shutterspd_clean, str_shutterspd);
+        dbgser_devprop_dump->printf("httpcam event key \"currentShutterSpeed\" = \"%s\"\r\n", res_buff);
         ret |= true;
         event_found_flag |= (1 << 4);
     }
@@ -129,6 +135,7 @@ bool SonyHttpCamera::parse_event(char* data, int32_t maxlen)
             k = j - i + 3;
             tbl_shutterspd = (char*)malloc(k);
             found = scan_json_for_key(rx_buff, maxlen, "shutterSpeedCandidates", &i, &j, (char*)tbl_shutterspd, k - 1);
+            dbgser_devprop_dump->printf("httpcam event key \"shutterSpeedCandidates\" = \"%s\"\r\n", tbl_shutterspd);
             ret |= true;
             event_found_flag |= (1 << 5);
         }
@@ -139,9 +146,10 @@ bool SonyHttpCamera::parse_event(char* data, int32_t maxlen)
         // warning, it seems like this item is missing, even from my a6600
         is_manuallyfocused_v = (memcmp(res_buff, "AF", 2) == 0) ? SHCAM_FOCUSMODE_AF : is_manuallyfocused_v;
         is_manuallyfocused_v = (memcmp(res_buff, "MF", 2) == 0) ? SHCAM_FOCUSMODE_MF : is_manuallyfocused_v;
-        if (is_manuallyfocused_v == false) {
+        if (is_manuallyfocused_v == SHCAM_FOCUSMODE_AF) {
             strcpy(str_afmode, res_buff);
         }
+        dbgser_devprop_dump->printf("httpcam event key \"currentFocusMode\" = \"%s\"\r\n", res_buff);
         ret |= true;
         event_found_flag |= (1 << 6);
     }
@@ -154,7 +162,24 @@ bool SonyHttpCamera::parse_event(char* data, int32_t maxlen)
         else if (memcmp("movie", res_buff, 5) == 0) {
             shoot_mode == SHOOTMODE_MOVIE;
         }
+        dbgser_devprop_dump->printf("httpcam event key \"currentShootMode\" = \"%s\"\r\n", res_buff);
+        ret |= true;
+        event_found_flag |= (1 << 7);
     }
+
+    found = scan_json_for_key(rx_buff, maxlen, "error", &i, &j, (char*)res_buff, 64);
+    if (found) {
+        dbgser_devprop_dump->printf("httpcam event key \"res_buff\" = \"%s\"\r\n", res_buff);
+        if (event_api_version > 0) {
+            event_api_version--;
+        }
+    }
+
+    #if 0
+    dbgser_devprop_dump->printf(rx_buff);
+    dbgser_devprop_dump->println();
+    #endif
+
     return ret;
 }
 
@@ -235,6 +260,7 @@ void SonyHttpCamera::eventDataCb(void* optParm, AsyncHTTPRequest* req, int avail
 
 void SonyHttpCamera::get_event()
 {
+    rx_buff_idx = 0;
     event_found_flag = 0;
     #ifdef SHCAM_USE_ASYNC
     bool openres = request_prep("POST", service_url, "application/json", eventRequestCb, eventDataCb);
@@ -354,7 +380,7 @@ void SonyHttpCamera::task()
                 }
                 else {
                     dbgser_states->printf("httpcam SSDP timeout, try %u\r\n", init_retries);
-                    if (init_retries < 3) {
+                    if (init_retries < 5) {
                         ssdp_start();
                     }
                     wait_until = now + 500;

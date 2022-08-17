@@ -78,8 +78,7 @@ bool scan_json_for_key(char* data, int32_t datalen, const char* keystr, signed i
                             {
                                 i++;
                                 sidx = i;
-                                i++;
-                                char prev_c = c;
+                                prev_c = c;
                                 for (; i < slen && c != 0 && found == false; i++)
                                 {
                                     c = data[i];
@@ -95,7 +94,6 @@ bool scan_json_for_key(char* data, int32_t datalen, const char* keystr, signed i
                             {
                                 i++;
                                 sidx = i;
-                                i++;
                                 bool in_quote = false;
                                 prev_c = c;
                                 for (; i < slen && c != 0 && found == false; i++)
@@ -115,23 +113,25 @@ bool scan_json_for_key(char* data, int32_t datalen, const char* keystr, signed i
                             }
                             else if (c == ',')
                             {
-                                eidx = i - 1;
+                                if (found == false) {
+                                    eidx = i - 1;
+                                }
                                 found = true;
                             }
                             else if (c == ' ' || c == '\t' || c == '\r' || c == '\n')
                             {
                                 if (i == sidx + 1) {
-                                    i++;
-                                    sidx = i;
+                                    sidx = i + 1;
                                 }
                             }
+                            prev_c = c;
                         }
                     }
                     else if (c == ',')
                     {
                         break;
                     }
-                    else if (c != ' ' && c != '\t' && c != '\r' && c != '\n')
+                    else if (c != ' ' && c != '\t' && c != '\r' && c != '\n' && found == false)
                     {
                         return false;
                     }

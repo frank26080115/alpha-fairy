@@ -70,7 +70,7 @@ class PtpIpCamera
 {
     public:
         PtpIpCamera(char* name);
-        void            begin(uint32_t);
+        void            begin(uint32_t ip, uint32_t wait = 1000);
         virtual void    task(void);
         void            poll(void);
         inline bool     isAlive(void)         { return (state & 0xF000) == 0; };
@@ -138,6 +138,7 @@ class PtpIpCamera
         uint32_t last_rx_time;
         uint32_t pending_data; // technically this should be 64 bits
         int32_t incomplete_time;
+        uint32_t conn_wait;
 
         // buffers
         uint32_t pktbuff_idx;

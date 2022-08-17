@@ -269,8 +269,18 @@ void wifi_onConnect()
     pwr_tick();
     if (ptpcam.canNewConnect()) {
         uint32_t newip = NetMgr_getConnectableClient();
-        if (newip != 0) {
-            ptpcam.begin(newip);
+        if (newip != 0)
+        {
+            #if 1
+            if (NetMgr_getOpMode() == WIFIOPMODE_STA)
+            {
+                ptpcam.begin(newip, 5000);
+            }
+            else
+            #endif
+            {
+                ptpcam.begin(newip);
+            }
         }
     }
     if (httpcam.canNewConnect()) {

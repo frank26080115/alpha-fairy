@@ -104,7 +104,8 @@ void NetMgr_taskSTA()
     if (status == WL_CONNECTED)
     {
         IPAddress gateway = WiFi.gatewayIP();
-        if (gateway != 0)
+        IPAddress localIp = WiFi.localIP();
+        if (gateway != 0 && localIp != 0)
         {
             if (status != last_sta_status)
             {
