@@ -10,7 +10,7 @@
 
 #include <DebuggingSerial.h>
 
-#include "AsyncHTTPRequest_Generic.hpp"
+//#include "AsyncHTTPRequest_Generic.hpp"
 #include <WiFiUDP.h>
 #include <HTTPClient.h>
 

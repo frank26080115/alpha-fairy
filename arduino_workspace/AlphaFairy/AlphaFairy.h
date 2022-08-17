@@ -12,7 +12,6 @@
 #include <M5DisplayExt.h>
 #include <FS.h>
 #include <SPIFFS.h>
-#include "AsyncHTTPRequest_Generic.hpp"
 #include <PtpIpCamera.h>
 #include <PtpIpSonyAlphaCamera.h>
 #include <SonyHttpCamera.h>

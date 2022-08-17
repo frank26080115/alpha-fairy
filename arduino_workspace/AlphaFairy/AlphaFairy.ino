@@ -1,7 +1,6 @@
 #include "AlphaFairy.h"
 #include <M5StickCPlus.h>
 #include <M5DisplayExt.h>
-#include <AsyncHTTPRequest_Generic.h>
 #include <SpriteMgr.h>
 #include <PtpIpCamera.h>
 #include <PtpIpSonyAlphaCamera.h>
