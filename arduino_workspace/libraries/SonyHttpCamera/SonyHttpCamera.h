@@ -111,6 +111,7 @@ class SonyHttpCamera
         inline uint8_t   is_manuallyfocused(void) { return is_manuallyfocused_v; };
         bool             is_focused;
         inline bool      is_moviemode      (void) { return shoot_mode == SHOOTMODE_MOVIE; };
+        inline bool      need_wait_af      (void) { return has_focus_status && is_manuallyfocused_v == SHCAM_FOCUSMODE_AF; };
 
         inline char*     getLiveviewUrl(void) { return liveview_url; };
 
@@ -185,6 +186,7 @@ class SonyHttpCamera
         bool     is_movierecording_v;
         uint8_t  is_manuallyfocused_v;
         uint8_t  shoot_mode;
+        bool     has_focus_status;
 
         bool parse_event(char* data, int32_t maxlen = 0);
         void parse_dd_xml(char* data, int32_t maxlen = 0);

@@ -65,6 +65,17 @@ bool AlphaFairyCamera::is_focused(void)
     return false;
 }
 
+bool AlphaFairyCamera::need_wait_af(void)
+{
+    if (cam_ptp->isOperating()) {
+        return cam_ptp->need_wait_af();
+    }
+    if (cam_http->isOperating()) {
+        return cam_http->need_wait_af();
+    }
+    return false;
+}
+
 bool AlphaFairyCamera::cmd_AutoFocus(bool onoff)
 {
     if (cam_ptp->isOperating()) {

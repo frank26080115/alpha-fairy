@@ -513,22 +513,24 @@ void focus_9point(void* mip)
         dbg_ser.printf("9point x %u y %u\r\n", x, y);
         fairycam.cmd_FocusPointSet(x, y);
         ledblink_on();
-        fairycam.cmd_AutoFocus(true);
-        fairycam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
-
-        if (httpcam.isOperating()) {
-            httpcam.setPollDelay(0);
-        }
-
-        // wait for autofocus to lock onto something
-        uint32_t tstart = millis();
-        uint32_t now;
-        uint32_t tlimit = (i < 9) ? 5000 : 2000;
-        while (((now = millis()) - tstart) < 5000 && (fairycam.is_focused() == false && fairycam.isOperating()))
+        if (fairycam.need_wait_af())
         {
-            app_poll();
-        }
+            fairycam.cmd_AutoFocus(true);
+            fairycam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
 
+            if (httpcam.isOperating()) {
+                httpcam.setPollDelay(0);
+            }
+
+            // wait for autofocus to lock onto something
+            uint32_t tstart = millis();
+            uint32_t now;
+            uint32_t tlimit = (i < 9) ? 5000 : 2000;
+            while (((now = millis()) - tstart) < 5000 && (fairycam.is_focused() == false && fairycam.isOperating()))
+            {
+                app_poll();
+            }
+        }
         // take the photo
         fairycam.cmd_Shoot(config_settings.shutter_press_time_ms);
         fairycam.cmd_AutoFocus(false);

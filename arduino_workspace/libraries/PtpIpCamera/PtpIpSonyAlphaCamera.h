@@ -53,6 +53,7 @@ class PtpIpSonyAlphaCamera : public PtpIpCamera
         bool is_movierecording(void);
         bool is_spotfocus(void);
         //bool is_focused(void);
+        inline bool need_wait_af(void) { return is_manuallyfocused() == false; }
         bool is_continuousshooting(void);
         bool cmd_AutoFocus(bool onoff);
         bool cmd_Shutter(bool openclose);

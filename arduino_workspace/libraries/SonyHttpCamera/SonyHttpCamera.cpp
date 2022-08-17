@@ -41,6 +41,7 @@ void SonyHttpCamera::begin(uint32_t ip)
     is_movierecording_v = false;
     is_manuallyfocused_v = 0;
     is_focused = false;
+    has_focus_status = false;
     req_id = 1;
     rx_buff_idx = 0;
     if (rx_buff != NULL) {
@@ -96,6 +97,7 @@ bool SonyHttpCamera::parse_event(char* data, int32_t maxlen)
         strcpy(str_focusstatus, res_buff);
         dbgser_devprop_dump->printf("httpcam event key \"focusStatus\" = \"%s\"\r\n", res_buff);
         is_focused = (memcmp(res_buff, "Focused", 7) == 0);
+        has_focus_status = true;
         ret |= true;
         event_found_flag |= (1 << 1);
     }
@@ -144,8 +146,9 @@ bool SonyHttpCamera::parse_event(char* data, int32_t maxlen)
     found = scan_json_for_key(rx_buff, maxlen, "currentFocusMode", &i, &j, (char*)res_buff, 64);
     if (found && strlen(res_buff) > 0) {
         // warning, it seems like this item is missing, even from my a6600
-        is_manuallyfocused_v = (memcmp(res_buff, "AF", 2) == 0) ? SHCAM_FOCUSMODE_AF : is_manuallyfocused_v;
-        is_manuallyfocused_v = (memcmp(res_buff, "MF", 2) == 0) ? SHCAM_FOCUSMODE_MF : is_manuallyfocused_v;
+        is_manuallyfocused_v = (memcmp(res_buff, "AF" , 2) == 0) ? SHCAM_FOCUSMODE_AF : is_manuallyfocused_v;
+        is_manuallyfocused_v = (memcmp(res_buff, "MF" , 2) == 0) ? SHCAM_FOCUSMODE_MF : is_manuallyfocused_v;
+        is_manuallyfocused_v = (memcmp(res_buff, "DMF", 3) == 0) ? SHCAM_FOCUSMODE_MF : is_manuallyfocused_v;
         if (is_manuallyfocused_v == SHCAM_FOCUSMODE_AF) {
             strcpy(str_afmode, res_buff);
         }
