@@ -20,7 +20,7 @@ bool http_is_active = false;
 void add_crossDomainHeaders(AsyncResponseStream* response);
 
 void send_css(AsyncResponseStream* response);
-void send_wifi_settings(AsyncResponseStream* response, uint8_t idx, bool readonly);
+bool send_wifi_settings(AsyncResponseStream* response, uint8_t idx, bool readonly);
 
 static AsyncWebServerRequest* httpsrv_request  = NULL;
 
@@ -58,12 +58,13 @@ void send_css(AsyncResponseStream* response)
     response->println("</style>");
 }
 
-void send_wifi_settings(AsyncResponseStream* response, uint8_t idx, bool readonly)
+bool send_wifi_settings(AsyncResponseStream* response, uint8_t idx, bool readonly)
 {
     if (idx == 0) {
         readonly = true;
     }
     wifiprofile_t profile;
+    bool ret = true;
     bool has_profile = wifiprofile_getProfile(idx, &profile);
     response->printf("<fieldset><legend>Wi-Fi Profile #%u</legend>\r\n", idx);
     if (readonly == false) {
@@ -76,6 +77,7 @@ void send_wifi_settings(AsyncResponseStream* response, uint8_t idx, bool readonl
     sp = profile.ssid;
     if (has_profile == false) {
         sp[0] = 0;
+        ret = false;
     }
     if (readonly) {
         if (sp[0] == 0) {
@@ -94,6 +96,7 @@ void send_wifi_settings(AsyncResponseStream* response, uint8_t idx, bool readonl
     sp = profile.password;
     if (has_profile == false || profile.ssid[0] == 0) {
         sp[0] = 0;
+        ret = false;
     }
     if (readonly) {
         if (sp[0] == 0) {
@@ -133,6 +136,7 @@ void send_wifi_settings(AsyncResponseStream* response, uint8_t idx, bool readonl
         response->printf("</table>", idx);
     }
     response->print("</fieldset>\r\n");
+    return ret;
 }
 
 void httpsrv_init()
@@ -156,8 +160,12 @@ void httpsrv_init()
 
         int i;
         for (i = 0; i <= 9; i++) {
-            send_wifi_settings(response, i, false);
+            bool did = send_wifi_settings(response, i, false);
             response->print("<br />\r\n");
+            if (did == false) {
+                // this will only leave one blank entry
+                break;
+            }
         }
 
         response->print("</body></html>\r\n");
@@ -535,10 +543,14 @@ void wifi_config(void* mip)
 
         if (m->idx == 3)
         {
+            uint8_t prev_profile = profile_idx;
             // switch profile by spinning
             if (imu.getSpin() > 0) {
                 profile_idx = (profile_idx + 1) % 10;
                 imu.resetSpin();
+                if (wifiprofile_isBlank(profile_idx)) {
+                    profile_idx = 0;
+                }
                 redraw = true;
             }
             else if (imu.getSpin() < 0) {
@@ -549,12 +561,18 @@ void wifi_config(void* mip)
                     profile_idx -= 1;
                 }
                 imu.resetSpin();
+                while (wifiprofile_isBlank(profile_idx) && profile_idx > 0) {
+                    profile_idx--;
+                }
                 redraw = true;
             }
         }
 
         gui_drawStatusBar(false);
         redraw |= redraw_flag; // http server is able to signal an update to the SSID string
+        if ((uint32_t)(IPAddress(WiFi.softAPIP())) == 0) {
+            redraw = true;
+        }
 
         if (redraw)
         {

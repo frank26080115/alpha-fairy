@@ -158,6 +158,18 @@ void wifiprofile_deleteAll()
     }
 }
 
+bool wifiprofile_isBlank(uint8_t idx)
+{
+    wifiprofile_t p;
+    if (wifiprofile_getProfile(idx, &p) == false) {
+        return true;
+    }
+    if (p.ssid[0] == 0) {
+        return true;
+    }
+    return false;
+}
+
 void wifiprofile_scanFill()
 {
     uint32_t t = millis();
