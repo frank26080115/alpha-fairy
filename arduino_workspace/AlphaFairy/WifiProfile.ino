@@ -50,12 +50,18 @@ bool wifiprofile_getProfileRaw(uint8_t idx, char* ssid, char* password, uint8_t*
     wifiprofile_getIdxFname(idx, fname);
     File f = SPIFFS.open(fname);
     if (!f) {
+        ssid[0] = 0;
+        password[0] = 0;
+        *opmode = 0;
         return false;
     }
 
     int r;
     r = wifiprofile_fileReadLine(&f, ssid, 32);
     if (r < 0) {
+        ssid[0] = 0;
+        password[0] = 0;
+        *opmode = 0;
         f.close();
         return false;
     }
@@ -150,4 +156,90 @@ void wifiprofile_deleteAll()
     {
         wifiprofile_writeProfileRaw(i, (char*)"", (char*)"", 0);
     }
+}
+
+void wifiprofile_scanFill()
+{
+    uint32_t t = millis();
+    Serial.printf("WiFi camera scan, start time %u\r\n", t);
+    wifiprofile_t pscan, pfile;
+    int n = WiFi.scanNetworks(false,false,false,100U);
+    int i, j;
+    for (i = 0; i < n; i++)
+    {
+        String ssid = WiFi.SSID(i);
+        strcpy(pscan.ssid, ssid.c_str());
+        if (memcmp("DIRECT-", pscan.ssid, 7) == 0)
+        {
+            Serial.print("WiFi scan found camera: ");
+            Serial.print(pscan.ssid);
+            bool found = false;
+            for (j = 1; j <= 9 && found == false; j++)
+            {
+                bool hasfile = wifiprofile_getProfile(j, &pfile);
+                if (hasfile)
+                {
+                    if (strcmp(pfile.ssid, pscan.ssid) == 0) {
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            if (found == false)
+            {
+                for (j = 1; j <= 9 && found == false; j++)
+                {
+                    bool hasfile = wifiprofile_getProfile(j, &pfile);
+                    if (hasfile == false || pfile.ssid[0] == 0)
+                    {
+                        wifiprofile_writeProfileRaw(j, pscan.ssid, (char*)"", WIFIOPMODE_STA);
+                        Serial.printf("\t; wrote to profile #%u", j);
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            Serial.println();
+        }
+    }
+    uint32_t t2 = millis(), t3 = t2 - t;
+    Serial.printf("Scan time %u\r\n", t3); // this includes all of the flash file reads
+}
+
+int wifiprofile_autoFind(wifiprofile_t* ptgt)
+{
+    uint32_t t = millis();
+    Serial.printf("WiFi camera scan, start time %u\r\n", t);
+    wifiprofile_t pscan, pfile;
+    int n = WiFi.scanNetworks(false,false,false,100U);
+    int i, j;
+    for (i = 0; i < n; i++)
+    {
+        String ssid = WiFi.SSID(i);
+        strcpy(pscan.ssid, ssid.c_str());
+        if (memcmp("DIRECT-", pscan.ssid, 7) == 0)
+        {
+            Serial.print("WiFi scan found camera: ");
+            Serial.print(pscan.ssid);
+            for (j = 1; j <= 9; j++)
+            {
+                bool hasfile = wifiprofile_getProfile(j, &pfile);
+                if (hasfile)
+                {
+                    if (strcmp(pfile.ssid, pscan.ssid) == 0)
+                    {
+                        Serial.printf("\t; matches profile #%d\r\n", i);
+                        if (ptgt != NULL) {
+                            memcpy(ptgt, &pfile, sizeof(wifiprofile_t));
+                        }
+                        return i;
+                    }
+                }
+            }
+            Serial.println();
+        }
+    }
+    uint32_t t2 = millis(), t3 = t2 - t;
+    Serial.printf("Scan time %u\r\n", t3); // this includes all of the flash file reads
+    return -1;
 }
