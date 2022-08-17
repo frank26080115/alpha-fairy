@@ -1,6 +1,12 @@
 # Alpha-Fairy
 
-This is a tiny remote control for Sony Alpha cameras. The hardware platform is a [M5StickC-Plus](https://shop.m5stack.com/products/m5stickc-plus-esp32-pico-mini-iot-development-kit), which is a DIY device with a [ESP32-PICO](https://www.espressif.com/en/products/socs/esp32) inside, along with a colour LCD screen, rechargable battery, some buttons, and a few other features.
+This is a tiny remote control for Sony Alpha cameras.
+
+![](doc/img/main_menu_options.webp)
+
+The hardware platform is a [M5StickC-Plus](https://shop.m5stack.com/products/m5stickc-plus-esp32-pico-mini-iot-development-kit), which is a DIY device with a [ESP32-PICO](https://www.espressif.com/en/products/socs/esp32) inside, along with a colour LCD screen, rechargable battery, some buttons, and a few other features.
+
+![](doc/img/size_comparison.jpg)
 
 This remote combines the features of other simple camera remotes, plus many complex functions that automates some tasks that photographers would like to do. It communicates wirelessly with the camera via [Picture Transfer Protocol](https://en.wikipedia.org/wiki/Picture_Transfer_Protocol), mostly reverse engineered by spying on Sony's own [Imaging Edge Remote](https://imagingedge.sony.net/l/ie-desktop.html#remote) application with [Wireshark](https://www.wireshark.org/). A second protocol uses HTTP and supports more cameras but has less features.
 
