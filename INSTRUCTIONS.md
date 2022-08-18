@@ -34,11 +34,11 @@ From the camera menu, the option "PC control method" should be "Wi-Fi Access Poi
 
 From the camera menu, airplane mode should be disabled, FTP should be disabled, control with smartphone should be disabled.
 
-From the camera menu, the option "connect without pairing" should be enabled.
+From the camera menu, the option "connect without pairing" should be enabled. (this is important! Sony cameras don't have an option to un-pair, only through a factory reset, and only one pairing can exist!)
 
 From the camera menu, the option "Still Image Save Destination" should be set to "Camera Only".
 
-From the camera menu, connect to the SSID that the AlphaFairy is broadcasting ("afairywifi" by default), the password should be "1234567890"
+From the camera menu, connect to the SSID that the AlphaFairy is broadcasting ("fairywifi" by default), the password should be "1234567890"
 
 On the M5StickC's screen, the "no signal" icon should disappear. On the camera's screen, the Wi-Fi symbol should be fully white and the PC icon should be fully white.
 

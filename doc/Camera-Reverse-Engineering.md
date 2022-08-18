@@ -16,7 +16,7 @@ There are two parts to the handshake. The first part is pretty well described by
 
 #### August 2022
 
-It seems like the handshake is the same across at least two camera models, I'm fairly confident it will be the same across all camera models. Also, the act of "pairing" is simply a delay after the host sends the "initialization command request" which contains the host's friendly name, the name is shown on the camera's screen and the user has to press OK. When OK is pressed, "initialization command acknowledgement" is returned to the host. The host's GUID is memorized by the camera so it won't be prompted for any future handshakes.
+It seems like the handshake is the same across at least two camera models, I'm fairly confident it will be the same across all camera models. Also, the act of "pairing" is simply a delay after the host sends the "initialization command request" which contains the host's friendly name, the name is shown on the camera's screen and the user has to press OK. When OK is pressed, "initialization command acknowledgment" is returned to the host. The host's GUID is memorized by the camera so it won't be prompted for any future handshakes.
 
 #### Warning About Pairing!!!
 
@@ -52,8 +52,6 @@ There are some commands that will override the physical controls on the camera. 
 I've mentioned above some of the difficulties with adding support for other camera models that I do not personally own. The main hurtle is that I need to packet-sniff each camera model in order to obtain the handshake sequence and the device property format.
 
 Sony does list the cameras that support wireless communication with the Imaging Edge Remote PC application. These are the cameras that can be more easily supported, because anybody can simply run Wireshark to obtain a packet-sniff log.
-
-Other cameras supports wireless control from the Imaging Edge Remote smartphone application. It is a lot more difficult to packet-sniff the communication between a smartphone and the camera as it is a direct connection. At this point I have not attempted to do so. I did attempt to do a port-scan on my A6600 and it revealed that it uses port number 10000. It accepts a TCP connection but as soon as any PTP commands are sent, it disconnects.
 
 Also, [Sony does actually provide a SDK](https://support.d-imaging.sony.co.jp/app/sdk/en/index.html) for some cameras! But the SDK is meant for Windows, MacOS, and Linux (with a heavy focus on Raspberry Pi in the documentation, thanks Sony! Did you know Sony UK manufactures Raspberry Pis?). The SDK does not expose any of the protocol and its codes, and cannot be used for a microcontroller platform.
 
