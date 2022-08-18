@@ -11,6 +11,10 @@ float batt_ibatt_max = -1;
 
 extern bool http_is_active;
 
+uint32_t pwr_last_tick = 0;
+uint32_t lcddim_last_tick = 0;
+bool lcd_backlight_dim = false;
+
 void gui_drawStatusBar(bool is_black)
 {
     #ifdef DISABLE_STATUS_BAR
@@ -176,7 +180,13 @@ void gui_prepStatusBarText(int16_t x, int16_t y, bool is_black)
     }
 }
 
-uint32_t pwr_last_tick = 0;
+void pwr_lcdUndim()
+{
+    if (lcd_backlight_dim) {
+        M5.Axp.ScreenBreath(config_settings.lcd_brightness);
+        lcd_backlight_dim = false;
+    }
+}
 
 void pwr_sleepCheck()
 {
@@ -184,8 +194,28 @@ void pwr_sleepCheck()
     return;
     #else
 
+    uint32_t now = millis();
+    
+    if (config_settings.lcd_dim_secs != 0)
+    {
+        if ((now - lcddim_last_tick) > (config_settings.lcd_dim_secs * 1000))
+        {
+            if (lcd_backlight_dim == false) {
+                M5.Axp.ScreenBreath(7);
+                lcd_backlight_dim = true;
+            }
+        }
+        else {
+            pwr_lcdUndim();
+        }
+    }
+    else
+    {
+        pwr_lcdUndim();
+    }
+
     if (http_is_active) {
-        pwr_last_tick = millis();
+        pwr_tick(true);
         return;
     }
 
@@ -195,12 +225,11 @@ void pwr_sleepCheck()
         dbg_ser.printf("pwr_save_secs too low, reset to 30 seconds\r\n");
     }
 
-    uint32_t now = millis();
     if ((now - pwr_last_tick) > (config_settings.pwr_save_secs * 1000))
     {
         if (config_settings.pwr_save_secs == 0) {
             // feature disabled
-            pwr_tick();
+            pwr_tick(true);
             dbg_ser.printf("pwr save disabled by user\r\n");
             return;
         }
@@ -249,9 +278,13 @@ void pwr_shutdown()
     }
 }
 
-void pwr_tick()
+void pwr_tick(bool undim)
 {
     pwr_last_tick = millis();
+    if (undim) {
+        lcddim_last_tick = pwr_last_tick;
+        pwr_lcdUndim();
+    }
 }
 
 void show_poweroff()

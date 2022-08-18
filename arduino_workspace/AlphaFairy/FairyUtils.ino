@@ -15,7 +15,12 @@ void wifi_init()
 {
     NetMgr_regCallback(wifi_onConnect, wifi_onDisconnect);
     wifiprofile_connect(config_settings.wifi_profile);
+    #ifdef HTTP_ON_BOOT
     httpsrv_init();
+    #endif
+    if (config_settings.wifi_pwr != 0) {
+        NetMgr_setWifiPower((wifi_power_t)wifipwr_table[config_settings.wifi_pwr]);
+    }
 }
 
 void wifi_onDisconnect(uint8_t x, int reason)

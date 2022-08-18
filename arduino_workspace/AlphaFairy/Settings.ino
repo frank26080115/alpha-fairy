@@ -15,6 +15,7 @@ void settings_default() {
   // set the default setting values here
 
   config_settings.wifi_profile = 0;
+  config_settings.wifi_pwr = 0;
 
   config_settings.focus_pause_time_ms    = 100;
   config_settings.shutter_press_time_ms  = 200;
@@ -29,6 +30,7 @@ void settings_default() {
   config_settings.lcd_brightness         = 10;
   config_settings.pwr_save_secs          = 60;
   config_settings.led_enabled            = 0;
+  config_settings.lcd_dim_secs           = 5;
 
   config_settings.intv_bulb    = 0;
   config_settings.intv_intval  = 10;

@@ -177,7 +177,7 @@ void intervalometer_config(void* mip)
                 M5Lcd.fillScreen(TFT_BLACK);
                 interval_drawIcon(menuitm->id);
                 app_waitAllRelease(BTN_DEBOUNCE);
-                pwr_tick();
+                pwr_tick(true);
             }
         }
         else
@@ -328,12 +328,14 @@ void intervalometer_run(uint8_t id)
     }
 
     t = now;
+    pwr_tick(true);
+    imu.hasMajorMotion = false;
 
     // for the number of frames we want (or infinite if negative)
     for (; cnt != 0 && stop_flag == false; )
     {
-        pwr_tick();
         app_poll();
+        pwr_tick(false); // app_poll already checks for IMU motion to undim the LCD
 
         if (redraw_flag) {
             redraw_flag = false;

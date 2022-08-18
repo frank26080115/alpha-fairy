@@ -24,6 +24,9 @@ static void (*disconnect_callback)(uint8_t, int) = NULL;
 
 static uint32_t last_sta_reconn_time = 0;
 
+//                                                     0,  1,  2, 3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
+const int8_t wifipwr_table[WIFI_PWR_TABLE_MAX + 1] = { 0, -4, -4, 8, 20, 28, 34, 44, 52, 60, 68, 74, 76, 78, 78, };
+
 void NetMgr_taskAP(void);
 void NetMgr_taskSTA(void);
 void NetMgr_eventHandler(WiFiEvent_t event, WiFiEventInfo_t info);
@@ -407,6 +410,53 @@ void NetMgr_setWifiPower(wifi_power_t pwr)
     while (WiFi.setTxPower(pwr) == false) {
         pwr = (wifi_power_t)(((int)pwr) - 1);
     }
+}
+
+bool NetMgr_getRssi(uint32_t ip, int* outres)
+{
+    int i;
+    uint8_t* mac = NULL;
+    if (ip == 0) {
+        return false;
+    }
+    if (wifi_op_mode == WIFIOPMODE_AP)
+    {
+        wifi_sta_list_t          wifi_sta_list;
+        tcpip_adapter_sta_list_t adapter_sta_list;
+        memset(&wifi_sta_list   , 0, sizeof(wifi_sta_list   ));
+        memset(&adapter_sta_list, 0, sizeof(adapter_sta_list));
+        esp_wifi_ap_get_sta_list  (&wifi_sta_list);
+        tcpip_adapter_get_sta_list(&wifi_sta_list, &adapter_sta_list);
+        for (i = 0; i < adapter_sta_list.num; i++)
+        {
+            tcpip_adapter_sta_info_t* adapter = &(adapter_sta_list.sta[i]);
+            if (adapter->ip.addr == ip)
+            {
+                mac = adapter->mac;
+                break;
+            }
+        }
+        for (i == 0; i < wifi_sta_list.num && mac != NULL; i++)
+        {
+            wifi_sta_info_t* nfo = &(wifi_sta_list.sta[i]);
+            if (memcmp(nfo->mac, mac, 6) == 0)
+            {
+                int rssi32 = nfo->rssi;
+                *outres = rssi32;
+                return true;
+            }
+        }
+    }
+    else if (wifi_op_mode == WIFIOPMODE_STA)
+    {
+        wifi_ap_record_t aprec;
+        if (esp_wifi_sta_get_ap_info(&aprec) == 0) {
+            int rssi32 = aprec.rssi;
+            *outres = rssi32;
+            return true;
+        }
+    }
+    return false;
 }
 
 char* NetMgr_getSSID() {

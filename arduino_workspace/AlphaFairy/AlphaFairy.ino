@@ -162,7 +162,7 @@ void setup()
     imu.poll();
 
     welcome(); // splash screen for a few seconds
-    pwr_tick();
+    pwr_tick(true);
 
     #ifdef DISABLE_ALL_MSG
     dbg_ser.enabled = false;
@@ -231,7 +231,7 @@ bool app_poll()
         if (imu.hasMajorMotion) {
             // do not sleep if the user is moving the device
             imu.hasMajorMotion = false;
-            pwr_tick();
+            pwr_tick(true);
         }
 
         if ((now - btn_last_time) > 100 || btn_last_time == 0) {
@@ -240,7 +240,7 @@ bool app_poll()
             if (b != 0) {
                 btnPwr_cnt++;
                 dbg_ser.printf("user pressed power button\r\n");
-                pwr_tick();
+                pwr_tick(true);
             }
         }
 
@@ -266,7 +266,7 @@ void app_sleep(uint32_t x, bool forget_btns)
 void wifi_onConnect()
 {
     dbg_ser.printf("application wifi event handler called\r\n");
-    pwr_tick();
+    pwr_tick(true);
     if (ptpcam.canNewConnect()) {
         uint32_t newip = NetMgr_getConnectableClient();
         if (newip != 0)
@@ -300,7 +300,7 @@ void wifi_onConnect()
 void ptpcam_onConnect()
 {
     dbg_ser.printf("ptpcam_onConnect\r\n");
-    pwr_tick();
+    pwr_tick(true);
     if (ptpcam.isOperating()) {
         NetMgr_markClientCameraPtp(ptpcam.getIp());
         httpcam.setForbidden();
@@ -310,7 +310,7 @@ void ptpcam_onConnect()
 void httpcam_onConnect()
 {
     dbg_ser.printf("httpcam_onConnect\r\n");
-    pwr_tick();
+    pwr_tick(true);
     if (httpcam.isOperating()) {
         NetMgr_markClientCameraHttp(httpcam.getIp());
     }
@@ -318,19 +318,19 @@ void httpcam_onConnect()
 
 void ptpcam_onDisconnect()
 {
-    pwr_tick();
+    pwr_tick(true);
     NetMgr_markClientDisconnect(ptpcam.getIp());
 }
 
 void httpcam_onDisconnect()
 {
-    pwr_tick();
+    pwr_tick(true);
     NetMgr_markClientDisconnect(httpcam.getIp());
 }
 
 void ptpcam_onCriticalError()
 {
-    pwr_tick();
+    pwr_tick(true);
     if (ptpcam.critical_error_cnt > 2) {
         NetMgr_markClientError(ptpcam.getIp());
         if (NetMgr_shouldReportError() && httpcam.isOperating() == false) {
@@ -341,7 +341,7 @@ void ptpcam_onCriticalError()
 
 void httpcam_onCriticalError()
 {
-    pwr_tick();
+    pwr_tick(true);
     if (httpcam.critical_error_cnt > 0 && NetMgr_getOpMode() == WIFIOPMODE_STA) {
         NetMgr_markClientError(httpcam.getIp());
         if (NetMgr_shouldReportError() && ptpcam.isOperating() == false) {
@@ -379,7 +379,7 @@ void app_waitAnyPress(bool can_sleep)
     {
         app_poll();
         if (can_sleep == false) {
-            pwr_tick();
+            pwr_tick(true);
         }
         if (btnAll_hasPressed()) {
             break;
@@ -463,7 +463,7 @@ extern int wifi_err_reason;
 
 void critical_error(const char* fp)
 {
-    pwr_tick();
+    pwr_tick(true);
     M5.Axp.GetBtnPress();
     uint32_t t = millis(), now = t;
     esp_wifi_disconnect();
@@ -517,7 +517,7 @@ void critical_error(const char* fp)
 
 void force_wifi_config(const char* fp)
 {
-    pwr_tick();
+    pwr_tick(true);
     M5.Axp.GetBtnPress();
     uint32_t t = millis(), now = t;
     M5Lcd.setRotation(0);

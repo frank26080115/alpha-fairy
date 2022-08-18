@@ -24,6 +24,8 @@ volatile uint32_t btnBig_cnt_prev  = 0;
 volatile uint32_t btnPwr_cnt_prev  = 0;
 
 extern uint32_t pwr_last_tick;
+extern uint32_t lcddim_last_tick;
+extern void pwr_lcdUndim(void);
 
 void IRAM_ATTR btnSide_isr()
 {
@@ -128,6 +130,8 @@ void btnSide_clrPressed() {
     //btnSide_downTime = 0;
     btnSide_clrTime  = now;
     pwr_last_tick    = now;
+    lcddim_last_tick = now;
+    pwr_lcdUndim();
 }
 
 bool btnBig_hasPressed() {
@@ -167,6 +171,8 @@ void btnBig_clrPressed() {
     //btnBig_downTime  = 0;
     btnBig_clrTime   = now;
     pwr_last_tick    = now;
+    lcddim_last_tick = now;
+    pwr_lcdUndim();
 }
 
 bool btnPwr_hasPressed() {
@@ -178,6 +184,7 @@ void btnPwr_clrPressed() {
     uint32_t now = millis();
     btnPwr_cnt_prev = btnPwr_cnt;
     pwr_last_tick = now;
+    lcddim_last_tick = now;
 }
 
 bool btnSide_isPressed() {

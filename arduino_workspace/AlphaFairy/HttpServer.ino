@@ -290,6 +290,7 @@ void httpsrv_init()
         #endif
     });
 
+    #if defined(HTTP_ENABLE_CMD_INTEFACE) && defined(HTTP_ON_BOOT)
     httpServer->on("/getip", HTTP_GET, [] (AsyncWebServerRequest* request)
     {
         NetMgr_markClientPhoneHttp(request->client()->getRemoteAddress());
@@ -303,7 +304,9 @@ void httpsrv_init()
         }
         request->send(response);
     });
+    #endif
 
+    #if defined(HTTP_ENABLE_CMD_INTEFACE) && defined(HTTP_ON_BOOT)
     httpServer->on("/getstate", HTTP_GET, [] (AsyncWebServerRequest* request)
     {
         NetMgr_markClientPhoneHttp(request->client()->getRemoteAddress());
@@ -322,7 +325,9 @@ void httpsrv_init()
         }
         request->send(response);
     });
+    #endif
 
+    #if defined(HTTP_ENABLE_CMD_INTEFACE) && defined(HTTP_ON_BOOT)
     httpServer->on("/getpreview.jpg", HTTP_GET, [] (AsyncWebServerRequest* request)
     {
         if (httpcam.isOperating() && httpcam.getLiveviewUrl() != NULL) {
@@ -335,7 +340,9 @@ void httpsrv_init()
         //add_crossDomainHeaders(response);
         httpsrv_startJpgStream(request);
     });
+    #endif
 
+    #if defined(HTTP_ENABLE_CMD_INTEFACE) && defined(HTTP_ON_BOOT)
     httpServer->on("/cmd", HTTP_GET, [] (AsyncWebServerRequest* request)
     {
         NetMgr_markClientPhoneHttp(request->client()->getRemoteAddress());
@@ -446,6 +453,7 @@ void httpsrv_init()
             return;
         }
     });
+    #endif
 
     httpServer->onNotFound([] (AsyncWebServerRequest* request) {
         #if 0
@@ -539,6 +547,10 @@ void wifi_config(void* mip)
         wifiprofile_connect(0);
     }
 
+    #ifndef HTTP_ON_BOOT
+    httpsrv_init();
+    #endif
+
     bool redraw = true;
     menustate_t* m = &menustate_wificonfig;
     m->idx = 0;
@@ -550,7 +562,7 @@ void wifi_config(void* mip)
     while (true)
     {
         app_poll();
-        pwr_tick();
+        pwr_tick(true);
 
         if (btnSide_hasPressed())
         {
@@ -605,8 +617,16 @@ void wifi_config(void* mip)
 
         gui_drawStatusBar(false);
         redraw |= redraw_flag; // http server is able to signal an update to the SSID string
+
+        // in case IP change is not immediate
         if ((uint32_t)(IPAddress(WiFi.softAPIP())) == 0) {
             redraw = true;
+        }
+
+        if (m->idx == 1 || m->idx == 2)
+        {
+            // keeps the light on for QR code
+            pwr_tick(true);
         }
 
         if (redraw)

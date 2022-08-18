@@ -184,6 +184,15 @@ void sound_shutter(void* mip)
         }
         #endif
 
+        if (m->idx != m->cnt - 1) // not on the armed trigger screen
+        {
+            if (mictrig_hasTriggered) {
+                // turn on the light if it is loud
+                pwr_tick(true);
+                // do not reset mictrig_hasTriggered
+            }
+        }
+
         configitem_t* cfgitm = (configitem_t*)&(config_items[m->idx]);
         if (m->idx == m->cnt) // last item is the exit item
         {
@@ -237,7 +246,7 @@ void sound_shutter(void* mip)
             if (mictrig_hasTriggered)
             {
                 mictrig_hasTriggered = false;
-                pwr_tick();
+                pwr_tick(true);
                 ledblink_setMode(LEDMODE_OFF);
                 mictrig_shoot(mip);
                 ledblink_setMode(LEDMODE_NORMAL);
@@ -245,7 +254,7 @@ void sound_shutter(void* mip)
                 M5Lcd.fillScreen(TFT_BLACK);
                 mictrig_drawIcon();
                 app_waitAllRelease(BTN_DEBOUNCE);
-                pwr_tick();
+                pwr_tick(true);
                 mictrig_hasTriggered = false;
                 mictrig_ignoreTime = millis();
                 btnAll_clrPressed();

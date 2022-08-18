@@ -33,6 +33,9 @@ enum
     WIFIDISCON_AUTH_FAIL,
 };
 
+#define WIFI_PWR_TABLE_MAX 14
+extern const int8_t wifipwr_table[WIFI_PWR_TABLE_MAX + 1];
+
 void NetMgr_beginAP(char* ssid, char* password);
 void NetMgr_beginSTA(char* ssid, char* password);
 void NetMgr_task(void);
@@ -42,6 +45,7 @@ uint8_t NetMgr_getOpMode(void);
 char* NetMgr_getSSID(void);
 char* NetMgr_getPassword(void);
 void NetMgr_setWifiPower(wifi_power_t pwr);
+bool NetMgr_getRssi(uint32_t ip, int* outres);
 
 void NetMgr_regCallback(void(*cb_evt)(void), void(*cb_discon)(uint8_t, int));
 

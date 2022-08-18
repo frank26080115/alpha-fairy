@@ -43,6 +43,8 @@ typedef struct
   int32_t gpio_enabled;
 
   int32_t pwr_save_secs;
+  int32_t lcd_dim_secs;
+  int32_t wifi_pwr;
   int32_t led_enabled;
   int32_t lcd_brightness;
 

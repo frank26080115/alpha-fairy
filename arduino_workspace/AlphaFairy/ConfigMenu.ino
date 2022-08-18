@@ -12,6 +12,8 @@ const configitem_t config_items[] = {
   { (int32_t*)&(config_settings.shutter_step_time_ms   ), 5000,    0,    10, "Tv step delay"          , TXTFMT_BYTENS   },
   { (int32_t*)&(config_settings.pwr_save_secs          ), 1000,    0,    10, "power save time (s)"    , TXTFMT_BYTENS   },
   { (int32_t*)&(config_settings.lcd_brightness         ),   12,    7,     1, "LCD bright"             , TXTFMT_LCDBRITE },
+  { (int32_t*)&(config_settings.lcd_dim_secs           ), 1000,    0,     1, "LCD dim time (s)"       , TXTFMT_BYTENS   },
+  { (int32_t*)&(config_settings.wifi_pwr               ),   14,    0,     1, "WiFi power"             , TXTFMT_BYTENS   },
   { (int32_t*)&(config_settings.zoom_enabled           ),    1,    0,     1, "zoom en"                , TXTFMT_BOOL     },
   { (int32_t*)&(config_settings.led_enabled            ),    1,    0,     1, "LED en"                 , TXTFMT_BOOL     },
   { (int32_t*)&(config_settings.infrared_enabled       ),    1,    0,     1, "IR en"                  , TXTFMT_BOOL     },
@@ -82,6 +84,9 @@ void conf_settings(void* mip)
       {
         settings_save();
         M5.Axp.ScreenBreath(config_settings.lcd_brightness);
+        if (config_settings.wifi_pwr != 0) {
+            NetMgr_setWifiPower((wifi_power_t)wifipwr_table[config_settings.wifi_pwr]);
+        }
         btnBig_clrPressed();
         return;
       }

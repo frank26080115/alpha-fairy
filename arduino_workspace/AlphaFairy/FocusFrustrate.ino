@@ -69,7 +69,7 @@ void focusfrust_task()
         // shutter button half press
         if (focusfrust_state_prev == false) {
             focusfrust_last_time_on = now;
-            pwr_tick();
+            pwr_tick(true);
             dbg_ser.printf("focusfrust pressed %u\r\n", now);
         }
         focusfrust_state_prev = true;
@@ -79,7 +79,7 @@ void focusfrust_task()
         // shutter button released
         if (focusfrust_state_prev)
         {
-            pwr_tick();
+            pwr_tick(true);
             if ((now - focusfrust_last_time_on) < 500 && (now - focusfrust_last_time_off) < 1000)
             {
                 // the tap was rapid enough

@@ -784,10 +784,18 @@ void wifi_info(void* mip)
 
     bool redraw = true; // always draw on entry
     bool first = true;  // this helps the button release
-    bool conn_state = ptpcam.isOperating();
+    bool conn_state = fairycam.isOperating();
     menustate_t* m = &menustate_wifiinfo;
     m->idx = 0;
+    #ifdef HTTP_ON_BOOT
     m->cnt = 4;
+    #else
+    m->cnt = 1;
+    #endif
+
+    int line_space  = 16;
+    int top_margin  = 7;
+    int left_margin = 55;
 
     btnAll_clrPressed();
     M5Lcd.fillScreen(TFT_WHITE);
@@ -795,7 +803,7 @@ void wifi_info(void* mip)
     while (true)
     {
         app_poll();
-        pwr_tick();
+        pwr_tick(true);
 
         // redraw if connection changed
         redraw |= fairycam.isOperating() != conn_state;
@@ -804,13 +812,18 @@ void wifi_info(void* mip)
         if (btnBig_hasPressed())
         {
             btnAll_clrPressed();
+            #ifdef HTTP_ON_BOOT
             m->idx = (m->idx + 1) % m->cnt;
             redraw = true;
+            #else
+            // do nothing
+            #endif
         }
 
         if (btnSide_hasPressed())
         {
             btnAll_clrPressed();
+            #ifdef HTTP_ON_BOOT
             #if defined(USE_PWR_BTN_AS_BACK) && !defined(USE_PWR_BTN_AS_EXIT)
             m->idx = (m->idx + 1) % m->cnt;
             #else
@@ -819,6 +832,9 @@ void wifi_info(void* mip)
                 m->idx = 0;
                 break;
             }
+            #endif
+            #else
+            break;
             #endif
             redraw = true;
         }
@@ -829,8 +845,40 @@ void wifi_info(void* mip)
             break;
         }
 
-        if (m->idx == 1 && fairycam.isOperating() == false) {
+        if (m->idx == 1
+            #ifdef HTTP_ON_BOOT
+            && fairycam.isOperating() == false
+            #endif
+        ) {
             m->idx = 2;
+        }
+
+        bool showing_rssi = false;
+        if (m->idx == 1
+            #ifndef HTTP_ON_BOOT
+            || m->idx == 0
+            #endif
+        )
+        {
+            int16_t pitch = imu.getPitch();
+            if (pitch > 60 || pitch < -60) // show RSSI only if the device is at an upside down angle
+            {
+                int rssi;
+                if (NetMgr_getRssi(fairycam.getIp(), &rssi)) {
+                    M5Lcd.setRotation(1);
+                    M5Lcd.setTextFont(2);
+                    M5Lcd.setCursor(left_margin, top_margin);
+                    M5Lcd.printf("Wi-Fi SSID: (RSSI %d)", rssi); gui_blankRestOfLine();
+                    M5Lcd.setRotation(0);
+                    showing_rssi = true;
+                }
+            }
+        }
+
+        if (m->idx > 1)
+        {
+            // keeps the light on for QR code
+            pwr_tick(true);
         }
 
         if (redraw)
@@ -840,9 +888,6 @@ void wifi_info(void* mip)
             gui_drawStatusBar(false);
             if (m->idx == 0 || m->idx == 1 || m->idx >= m->cnt)
             {
-                int line_space = 16;
-                int top_margin = 7;
-                int left_margin = 55;
                 M5Lcd.setRotation(1);
                 M5Lcd.highlight(true);
                 M5Lcd.setTextWrap(true);
@@ -850,7 +895,9 @@ void wifi_info(void* mip)
                 M5Lcd.setTextColor(TFT_BLACK, TFT_WHITE);
                 M5Lcd.setCursor(left_margin, top_margin);
                 M5Lcd.setTextFont(2);
-                M5Lcd.print("Wi-Fi SSID: ");
+                if (showing_rssi == false) { // already overwritten, prevent collide
+                    M5Lcd.print("Wi-Fi SSID:"); gui_blankRestOfLine();
+                }
                 M5Lcd.setCursor(left_margin + 8, top_margin + (line_space * 1));
                 M5Lcd.print(NetMgr_getSSID()); gui_blankRestOfLine();
                 M5Lcd.setCursor(left_margin, top_margin + (line_space * 2));
@@ -858,6 +905,7 @@ void wifi_info(void* mip)
                 M5Lcd.setCursor(left_margin + 8, top_margin + (line_space * 3));
                 M5Lcd.print(NetMgr_getPassword()); gui_blankRestOfLine();
                 M5Lcd.setCursor(left_margin, top_margin + (line_space * 4));
+                #ifdef HTTP_ON_BOOT
                 if (m->idx != 1)
                 {
                     M5Lcd.print("URL: ");
@@ -867,6 +915,9 @@ void wifi_info(void* mip)
                     M5Lcd.print("/");
                 }
                 else if (m->idx == 1)
+                #else
+                if (fairycam.isOperating())
+                #endif
                 {
                     M5Lcd.print("Camera: ");
                     M5Lcd.setCursor(left_margin + 8, top_margin + (line_space * 5));
@@ -879,6 +930,7 @@ void wifi_info(void* mip)
                 }
                 M5Lcd.setRotation(0);
             }
+            #ifdef HTTP_ON_BOOT
             else if (m->idx == 2 || m->idx == 3)
             {
                 // draw a header quickly first
@@ -897,6 +949,7 @@ void wifi_info(void* mip)
                 }
                 M5Lcd.qrcode(qrstr, x, y, width, 7);
             }
+            #endif
             redraw = false;
             if (first) {
                 app_waitAllRelease(BTN_DEBOUNCE);

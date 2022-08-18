@@ -23,6 +23,7 @@ void camdebug_func  (void* cmd, char* argstr, Stream* stream);
 void infrared_func  (void* cmd, char* argstr, Stream* stream);
 void savewifi_func  (void* cmd, char* argstr, Stream* stream);
 void dumpwifi_func  (void* cmd, char* argstr, Stream* stream);
+void wifipwr_func   (void* cmd, char* argstr, Stream* stream);
 #endif
 
 const cmd_def_t cmds[] = {
@@ -43,6 +44,7 @@ const cmd_def_t cmds[] = {
   { "ir"       , infrared_func },
   { "savewifi" , savewifi_func },
   { "dumpwifi" , dumpwifi_func },
+  { "wifipwr"  , wifipwr_func },
   #endif
   { "", NULL }, // end of table
 };
@@ -53,7 +55,7 @@ extern bool redraw_flag;
 
 void factory_reset_func(void* cmd, char* argstr, Stream* stream)
 {
-  pwr_tick();
+  pwr_tick(true);
   settings_default();
   settings_save();
   stream->println("factory reset performed");
@@ -63,7 +65,7 @@ void factory_reset_func(void* cmd, char* argstr, Stream* stream)
 
 void shoot_func(void* cmd, char* argstr, Stream* stream)
 {
-  pwr_tick();
+  pwr_tick(true);
   if (fairycam.isOperating())
   {
     stream->println("shoot");
@@ -77,7 +79,7 @@ void shoot_func(void* cmd, char* argstr, Stream* stream)
 
 void echo_func(void* cmd, char* argstr, Stream* stream)
 {
-  pwr_tick();
+  pwr_tick(true);
   stream->println(argstr);
 }
 
@@ -89,13 +91,13 @@ void reboot_func(void* cmd, char* argstr, Stream* stream)
 
 void memcheck_func(void* cmd, char* argstr, Stream* stream)
 {
-  pwr_tick();
+  pwr_tick(true);
   stream->printf("free heap mem: %u\r\n", ESP.getFreeHeap());
 }
 
 void statscheck_func(void* cmd, char* argstr, Stream* stream)
 {
-  pwr_tick();
+  pwr_tick(true);
   #ifdef PTPIP_KEEP_STATS
   stream->printf("ptpipcam stats: %u  %u  %u\r\n", ptpcam.stats_tx, ptpcam.stats_acks, ptpcam.stats_pkts);
   #else
@@ -105,7 +107,7 @@ void statscheck_func(void* cmd, char* argstr, Stream* stream)
 
 void imu_func(void* cmd, char* argstr, Stream* stream)
 {
-  pwr_tick();
+  pwr_tick(true);
   stream->printf("imu:   %0.1f   %0.1f   %0.1f\r\n", imu.pitch, imu.roll, imu.yaw);
 }
 
@@ -117,7 +119,7 @@ void imushow_func(void* cmd, char* argstr, Stream* stream)
     while (true)
     {
         app_poll();
-        pwr_tick();
+        pwr_tick(true);
         stream->printf("imu:   %0.1f   %0.1f   %0.1f\r\n", imu.pitch, imu.roll, imu.yaw);
         M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);
         M5Lcd.printf("%0.1f , %0.1f    ", imu.roll, imu.pitch); gui_blankRestOfLine(); M5Lcd.println(); gui_setCursorNextLine();
@@ -150,7 +152,7 @@ void mic_func(void* cmd, char* argstr, Stream* stream)
     mictrig_drawIcon();
     while (true)
     {
-        pwr_tick();
+        pwr_tick(true);
         app_poll();
         mictrig_poll();
         stream->printf("mic:    %d   %d\r\n", mictrig_lastMax, mictrig_filteredMax);
@@ -165,7 +167,7 @@ void mic_func(void* cmd, char* argstr, Stream* stream)
 
 void pwr_func(void* cmd, char* argstr, Stream* stream)
 {
-  pwr_tick();
+  pwr_tick(true);
   stream->printf("pwr:   %0.3f   %0.3f   %0.3f   %0.3f\r\n",
     M5.Axp.GetBatVoltage(),
     M5.Axp.GetBatCurrent(),
@@ -177,7 +179,7 @@ void pwr_func(void* cmd, char* argstr, Stream* stream)
 extern volatile uint32_t btnSide_cnt, btnBig_cnt, btnPwr_cnt;
 void btncnt_func(void* cmd, char* argstr, Stream* stream)
 {
-    pwr_tick();
+    pwr_tick(true);
     stream->printf("btn cnt:   %u    %u    %u\r\n", btnSide_cnt, btnBig_cnt, btnPwr_cnt);
 }
 
@@ -185,7 +187,7 @@ void btncnt_func(void* cmd, char* argstr, Stream* stream)
 extern DebuggingSerial dbg_ser;
 void debug_func(void* cmd, char* argstr, Stream* stream)
 {
-    pwr_tick();
+    pwr_tick(true);
     dbg_ser.enabled = atoi(argstr) != 0;
     stream->printf("debugging output = %u\r\n", dbg_ser.enabled);
     dbg_ser.println("test output from debugging serial port");
@@ -193,7 +195,7 @@ void debug_func(void* cmd, char* argstr, Stream* stream)
 
 void camdebug_func(void* cmd, char* argstr, Stream* stream)
 {
-    pwr_tick();
+    pwr_tick(true);
     int x = atoi(argstr);
     ptpcam.set_debugflags(x);
     httpcam.set_debugflags(x);
@@ -204,14 +206,14 @@ void camdebug_func(void* cmd, char* argstr, Stream* stream)
 
 void infrared_func(void* cmd, char* argstr, Stream* stream)
 {
-    pwr_tick();
+    pwr_tick(true);
     stream->printf("infrared test fire\r\n");
     SonyCamIr_Shoot();
 }
 
 void savewifi_func(void* cmd, char* argstr, Stream* stream)
 {
-    pwr_tick();
+    pwr_tick(true);
     char delim[] = ",";
     char *ptr = strtok(argstr, delim);
     int i = 0;
@@ -262,7 +264,7 @@ void savewifi_func(void* cmd, char* argstr, Stream* stream)
 
 void dumpwifi_func(void* cmd, char* argstr, Stream* stream)
 {
-    pwr_tick();
+    pwr_tick(true);
     int i;
     stream->printf("WiFi Profile Dump:\r\n");
     for (i = 0; i <= 9; i++)
@@ -274,6 +276,22 @@ void dumpwifi_func(void* cmd, char* argstr, Stream* stream)
         }
     }
     stream->printf("\r\n");
+}
+
+void wifipwr_func(void* cmd, char* argstr, Stream* stream)
+{
+    pwr_tick(true);
+    int8_t x;
+    int ret;
+    if (strlen(argstr) == 0) {
+        ret = (int)esp_wifi_get_max_tx_power(&x);
+        stream->printf("WiFi get pwr %d , return code %d\r\n", x, ret);
+    }
+    else {
+        x = atoi(argstr);
+        ret = (int)esp_wifi_set_max_tx_power(x);
+        stream->printf("WiFi set pwr %d , return code %d\r\n", x, ret);
+    }
 }
 
 #endif
