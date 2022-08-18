@@ -8,13 +8,37 @@ void wifi_get_unique_ssid(char* tgt)
 }
 
 extern void wifi_onConnect(void);
-extern void wifi_onDisconnect(void);
+extern void wifi_onDisconnect(uint8_t, int);
+int wifi_err_reason = 0;
 
 void wifi_init()
 {
     NetMgr_regCallback(wifi_onConnect, wifi_onDisconnect);
     wifiprofile_connect(config_settings.wifi_profile);
     httpsrv_init();
+}
+
+void wifi_onDisconnect(uint8_t x, int reason)
+{
+    if (x == WIFIDISCON_NORMAL)
+    {
+        Serial.printf("WiFi disconnected normal, reason %d\r\n", reason);
+        if (httpcam.getState() != 0) {
+            httpcam.begin(0); // this resets the forbidden flag so it can reconnect again later 
+        }
+    }
+    else if (x == WIFIDISCON_AUTH_ERROR)
+    {
+        Serial.printf("WiFi disconnected error, reason %d\r\n", reason);
+        wifi_err_reason = reason;
+        critical_error("/wifi_error.png");
+    }
+    else if (x == WIFIDISCON_AUTH_FAIL)
+    {
+        Serial.printf("WiFi disconnected auth failed, reason %d\r\n", reason);
+        wifi_err_reason = reason;
+        force_wifi_config("/wifi_reject.png");
+    }
 }
 
 uint32_t shutter_to_millis(uint32_t x)

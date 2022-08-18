@@ -175,6 +175,25 @@ void wifiprofile_deleteAll()
     }
 }
 
+void wifiprofile_deleteProfile(uint8_t idx)
+{
+    if (idx <= 0 || idx > 9) {
+        return;
+    }
+    char fname[16];
+    char fname2[16];
+    wifiprofile_getIdxFname(idx, (char*)fname);
+    SPIFFS.remove(fname);
+    for (; idx < 9; idx++)
+    {
+        wifiprofile_getIdxFname(idx, (char*)fname);
+        wifiprofile_getIdxFname(idx + 1, (char*)fname2);
+        if (SPIFFS.exists(fname2)) {
+            SPIFFS.rename(fname, fname2);
+        }
+    }
+}
+
 bool wifiprofile_isBlank(uint8_t idx)
 {
     wifiprofile_t p;

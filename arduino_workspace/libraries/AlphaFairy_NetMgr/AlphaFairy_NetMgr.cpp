@@ -20,7 +20,7 @@ static char* NetMgr_password = NULL;
 static uint32_t gateway_ip = 0;
 
 static void (*callback)(void) = NULL;
-static void (*disconnect_callback)(void) = NULL;
+static void (*disconnect_callback)(uint8_t, int) = NULL;
 
 static uint32_t last_sta_reconn_time = 0;
 
@@ -75,7 +75,7 @@ void NetMgr_beginSTA(char* ssid, char* password)
     last_sta_reconn_time = millis();
 }
 
-void NetMgr_regCallback(void(*cb_evt)(void), void(*cb_disconn)(void))
+void NetMgr_regCallback(void(*cb_evt)(void), void(*cb_disconn)(uint8_t, int))
 {
     WiFi.onEvent(NetMgr_eventHandler, WiFiEvent_t::ARDUINO_EVENT_WIFI_AP_STAIPASSIGNED);
     WiFi.onEvent(NetMgr_eventHandler, WiFiEvent_t::ARDUINO_EVENT_WIFI_AP_STADISCONNECTED);
@@ -123,7 +123,7 @@ void NetMgr_taskSTA()
     else
     {
         if (status != last_sta_status && last_sta_status == WL_CONNECTED && disconnect_callback != NULL) {
-            disconnect_callback();
+            disconnect_callback(WIFIDISCON_NORMAL, 0);
         }
         last_sta_status = status;
     }
@@ -135,6 +135,8 @@ void NetMgr_eventHandler(WiFiEvent_t event, WiFiEventInfo_t info)
         NetMgr_taskAP();
     }
     else if (wifi_op_mode == WIFIOPMODE_STA) {
+        int reason = (int)info.wifi_sta_disconnected.reason;
+        #if 0
         if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED && last_sta_status == WL_CONNECTED) {
             WiFi.reconnect();
             last_sta_reconn_time = millis();
@@ -144,23 +146,53 @@ void NetMgr_eventHandler(WiFiEvent_t event, WiFiEventInfo_t info)
             WiFi.begin();
             last_sta_reconn_time = millis();
         }
+        #endif
+        if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED && (reason == 202 || reason == 203 || reason == 23)) {
+            Serial.printf("STA disconnect auth fail %d\r\n", reason);
+            if (disconnect_callback != NULL) {
+                disconnect_callback(WIFIDISCON_AUTH_FAIL, reason);
+            }
+        }
+        else if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED && (reason < 200 && reason != 3 && reason != 8)) {
+            Serial.printf("STA disconnect error %d\r\n", reason);
+            if (disconnect_callback != NULL) {
+                disconnect_callback(WIFIDISCON_AUTH_ERROR, reason);
+            }
+        }
+        else if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED && (reason == 3 || reason == 8)) {
+            Serial.printf("STA disconnect normal %d\r\n", reason);
+            if (disconnect_callback != NULL) {
+                disconnect_callback(WIFIDISCON_NORMAL, reason);
+            }
+            WiFi.reconnect();
+            last_sta_reconn_time = millis();
+        }
+        #if 0
+        else if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED) {
+            if (disconnect_callback != NULL) {
+                disconnect_callback(WIFIDISCON_NORMAL, reason);
+            }
+            WiFi.disconnect();
+            WiFi.begin();
+            last_sta_reconn_time = millis();
+        }
+        #endif
         NetMgr_taskSTA();
     }
 }
 
 void NetMgr_task()
 {
-    if (wifi_op_mode == WIFIOPMODE_STA && WiFi.status() != WL_CONNECTED)
+    #if 0
+    if (wifi_op_mode == WIFIOPMODE_STA && WiFi.status() != WL_CONNECTED && last_sta_status != WL_CONNECTED)
     {
-        if (NetMgr_hasActiveClients() == false)
-        {
-            uint32_t now = millis();
-            if ((now - last_sta_reconn_time) > 1000) {
-                WiFi.reconnect();
-                last_sta_reconn_time = now;
-            }
+        uint32_t now = millis();
+        if ((now - last_sta_reconn_time) > 1000) {
+            WiFi.reconnect();
+            last_sta_reconn_time = now;
         }
     }
+    #endif
     if (callback != NULL) {
         return;
     }
@@ -367,6 +399,13 @@ void NetMgr_reboot()
         WiFi.mode(WIFI_STA);
         WiFi.begin(NetMgr_ssid, NetMgr_password);
         last_sta_reconn_time = millis();
+    }
+}
+
+void NetMgr_setWifiPower(wifi_power_t pwr)
+{
+    while (WiFi.setTxPower(pwr) == false) {
+        pwr = (wifi_power_t)(((int)pwr) - 1);
     }
 }
 

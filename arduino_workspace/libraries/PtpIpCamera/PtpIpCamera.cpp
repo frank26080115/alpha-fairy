@@ -104,6 +104,9 @@ void PtpIpCamera::task()
             last_rx_time = now;
             state += 2;
             dbgser_states->printf("PTP sockets connected\r\n");
+            if (cb_onConfirmedAvail != NULL) {
+                cb_onConfirmedAvail();
+            }
             return;
         }
         else if ((now - last_rx_time) > PTPIP_CONN_TIMEOUT) {

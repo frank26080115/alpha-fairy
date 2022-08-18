@@ -510,7 +510,6 @@ void focus_9point(void* mip)
             M5Lcd.fillCircle(dot_x, dot_y, dot_rad, TFT_GREEN);
         }
         // set the point
-        dbg_ser.printf("9point x %u y %u\r\n", x, y);
         fairycam.cmd_FocusPointSet(x, y);
         ledblink_on();
         if (fairycam.need_wait_af())

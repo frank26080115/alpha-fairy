@@ -21,6 +21,7 @@ bool SonyHttpCamera::cmd_send(char* cmd, char* alt_url, bool callend)
     state |= 1;
     return true;
     #else
+    dbgser_tx->printf("httpcam cmd %s\r\n", cmd);
     httpclient.begin(alt_url == NULL ? service_url : alt_url);
     httpclient.addHeader("Content-Type", "application/json");
     last_http_resp_code = httpclient.POST(cmd);

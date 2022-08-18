@@ -297,11 +297,6 @@ void wifi_onConnect()
     }
 }
 
-void wifi_onDisconnect()
-{
-    httpcam.begin(0); // this resets the forbidden flag so it can reconnect again later
-}
-
 void ptpcam_onConnect()
 {
     dbg_ser.printf("ptpcam_onConnect\r\n");
@@ -347,7 +342,7 @@ void ptpcam_onCriticalError()
 void httpcam_onCriticalError()
 {
     pwr_tick();
-    if (httpcam.critical_error_cnt > 0) {
+    if (httpcam.critical_error_cnt > 0 && NetMgr_getOpMode() == WIFIOPMODE_STA) {
         NetMgr_markClientError(httpcam.getIp());
         if (NetMgr_shouldReportError() && ptpcam.isOperating() == false) {
             critical_error("/crit_error.png");
@@ -360,12 +355,18 @@ void ptpcam_onReject()
     critical_error("/rejected.png");
 }
 
+void ptpcam_onConfirmedAvail()
+{
+    httpcam.setForbidden();
+}
+
 void cam_cb_setup()
 {
     ptpcam.cb_onConnect = ptpcam_onConnect;
     ptpcam.cb_onDisconnect = ptpcam_onDisconnect;
     ptpcam.cb_onCriticalError = ptpcam_onCriticalError;
     ptpcam.cb_onReject = ptpcam_onReject;
+    ptpcam.cb_onConfirmedAvail = ptpcam_onConfirmedAvail;
 
     httpcam.cb_onConnect = ptpcam_onConnect;
     httpcam.cb_onDisconnect = httpcam_onDisconnect;
@@ -458,6 +459,8 @@ void app_waitAllReleaseUnsupported(uint32_t debounce)
     redraw_flag = true;
 }
 
+extern int wifi_err_reason;
+
 void critical_error(const char* fp)
 {
     pwr_tick();
@@ -468,6 +471,18 @@ void critical_error(const char* fp)
     esp_wifi_deinit();
     M5Lcd.setRotation(0);
     M5Lcd.drawPngFile(SPIFFS, fp, 0, 0);
+
+    if (wifi_err_reason != 0)
+    {
+        M5Lcd.setTextFont(2);
+        M5Lcd.highlight(true);
+        M5Lcd.setTextWrap(true);
+        M5Lcd.setHighlightColor(TFT_BLACK);
+        M5Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+        M5Lcd.setCursor(5, M5Lcd.height() - 16);
+        M5Lcd.printf("REASON: %d", wifi_err_reason);
+    }
+
     while (true)
     {
         pwr_sleepCheck();
@@ -490,8 +505,47 @@ void critical_error(const char* fp)
             M5.Axp.PowerOff();
         }
         if (((now = millis()) - t) > 2000) {
-            Serial.println("CRITICAL ERROR");
+            Serial.print("CRITICAL ERROR");
+            if (wifi_err_reason != 0) {
+                Serial.printf(", WIFI REASON %d", wifi_err_reason);
+            }
+            Serial.println();
             t = now;
         }
     }
+}
+
+void force_wifi_config(const char* fp)
+{
+    pwr_tick();
+    M5.Axp.GetBtnPress();
+    uint32_t t = millis(), now = t;
+    M5Lcd.setRotation(0);
+    M5Lcd.drawPngFile(SPIFFS, fp, 0, 0);
+
+    if (wifi_err_reason != 0)
+    {
+        M5Lcd.setTextFont(2);
+        M5Lcd.highlight(true);
+        M5Lcd.setTextWrap(true);
+        M5Lcd.setHighlightColor(TFT_BLACK);
+        M5Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+        M5Lcd.setCursor(5, M5Lcd.height() - 16);
+        M5Lcd.printf("REASON: %d", wifi_err_reason);
+    }
+
+    while (true)
+    {
+        app_poll();
+        pwr_sleepCheck();
+        if (btnBoth_hasPressed()) {
+            break;
+        }
+        if (M5.Axp.GetBtnPress() != 0) {
+            show_poweroff();
+            M5.Axp.PowerOff();
+        }
+    }
+    btnBoth_clrPressed();
+    wifi_config(NULL);
 }

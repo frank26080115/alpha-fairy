@@ -26,6 +26,13 @@ enum
     WIFICLIFLAG_IS_ERROR      = 0x08,
 };
 
+enum
+{
+    WIFIDISCON_NORMAL,
+    WIFIDISCON_AUTH_ERROR,
+    WIFIDISCON_AUTH_FAIL,
+};
+
 void NetMgr_beginAP(char* ssid, char* password);
 void NetMgr_beginSTA(char* ssid, char* password);
 void NetMgr_task(void);
@@ -34,8 +41,9 @@ void NetMgr_reboot(void);
 uint8_t NetMgr_getOpMode(void);
 char* NetMgr_getSSID(void);
 char* NetMgr_getPassword(void);
+void NetMgr_setWifiPower(wifi_power_t pwr);
 
-void NetMgr_regCallback(void(*cb_evt)(void), void(*cb_discon)(void));
+void NetMgr_regCallback(void(*cb_evt)(void), void(*cb_discon)(uint8_t, int));
 
 uint32_t NetMgr_getConnectableClient(void);
 bool NetMgr_hasActiveClients(void);

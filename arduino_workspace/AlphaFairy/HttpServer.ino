@@ -88,7 +88,7 @@ bool send_wifi_settings(AsyncResponseStream* response, uint8_t idx, bool readonl
         }
     }
     else {
-        response->printf("<input type='text' id='ssid%u' name='ssid' style='width:80%%' placeholder='%sWi-Fi SSID' required='required' value='%s' />", idx, has_profile ? "" : "New ", sp);
+        response->printf("<input type='text' id='ssid%u' name='ssid' style='width:80%%' placeholder='%sWi-Fi SSID' value='%s' />", idx, has_profile ? "" : "New ", sp);
     }
     response->print("</td></tr>\r\n");
 
@@ -131,6 +131,9 @@ bool send_wifi_settings(AsyncResponseStream* response, uint8_t idx, bool readonl
 
     response->printf("<tr><td class='col-left'><label for='guid%u'>GUID:</label></td><td class='col-right'>", idx);
     sp = profile.guid;
+    if (has_profile == false || profile.ssid[0] == 0) {
+        sp[0] = 0;
+    }
     if (readonly) {
         if (sp[0] == 0) {
             response->print("&nbsp;");
@@ -204,6 +207,7 @@ void httpsrv_init()
             if (request->hasParam("guid", true)) {
                 paramGuid = request->getParam("guid", true);
             }
+
             response = request->beginResponseStream("text/html");
             int pnum = atoi(paramNum->value().c_str());
 
@@ -227,28 +231,33 @@ void httpsrv_init()
                 request->send(response);
                 return;
             }
-            strncpy(profile.ssid, paramSsid->value().c_str(), 30);
-            if (strlen(profile.ssid) > 0) {
-                strncpy(profile.password, paramPass->value().c_str(), 30);
-            }
-            else {
-                // no password if default SSID is set
-                profile.password[0] = 0;
-            }
-
-            if (paramGuid != NULL) {
-                strncpy(profile.guid, paramGuid->value().c_str(), PTP_GUID_LEN);
-            }
-            else {
-                profile.guid[0] = 0;
-            }
-
-            wifiprofile_writeProfile(pnum, &profile);
 
             response->print("<!DOCTYPE html><html><head><title>Alpha Fairy Wi-Fi Config</title>");
             send_css(response);
-            response->print("</head><body><h1>Alpha Fairy Wi-Fi Config</h1><h2>New Settings Saved Successfully</h2><br />\r\n");
-            send_wifi_settings(response, pnum, true);
+            response->print("</head><body><h1>Alpha Fairy Wi-Fi Config</h1>\r\n");
+
+            strncpy(profile.ssid, paramSsid->value().c_str(), 30);
+            if (strlen(profile.ssid) > 0)
+            {
+                strncpy(profile.password, paramPass->value().c_str(), 30);
+
+                if (paramGuid != NULL) {
+                    strncpy(profile.guid, paramGuid->value().c_str(), PTP_GUID_LEN);
+                }
+                else {
+                    profile.guid[0] = 0;
+                }
+
+                wifiprofile_writeProfile(pnum, &profile);
+
+                response->printf("<h2>Profile #%u Saved Successfully</h2><br />\r\n", pnum);
+                send_wifi_settings(response, pnum, true);
+            }
+            else
+            {
+                wifiprofile_deleteProfile(pnum);
+                response->printf("<h2>Profile #%u Deleted Successfully</h2><br />\r\n", pnum);
+            }
             // show a footer
             response->print("<br />reboot the remote to apply new settings<br /><a href='/wificonfig'>go back to re-config</a></body></html>\r\n");
             redraw_flag = true;

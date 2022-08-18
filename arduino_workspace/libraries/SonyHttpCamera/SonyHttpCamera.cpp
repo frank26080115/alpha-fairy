@@ -26,7 +26,7 @@ SonyHttpCamera::SonyHttpCamera()
     dbgser_events->   enabled = false;
     dbgser_rx->       enabled = false;
     dbgser_tx->       enabled = false;
-    dbgser_devprop_dump->  enabled = true;
+    dbgser_devprop_dump->  enabled = false;
     dbgser_devprop_change->enabled = false;
 
     begin(0);
@@ -65,12 +65,14 @@ void SonyHttpCamera::begin(uint32_t ip)
     zoom_time = 0;
     poll_delay = 500;
 
+    #if 0
     if (tbl_iso != NULL) {
         free(tbl_iso);
     }
     if (tbl_shutterspd != NULL) {
         free(tbl_shutterspd);
     }
+    #endif
 }
 
 bool SonyHttpCamera::parse_event(char* data, int32_t maxlen)
@@ -185,6 +187,7 @@ bool SonyHttpCamera::parse_event(char* data, int32_t maxlen)
     else {
         if (event_found_flag != 0) {
             critical_error_cnt = 0;
+            error_cnt = 0;
         }
     }
 
