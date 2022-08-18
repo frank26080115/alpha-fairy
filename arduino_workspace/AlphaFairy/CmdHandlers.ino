@@ -21,6 +21,8 @@ void btncnt_func    (void* cmd, char* argstr, Stream* stream);
 void debug_func     (void* cmd, char* argstr, Stream* stream);
 void camdebug_func  (void* cmd, char* argstr, Stream* stream);
 void infrared_func  (void* cmd, char* argstr, Stream* stream);
+void savewifi_func  (void* cmd, char* argstr, Stream* stream);
+void dumpwifi_func  (void* cmd, char* argstr, Stream* stream);
 #endif
 
 const cmd_def_t cmds[] = {
@@ -39,11 +41,15 @@ const cmd_def_t cmds[] = {
   { "debug"    , debug_func },
   { "camdebug" , camdebug_func },
   { "ir"       , infrared_func },
+  { "savewifi" , savewifi_func },
+  { "dumpwifi" , dumpwifi_func },
   #endif
   { "", NULL }, // end of table
 };
 
 SerialCmdLine cmdline(&Serial, (cmd_def_t*)cmds, false, (char*)">>>", (char*)"???", true, 512);
+
+extern bool redraw_flag;
 
 void factory_reset_func(void* cmd, char* argstr, Stream* stream)
 {
@@ -201,6 +207,73 @@ void infrared_func(void* cmd, char* argstr, Stream* stream)
     pwr_tick();
     stream->printf("infrared test fire\r\n");
     SonyCamIr_Shoot();
+}
+
+void savewifi_func(void* cmd, char* argstr, Stream* stream)
+{
+    pwr_tick();
+    char delim[] = ",";
+    char *ptr = strtok(argstr, delim);
+    int i = 0;
+    int profile_num;
+    wifiprofile_t profile;
+    memset(&profile, 0, sizeof(wifiprofile_t));
+    while (ptr != NULL)
+    {
+        switch (i)
+        {
+            case 0:
+                profile_num = atoi(ptr);
+                break;
+            case 1:
+                strncpy(profile.ssid, ptr, 30);
+                break;
+            case 2:
+                strncpy(profile.password, ptr, 30);
+                break;
+            case 3:
+                if (memcmp("sta", ptr, 3) == 0 || memcmp("STA", ptr, 3) == 0) {
+                    profile.opmode = WIFIOPMODE_STA;
+                }
+            case 4:
+                strncpy(profile.guid, ptr, 17);
+                break;
+            default:
+                break;
+        }
+        ptr = strtok(NULL, delim);
+        i++;
+    }
+    if (profile_num > 0 && profile_num <= 9) {
+        if (profile.ssid[0] != 0) {
+            wifiprofile_writeProfile(profile_num, &profile);
+            stream->printf("WiFi profile %d written\r\n", profile_num);
+        }
+        else {
+            wifiprofile_deleteProfile(profile_num);
+            stream->printf("WiFi profile %d deleted\r\n", profile_num);
+        }
+    }
+    else {
+        stream->printf("ERROR: WiFi profile %d write disallowed\r\n", profile_num);
+    }
+    redraw_flag = true;
+}
+
+void dumpwifi_func(void* cmd, char* argstr, Stream* stream)
+{
+    pwr_tick();
+    int i;
+    stream->printf("WiFi Profile Dump:\r\n");
+    for (i = 0; i <= 9; i++)
+    {
+        wifiprofile_t profile;
+        memset(&profile, 0, sizeof(wifiprofile_t));
+        if (wifiprofile_getProfile(i, &profile)) {
+            stream->printf("%d,%s,%s,%s,%s\r\n", i, profile.ssid, profile.password, profile.opmode == WIFIOPMODE_STA ? "sta" : "ap", profile.guid);
+        }
+    }
+    stream->printf("\r\n");
 }
 
 #endif
