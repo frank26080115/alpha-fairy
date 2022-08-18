@@ -461,6 +461,11 @@ void focus_9point(void* mip)
         app_waitAllReleaseConnecting(BTN_DEBOUNCE);
         return;
     }
+    else if (httpcam.isOperating()) {
+        dbg_ser.println("focus_9point but http camera cannot");
+        app_waitAllReleaseUnsupported(BTN_DEBOUNCE);
+        return;
+    }
 
     ledblink_setMode(LEDMODE_OFF);
 
@@ -468,6 +473,15 @@ void focus_9point(void* mip)
     app_waitAllRelease(BTN_DEBOUNCE);
     return;
 #endif
+
+    if (ptpcam.isOperating() && ptpcam.is_spotfocus() == false) {
+        // the camera must be in one of the many spot focus modes
+        // we can't pick one for them
+        // show user the error message
+        M5Lcd.drawPngFile(SPIFFS, "/9point_unable.png", 0, 0);
+        app_waitAllRelease(BTN_DEBOUNCE);
+        return;
+    }
 
     int dot_rad = 5;
     int dot_space = 30;
