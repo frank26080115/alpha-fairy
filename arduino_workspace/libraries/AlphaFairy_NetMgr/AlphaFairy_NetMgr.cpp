@@ -156,7 +156,7 @@ void NetMgr_eventHandler(WiFiEvent_t event, WiFiEventInfo_t info)
                 disconnect_callback(WIFIDISCON_AUTH_FAIL, reason);
             }
         }
-        else if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED && (reason < 200 && reason != 3 && reason != 8)) {
+        else if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED && (reason < 200 && reason != 3 && reason != 8 && reason != 7)) {
             Serial.printf("STA disconnect error %d\r\n", reason);
             if (disconnect_callback != NULL) {
                 disconnect_callback(WIFIDISCON_AUTH_ERROR, reason);
@@ -169,6 +169,9 @@ void NetMgr_eventHandler(WiFiEvent_t event, WiFiEventInfo_t info)
             }
             WiFi.reconnect();
             last_sta_reconn_time = millis();
+        }
+        else if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED && (reason == 7)) {
+            // do nothing
         }
         #if 0
         else if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED) {
