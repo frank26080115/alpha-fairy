@@ -16,6 +16,7 @@
 #include <PtpIpSonyAlphaCamera.h>
 #include <SonyHttpCamera.h>
 #include <AlphaFairy_NetMgr.h>
+#include <AlphaFairyImu.h>
 #include <SerialCmdLine.h>
 #include <SonyCameraInfraredRemote.h>
 #include <DebuggingSerial.h>

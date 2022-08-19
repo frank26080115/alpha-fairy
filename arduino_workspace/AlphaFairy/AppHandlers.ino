@@ -785,6 +785,7 @@ void wifi_info(void* mip)
     bool redraw = true; // always draw on entry
     bool first = true;  // this helps the button release
     bool conn_state = fairycam.isOperating();
+    bool showing_rssi = false;
     menustate_t* m = &menustate_wifiinfo;
     m->idx = 0;
     #ifdef HTTP_ON_BOOT
@@ -853,7 +854,6 @@ void wifi_info(void* mip)
             m->idx = 2;
         }
 
-        bool showing_rssi = false;
         if (m->idx == 1
             #ifndef HTTP_ON_BOOT
             || m->idx == 0
@@ -861,7 +861,7 @@ void wifi_info(void* mip)
         )
         {
             int16_t pitch = imu.getPitch();
-            if (pitch > 60 || pitch < -60) // show RSSI only if the device is at an upside down angle
+            if (pitch > 60 || pitch < -60 || showing_rssi) // show RSSI only if the device is at an upside down angle
             {
                 int rssi;
                 if (NetMgr_getRssi(fairycam.getIp(), &rssi)) {
