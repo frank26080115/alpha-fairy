@@ -532,3 +532,13 @@ void FairyKeyboard::register_redraw_cb(void(*cb)(void))
 {
     redraw_cb = cb;
 }
+
+void FairyKeyboard::set_str(char* x)
+{
+    strncpy(_str, x, KBD_STR_LEN);
+    _str_idx = strlen(_str);
+    if (_str_idx >= KBD_STR_LEN) {
+        _str_idx = KBD_STR_LEN;
+        _str[_str_idx] = 0;
+    }
+}

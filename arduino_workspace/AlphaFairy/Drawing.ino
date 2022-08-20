@@ -142,13 +142,16 @@ void gui_drawConnecting(bool first)
     // right now it just goes between 0 and 1
     static char conn_filename[] = "/connecting0.png";
     static int last_idx = -1;
+    static uint32_t t;
     if (first) {
         last_idx = -1;
+        t = millis();
     }
     int cur_idx;
     uint32_t now = millis();
-    now %= 1400;
-    cur_idx = now / 700;
+    uint32_t dt = now - t;
+    dt %= 1400;
+    cur_idx = dt / 700;
     if (cur_idx != last_idx) {
         last_idx = cur_idx;
         conn_filename[11] = '0' + cur_idx;

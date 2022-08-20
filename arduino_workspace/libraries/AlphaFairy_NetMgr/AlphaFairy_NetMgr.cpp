@@ -3,6 +3,10 @@
 #include <WiFi.h>
 #include "esp_wifi.h"
 
+#ifndef WIFI_STRING_LEN
+#define WIFI_STRING_LEN 30
+#endif
+
 typedef struct
 {
     uint32_t ip;
@@ -14,8 +18,8 @@ wificli_classifier_t;
 static uint8_t wifi_op_mode = WIFIOPMODE_NONE;
 
 static int last_sta_status = WL_IDLE_STATUS;
-static char* NetMgr_ssid = NULL;
-static char* NetMgr_password = NULL;
+static char NetMgr_ssid[WIFI_STRING_LEN + 2];
+static char NetMgr_password[WIFI_STRING_LEN + 2];
 
 static uint32_t gateway_ip = 0;
 
@@ -49,10 +53,8 @@ void NetMgr_beginAP(char* ssid, char* password)
     wifi_op_mode = WIFIOPMODE_AP;
     NetMgr_reset();
 
-    NetMgr_ssid     = (char*)malloc(strlen(ssid    ) + 1);
-    NetMgr_password = (char*)malloc(strlen(password) + 1);
-    strcpy(NetMgr_ssid    , ssid);
-    strcpy(NetMgr_password, password);
+    strncpy(NetMgr_ssid    , ssid    , WIFI_STRING_LEN);
+    strncpy(NetMgr_password, password, WIFI_STRING_LEN);
 
     WiFi.mode(WIFI_AP);
     WiFi.softAP(ssid, password);
@@ -68,10 +70,8 @@ void NetMgr_beginSTA(char* ssid, char* password)
     wifi_op_mode = WIFIOPMODE_STA;
     NetMgr_reset();
 
-    NetMgr_ssid     = (char*)malloc(strlen(ssid    ) + 1);
-    NetMgr_password = (char*)malloc(strlen(password) + 1);
-    strcpy(NetMgr_ssid    , ssid);
-    strcpy(NetMgr_password, password);
+    strncpy(NetMgr_ssid    , ssid    , WIFI_STRING_LEN);
+    strncpy(NetMgr_password, password, WIFI_STRING_LEN);
 
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
@@ -150,7 +150,7 @@ void NetMgr_eventHandler(WiFiEvent_t event, WiFiEventInfo_t info)
             last_sta_reconn_time = millis();
         }
         #endif
-        if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED && (reason == 202 || reason == 203 || reason == 23)) {
+        if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED && (reason == 202 || reason == 203 || reason == 23 || reason == 15)) {
             Serial.printf("STA disconnect auth fail %d\r\n", reason);
             if (disconnect_callback != NULL) {
                 disconnect_callback(WIFIDISCON_AUTH_FAIL, reason);

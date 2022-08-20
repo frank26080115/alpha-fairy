@@ -169,7 +169,7 @@ bool wifiprofile_connect(uint8_t idx)
 void wifiprofile_deleteAll()
 {
     int i;
-    for (i = 1; i <= 9; i++)
+    for (i = 1; i <= WIFIPROFILE_LIMIT; i++)
     {
         wifiprofile_writeProfileRaw(i, (char*)"", (char*)"", 0, NULL);
     }
@@ -177,14 +177,14 @@ void wifiprofile_deleteAll()
 
 void wifiprofile_deleteProfile(uint8_t idx)
 {
-    if (idx <= 0 || idx > 9) {
+    if (idx <= 0 || idx > WIFIPROFILE_LIMIT) {
         return;
     }
     char fname[16];
     char fname2[16];
     wifiprofile_getIdxFname(idx, (char*)fname);
     SPIFFS.remove(fname);
-    for (; idx < 9; idx++)
+    for (; idx < WIFIPROFILE_LIMIT; idx++)
     {
         wifiprofile_getIdxFname(idx, (char*)fname);
         wifiprofile_getIdxFname(idx + 1, (char*)fname2);
@@ -222,7 +222,7 @@ void wifiprofile_scanFill()
             Serial.print("WiFi scan found camera: ");
             Serial.print(pscan.ssid);
             bool found = false;
-            for (j = 1; j <= 9 && found == false; j++)
+            for (j = 1; j <= WIFIPROFILE_LIMIT && found == false; j++)
             {
                 bool hasfile = wifiprofile_getProfile(j, &pfile);
                 if (hasfile)
@@ -235,7 +235,7 @@ void wifiprofile_scanFill()
             }
             if (found == false)
             {
-                for (j = 1; j <= 9 && found == false; j++)
+                for (j = 1; j <= WIFIPROFILE_LIMIT && found == false; j++)
                 {
                     bool hasfile = wifiprofile_getProfile(j, &pfile);
                     if (hasfile == false || pfile.ssid[0] == 0)
@@ -269,7 +269,7 @@ int wifiprofile_autoFind(wifiprofile_t* ptgt)
         {
             Serial.print("WiFi scan found camera: ");
             Serial.print(pscan.ssid);
-            for (j = 1; j <= 9; j++)
+            for (j = 1; j <= WIFIPROFILE_LIMIT; j++)
             {
                 bool hasfile = wifiprofile_getProfile(j, &pfile);
                 if (hasfile)

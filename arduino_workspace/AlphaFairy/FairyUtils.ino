@@ -10,6 +10,7 @@ void wifi_get_unique_ssid(char* tgt)
 extern void wifi_onConnect(void);
 extern void wifi_onDisconnect(uint8_t, int);
 int wifi_err_reason = 0;
+extern bool autoconnect_active;
 
 void wifi_init()
 {
@@ -22,6 +23,8 @@ void wifi_init()
         NetMgr_setWifiPower((wifi_power_t)wifipwr_table[config_settings.wifi_pwr]);
     }
 }
+
+extern int autoconnect_status;
 
 void wifi_onDisconnect(uint8_t x, int reason)
 {
@@ -42,7 +45,10 @@ void wifi_onDisconnect(uint8_t x, int reason)
     {
         Serial.printf("WiFi disconnected auth failed, reason %d\r\n", reason);
         wifi_err_reason = reason;
-        force_wifi_config("/wifi_reject.png");
+        autoconnect_status = AUTOCONNSTS_FAILED;
+        if (autoconnect_active == false) {
+            force_wifi_config("/wifi_reject.png");
+        }
     }
 }
 

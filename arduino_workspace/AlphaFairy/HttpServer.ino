@@ -88,7 +88,7 @@ bool send_wifi_settings(AsyncResponseStream* response, uint8_t idx, bool readonl
         }
     }
     else {
-        response->printf("<input type='text' id='ssid%u' name='ssid' style='width:80%%' placeholder='%sWi-Fi SSID' value='%s' />", idx, has_profile ? "" : "New ", sp);
+        response->printf("<input type='text' id='ssid%u' name='ssid' style='width:80%%' placeholder='%sWi-Fi SSID' maxlength='%u' value='%s' />", idx, has_profile ? "" : "New ", WIFI_STRING_LEN, sp);
     }
     response->print("</td></tr>\r\n");
 
@@ -107,7 +107,7 @@ bool send_wifi_settings(AsyncResponseStream* response, uint8_t idx, bool readonl
         }
     }
     else {
-        response->printf("<input type='text' id='password%u' name='password' style='width:80%%' placeholder='%sWi-Fi password' value='%s' />", idx, has_profile ? "" : "New ", sp);
+        response->printf("<input type='text' id='password%u' name='password' style='width:80%%' placeholder='%sWi-Fi password' maxlength='%u' value='%s' />", idx, has_profile ? "" : "New ", WIFI_STRING_LEN, sp);
     }
     response->print("</td></tr>\r\n");
 
@@ -177,7 +177,7 @@ void httpsrv_init()
         response->print("</head><body><h1>Alpha Fairy Wi-Fi Config</h1><br />\r\n");
 
         int i;
-        for (i = 0; i <= 9; i++) {
+        for (i = 0; i <= WIFIPROFILE_LIMIT; i++) {
             bool did = send_wifi_settings(response, i, false);
             response->print("<br />\r\n");
             if (did == false) {
@@ -211,7 +211,7 @@ void httpsrv_init()
             response = request->beginResponseStream("text/html");
             int pnum = atoi(paramNum->value().c_str());
 
-            if (pnum < 1 || pnum > 9) {
+            if (pnum < 1 || pnum > WIFIPROFILE_LIMIT) {
                 response->print("bad value for profile number\r\n");
                 request->send(response);
                 return;
@@ -236,10 +236,10 @@ void httpsrv_init()
             send_css(response);
             response->print("</head><body><h1>Alpha Fairy Wi-Fi Config</h1>\r\n");
 
-            strncpy(profile.ssid, paramSsid->value().c_str(), 30);
+            strncpy(profile.ssid, paramSsid->value().c_str(), WIFI_STRING_LEN);
             if (strlen(profile.ssid) > 0)
             {
-                strncpy(profile.password, paramPass->value().c_str(), 30);
+                strncpy(profile.password, paramPass->value().c_str(), WIFI_STRING_LEN);
 
                 if (paramGuid != NULL) {
                     strncpy(profile.guid, paramGuid->value().c_str(), PTP_GUID_LEN);
@@ -602,7 +602,7 @@ void wifi_config(void* mip)
             }
             else if (imu.getSpin() < 0) {
                 if (profile_idx <= 0) {
-                    profile_idx = 9;
+                    profile_idx = WIFIPROFILE_LIMIT;
                 }
                 else {
                     profile_idx -= 1;

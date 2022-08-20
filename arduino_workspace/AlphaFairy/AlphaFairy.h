@@ -17,6 +17,7 @@
 #include <SonyHttpCamera.h>
 #include <AlphaFairy_NetMgr.h>
 #include <AlphaFairyImu.h>
+#include <FairyKeyboard.h>
 #include <SerialCmdLine.h>
 #include <SonyCameraInfraredRemote.h>
 #include <DebuggingSerial.h>

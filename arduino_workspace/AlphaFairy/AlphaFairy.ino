@@ -8,6 +8,7 @@
 #include "AlphaFairyCamera.h"
 #include <AlphaFairy_NetMgr.h>
 #include <AlphaFairyImu.h>
+#include <FairyKeyboard.h>
 #include <SerialCmdLine.h>
 #include <SonyCameraInfraredRemote.h>
 
@@ -30,6 +31,7 @@ void submenu_enter  (void* mip);
 void intervalometer_config(void* mip);
 void focusfrust_execute(void* mip);
 void wifi_config(void* mip);
+void autoconnect(void* mip);
 
 const menuitem_t menu_items_main[] = {
     // ID                   , FILE-NAME            , FUNCTION POINTER
@@ -38,6 +40,7 @@ const menuitem_t menu_items_main[] = {
     { MENUITEM_INTERVAL,      "/main_interval.png" , intervalometer_config },
     { MENUITEM_ASTRO,         "/main_astro.png"    , intervalometer_config },
     { MENUITEM_UTILS,         "/main_utils.png"    , submenu_enter         },
+    { MENUITEM_AUTOCONN,      "/main_auto.png"     , autoconnect           },
     { MENUITEM_END_OF_TABLE , ""                   , NULL                  }, // menu length is counted at run-time
 };
 
@@ -263,9 +266,12 @@ void app_sleep(uint32_t x, bool forget_btns)
     }
 }
 
+extern int autoconnect_status;
+
 void wifi_onConnect()
 {
     dbg_ser.printf("application wifi event handler called\r\n");
+    autoconnect_status = AUTOCONNSTS_CONNECTED;
     pwr_tick(true);
     if (ptpcam.canNewConnect()) {
         uint32_t newip = NetMgr_getConnectableClient();
@@ -460,9 +466,11 @@ void app_waitAllReleaseUnsupported(uint32_t debounce)
 }
 
 extern int wifi_err_reason;
+extern bool prevent_status_bar_thread;
 
 void critical_error(const char* fp)
 {
+    prevent_status_bar_thread = true;
     pwr_tick(true);
     M5.Axp.GetBtnPress();
     uint32_t t = millis(), now = t;
@@ -517,6 +525,8 @@ void critical_error(const char* fp)
 
 void force_wifi_config(const char* fp)
 {
+    prevent_status_bar_thread = true;
+
     pwr_tick(true);
     M5.Axp.GetBtnPress();
     uint32_t t = millis(), now = t;
@@ -547,5 +557,6 @@ void force_wifi_config(const char* fp)
         }
     }
     btnBoth_clrPressed();
+
     wifi_config(NULL);
 }

@@ -228,10 +228,10 @@ void savewifi_func(void* cmd, char* argstr, Stream* stream)
                 profile_num = atoi(ptr);
                 break;
             case 1:
-                strncpy(profile.ssid, ptr, 30);
+                strncpy(profile.ssid, ptr, WIFI_STRING_LEN);
                 break;
             case 2:
-                strncpy(profile.password, ptr, 30);
+                strncpy(profile.password, ptr, WIFI_STRING_LEN);
                 break;
             case 3:
                 if (memcmp("sta", ptr, 3) == 0 || memcmp("STA", ptr, 3) == 0) {
@@ -246,7 +246,7 @@ void savewifi_func(void* cmd, char* argstr, Stream* stream)
         ptr = strtok(NULL, delim);
         i++;
     }
-    if (profile_num > 0 && profile_num <= 9) {
+    if (profile_num > 0 && profile_num <= WIFIPROFILE_LIMIT) {
         if (profile.ssid[0] != 0) {
             wifiprofile_writeProfile(profile_num, &profile);
             stream->printf("WiFi profile %d written\r\n", profile_num);
@@ -267,7 +267,7 @@ void dumpwifi_func(void* cmd, char* argstr, Stream* stream)
     pwr_tick(true);
     int i;
     stream->printf("WiFi Profile Dump:\r\n");
-    for (i = 0; i <= 9; i++)
+    for (i = 0; i <= WIFIPROFILE_LIMIT; i++)
     {
         wifiprofile_t profile;
         memset(&profile, 0, sizeof(wifiprofile_t));

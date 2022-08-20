@@ -93,8 +93,8 @@ speed_t;
 
 typedef struct
 {
-    char ssid[32];
-    char password[32];
+    char ssid    [WIFI_STRING_LEN + 2];
+    char password[WIFI_STRING_LEN + 2];
     uint8_t opmode;
     char guid[16 + 1];
 }

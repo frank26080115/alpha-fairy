@@ -10,10 +10,12 @@ float batt_ibatt = -1;
 float batt_ibatt_max = -1;
 
 extern bool http_is_active;
+extern bool autoconnect_active;
 
 uint32_t pwr_last_tick = 0;
 uint32_t lcddim_last_tick = 0;
 bool lcd_backlight_dim = false;
+bool prevent_status_bar_thread = false;
 
 void gui_drawStatusBar(bool is_black)
 {
@@ -92,6 +94,10 @@ void gui_drawStatusBar(bool is_black)
         }
     }
 
+    if (prevent_status_bar_thread) {
+        return;
+    }
+
     static uint32_t max_x = 0;
     uint32_t icon_width  = 32;
     uint32_t icon_height = 14; // should be 12, but 14 looks better
@@ -123,7 +129,7 @@ void gui_drawStatusBar(bool is_black)
         x += icon_width;
     }
 
-    if (fairycam.isOperating() == false && http_is_active == false)
+    if (fairycam.isOperating() == false && http_is_active == false && autoconnect_active == false)
     {
         if (ptpcam.isPairingWaiting()) {
             gui_prepStatusBarText(x, y, is_black);
@@ -190,12 +196,8 @@ void pwr_lcdUndim()
 
 void pwr_sleepCheck()
 {
-    #ifdef DISABLE_POWER_SAVE
-    return;
-    #else
-
     uint32_t now = millis();
-    
+
     if (config_settings.lcd_dim_secs != 0)
     {
         if ((now - lcddim_last_tick) > (config_settings.lcd_dim_secs * 1000))
@@ -214,6 +216,9 @@ void pwr_sleepCheck()
         pwr_lcdUndim();
     }
 
+    #ifdef DISABLE_POWER_SAVE
+    return;
+    #else
     if (http_is_active) {
         pwr_tick(true);
         return;
@@ -290,8 +295,10 @@ void pwr_tick(bool undim)
 void show_poweroff()
 {
     uint32_t t = millis();
+    prevent_status_bar_thread = true;
     srand(t + lroundf(imu.accX) + lroundf(imu.accY) + lroundf(imu.accZ));
     M5Lcd.setRotation(0);
+    M5Lcd.fillScreen(TFT_BLACK);
     M5Lcd.drawPngFile(SPIFFS, "/sleep.png", 0, 0);
     delay(500);
     if ((rand() % 2) == 0)

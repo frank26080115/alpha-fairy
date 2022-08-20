@@ -35,8 +35,9 @@ class FairyKeyboard
                             bool     auto_flip    = true
                             );
 
-        inline char* get_str(void) { return _str; };               // get the current input string
+        inline char* get_str(void) { return _str; };               //   get the current input string
         inline void  clr_str(void) { _str[0] = 0; _str_idx = 0; }; // clear the current input string
+               void  set_str(char*);                               //   set the current input string
 
         void reset(void);                          // resets state variables to default
         void lcd_setup(void);                      // sets basic LCD paramters
