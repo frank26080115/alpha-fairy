@@ -338,4 +338,5 @@ void gui_handleWifiAuthFailed()
         }
     }
     autoconnect_active = false;
+    redraw_flag = true;
 }
