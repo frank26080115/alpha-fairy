@@ -1,6 +1,8 @@
 #include "AlphaFairy.h"
 #include <M5DisplayExt.h>
 
+extern bool signal_wifiauthfailed;
+
 extern uint8_t remoteshutter_delay;
 extern speed_t dual_shutter_next, dual_shutter_iso;
 extern speed_t dual_shutter_last_tv, dual_shutter_last_iso;
@@ -66,6 +68,11 @@ bool guimenu_task(menustate_t* m)
     }
     #endif
     #endif
+
+    if (signal_wifiauthfailed) {
+        gui_handleWifiAuthFailed();
+        signal_wifiauthfailed = false;
+    }
 
     if (m->last_idx != m->idx || redraw_flag) { // prevent unnecessary re-draws
         redraw_flag = false;
@@ -288,4 +295,47 @@ void submenu_enter(void* mip)
     }
 
     curmenu = &menustate_main;
+}
+
+extern bool autoconnect_active;
+
+void gui_handleWifiAuthFailed()
+{
+    autoconnect_active = true;
+    bool user_quit = false;
+
+    M5Lcd.setRotation(0);
+    M5Lcd.drawPngFile(SPIFFS, "/wifi_reject.png", 0, 0);
+    while (true)
+    {
+        autoconnect_poll();
+        if (btnBoth_hasPressed())
+        {
+            // normal button press means retry entering the password
+            dbg_ser.printf("autoconnect user wants retry\r\n");
+            btnBoth_clrPressed();
+            break;
+        }
+        if (btnPwr_hasPressed())
+        {
+            // power button press means give up
+            dbg_ser.printf("autoconnect user wants give up\r\n");
+            btnPwr_clrPressed();
+            user_quit = true;
+        }
+    }
+
+    if (user_quit == false)
+    {
+        uint8_t profile_num = config_settings.wifi_profile;
+        wifiprofile_t profile;
+        bool got_profile = wifiprofile_getProfile(profile_num, &profile); // this can't possibly fail
+        if (wifi_newConnectOrPrompt(profile_num, &profile, true, false)) {
+            // user cancel
+        }
+        else {
+            // user did not cancel
+        }
+    }
+    autoconnect_active = false;
 }

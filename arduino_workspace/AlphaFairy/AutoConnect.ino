@@ -189,96 +189,8 @@ void autoconnect(void* mip)
     if (result_profile != 0)
     {
         bool need_ask = (result_code == AUTOCONNRES_FOUND_EXISTING_NEED_PASSWORD || result_code == AUTOCONNRES_FOUND_NEW); // do not need to ask if the database already has entry
-        user_quit = false;
-        while (user_quit == false) // this loop will prompt the user for a password until a successful connection is made (or the user cancels)
-        {
-            if (need_ask)
-            {
-                dbg_ser.printf("autoconnect starting keyboard\r\n");
-                int pret = wifi_promptForPassword((char*)profile.ssid, (char*)profile.password, (char*)profile.password);
-                if (pret != WIFIPROMPTRET_CANCEL)
-                {
-                    dbg_ser.printf("autoconnect keyboard done: %s\r\n", profile.password);
-
-                    wifiprofile_writeProfile(result_profile, &profile);
-
-                    if (result_profile != config_settings.wifi_profile // only save once
-                        && result_code == AUTOCONNRES_FOUND_NEW        // only save if new
-                        )
-                    {
-                        config_settings.wifi_profile = result_profile;
-                        settings_save();
-                    }
-                }
-                else
-                {
-                    dbg_ser.printf("autoconnect user quit keyboard\r\n");
-                    user_quit = true;
-                    break;
-                }
-            }
-
-            // attempt connection
-            NetMgr_reset();
-            wifiprofile_connect((result_code == AUTOCONNRES_FOUND_EXISTING) ? config_settings.wifi_profile : result_profile);
-            autoconnect_status = AUTOCONNSTS_NONE; // this variable will be set to something by the Wi-Fi callbacks
-
-            // wait for connection (with an animation)
-            dbg_ser.printf("autoconnect waiting for connection\r\n");
-            gui_drawConnecting(true);
-            while (autoconnect_status == AUTOCONNSTS_NONE)
-            {
-                gui_drawConnecting(false);
-                app_poll();
-                if (btnAll_hasPressed())
-                {
-                    // any key press means to not wait for connection
-                    // no timeout implemented
-                    btnAll_clrPressed();
-                    user_quit = true;
-                    dbg_ser.printf("autoconnect waiting for connection user quit\r\n");
-                    break;
-                }
-            }
-
-            if (autoconnect_status == AUTOCONNSTS_CONNECTED)
-            {
-                // Wi-Fi is connected, cameras are not handshaken but we can quit this loop
-                // this should end up in main menu after the goto
-                dbg_ser.printf("autoconnect wifi connect success\r\n");
-                need_ask = false;
-                goto all_done_exit;
-                break;
-            }
-            else if (autoconnect_status == AUTOCONNSTS_FAILED)
-            {
-                dbg_ser.printf("autoconnect wifi failed\r\n");
-                need_ask = true;
-                WiFi.disconnect();
-                NetMgr_reset();
-                M5Lcd.drawPngFile(SPIFFS, "/wifi_reject.png", 0, 0);
-                while (true)
-                {
-                    autoconnect_poll();
-                    if (btnBoth_hasPressed())
-                    {
-                        // normal button press means retry entering the password
-                        dbg_ser.printf("autoconnect user wants retry\r\n");
-                        btnBoth_clrPressed();
-                        break;
-                    }
-                    if (btnPwr_hasPressed())
-                    {
-                        // power button press means give up
-                        dbg_ser.printf("autoconnect user wants give up\r\n");
-                        btnPwr_clrPressed();
-                        user_quit = true;
-                        break;
-                    }
-                }
-            }
-            // user_quit is evaluated here, the end of the loop
-        }
+        bool can_save = result_code == AUTOCONNRES_FOUND_NEW;
+        user_quit = wifi_newConnectOrPrompt(result_profile, &profile, need_ask, can_save);
         goto all_done_exit;
     }
     else
@@ -295,6 +207,97 @@ void autoconnect(void* mip)
     autoconnect_active = false;
     redraw_flag = true;
     return;
+}
+
+bool wifi_newConnectOrPrompt(uint8_t profile_num, wifiprofile_t* profile, bool need_ask, bool can_save)
+{
+    bool user_quit = false;
+    while (user_quit == false) // this loop will prompt the user for a password until a successful connection is made (or the user cancels)
+    {
+        if (need_ask)
+        {
+            dbg_ser.printf("autoconnect starting keyboard\r\n");
+            int pret = wifi_promptForPassword((char*)profile->ssid, (char*)profile->password, (char*)profile->password);
+            if (pret != WIFIPROMPTRET_CANCEL)
+            {
+                dbg_ser.printf("autoconnect keyboard done: %s\r\n", profile->password);
+
+                wifiprofile_writeProfile(profile_num, profile);
+
+                if (can_save && profile_num != config_settings.wifi_profile) { // only save once
+                    config_settings.wifi_profile = profile_num;
+                    settings_save();
+                }
+            }
+            else
+            {
+                dbg_ser.printf("autoconnect user quit keyboard\r\n");
+                user_quit = true;
+                return true;
+            }
+        }
+
+        // attempt connection
+        NetMgr_reset();
+        wifiprofile_connect(can_save ? config_settings.wifi_profile : profile_num);
+        autoconnect_status = AUTOCONNSTS_NONE; // this variable will be set to something by the Wi-Fi callbacks
+
+        // wait for connection (with an animation)
+        dbg_ser.printf("autoconnect waiting for connection\r\n");
+        gui_drawConnecting(true);
+        while (autoconnect_status == AUTOCONNSTS_NONE)
+        {
+            gui_drawConnecting(false);
+            app_poll();
+            if (btnAll_hasPressed())
+            {
+                // any key press means to not wait for connection
+                // no timeout implemented
+                btnAll_clrPressed();
+                user_quit = true;
+                dbg_ser.printf("autoconnect waiting for connection user quit\r\n");
+                return true;
+            }
+        }
+
+        if (autoconnect_status == AUTOCONNSTS_CONNECTED)
+        {
+            // Wi-Fi is connected, cameras are not handshaken but we can quit this loop
+            // this should end up in main menu after the return
+            dbg_ser.printf("autoconnect wifi connect success\r\n");
+            need_ask = false;
+            return false;
+        }
+        else if (autoconnect_status == AUTOCONNSTS_FAILED)
+        {
+            dbg_ser.printf("autoconnect wifi failed\r\n");
+            need_ask = true;
+            WiFi.disconnect();
+            NetMgr_reset();
+            M5Lcd.drawPngFile(SPIFFS, "/wifi_reject.png", 0, 0);
+            while (true)
+            {
+                autoconnect_poll();
+                if (btnBoth_hasPressed())
+                {
+                    // normal button press means retry entering the password
+                    dbg_ser.printf("autoconnect user wants retry\r\n");
+                    btnBoth_clrPressed();
+                    break;
+                }
+                if (btnPwr_hasPressed())
+                {
+                    // power button press means give up
+                    dbg_ser.printf("autoconnect user wants give up\r\n");
+                    btnPwr_clrPressed();
+                    user_quit = true;
+                    return true;
+                }
+            }
+        }
+        // user_quit is evaluated here, the end of the loop
+    }
+    return user_quit;
 }
 
 void wifi_pswdPromptDrawCb()

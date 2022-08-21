@@ -11,6 +11,7 @@ extern void wifi_onConnect(void);
 extern void wifi_onDisconnect(uint8_t, int);
 int wifi_err_reason = 0;
 extern bool autoconnect_active;
+bool signal_wifiauthfailed = false;
 
 void wifi_init()
 {
@@ -47,7 +48,9 @@ void wifi_onDisconnect(uint8_t x, int reason)
         wifi_err_reason = reason;
         autoconnect_status = AUTOCONNSTS_FAILED;
         if (autoconnect_active == false) {
-            force_wifi_config("/wifi_reject.png");
+            //force_wifi_config("/wifi_reject.png");
+            WiFi.disconnect(); // prevent reconnection attempt
+            signal_wifiauthfailed = true; // signal to the GUI thread to show error
         }
     }
 }
