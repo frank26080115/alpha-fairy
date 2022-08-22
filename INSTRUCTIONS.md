@@ -96,3 +96,7 @@ When in delayed remote shutter mode, completely rotating the device will change 
 When in focus pull mode or zoom adjust mode, the tilt of the device determines the speed and direction of the adjustment, press the big button to perform the adjustment.
 
 ![](doc/img/focus_pull_imu.webp)
+
+When prompted to input a password for a Wi-Fi connection, a keyboard is displayed. To select a key on the keyboard, rotate the keyboard around to change the selection. Pressing the big-button will press the highlighted key. Pressing the side-button will toggle between upper-case and lower-case. Pressing the power button will cancel the keyboard. Use the `<xx` key as backspace, and the `>ENT` key is the enter key.
+
+![](doc/img/imu_keyboard.webp)
