@@ -36,7 +36,7 @@ For focus pulling and zooming, the user tilts the device left or right to determ
 
 To adjust values in the configuration screens, tilting left means the user wants the value to go down, tilting right means the user wants the value to go up.
 
-To change the delay for remote shutter (which only offers 3 options), the user spins the whole device around to change the delay. This is currently slightly buggy because the ARHS output does not handle upside-down at all, a very janky workaround is used to handle a full spin.
+To change the delay for remote shutter (which only offers 3 options), the user spins the whole device around to change the delay. This is currently slightly buggy because the ARHS output does not handle upside-down at all, a workaround is used to handle a full spin.
 
 To set the shutter speed and ISO for the dual-shutter, the setting is actually obtained from the camera itself when the user pressed the big button. As in, the camera itself is the user input. The trigger to activate dual-shutter is also constantly monitoring the camera's focus status, so when the user presses the shutter button on the camera half-way down, the dual-shutter code executes.
 
@@ -47,6 +47,25 @@ My original implementation had one long chain of menu items, and the user could 
 When I added support for cameras that used the HTTP protocol, I also had to add a way for the user to input the camera's own Wi-Fi SSID and password. This is done by serving up a web page interface. The user can use a smartphone to type the Wi-Fi credentials into this web page.
 
 There are a total of 9 profile slots for Wi-Fi credentials, so theoretically the user can own 9 different cameras and use them all with the same remote. The profile number can be selected from the Wi-Fi configuration menu (without using a smartphone).
+
+### Wi-Fi Password Input
+
+When I added support for older cameras, I also added an auto-connect function that utilizes Wi-Fi scanning to find cameras. For this to work, the user needs to be able to input a password.
+
+While a smartphone can be used for this, it would interrupt the workflow significantly.
+
+So I implemented a keyboard. There were several ways I could've done this:
+
+ * for each character in the password string, the user will scroll through all available characters with buttons
+   * this is common in devices with more buttons for up and down, or some sort of wheel
+ * T9 or T9-like keypad, navigated by either buttons or IMU
+   * this is what Sony cameras implement
+ * something that represents a real keyboard
+   * navigated by IMU, inspired by the IMU keyboard on PlayStation 4
+
+I did a survey of Sony camera users and determined that the randomly-generated passwords mostly contain letters (both upper and lower case) and numbers. With this in mind, ended up deciding to implement a 3 row keyboard navigated by IMU angle. The big-button is used to press a key selected by moving the remote, the side-button is a shift function. The power button became a cancel button. They keyboard layout itself contains a backspace key and the enter key.
+
+In practice, the IMU certainly did have enough precision for this input method to be very usable (my main concern was noisy or imprecise IMU data making it difficult to select the right key).
 
 ## Resource Usage
 

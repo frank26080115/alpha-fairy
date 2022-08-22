@@ -22,6 +22,8 @@ The fun part about this project for me is to create a usable user interface on a
 
 ## Main Features
 
+![](doc/img/features_family_photo.png)
+
  * Remote Shutter (with optional timer)
  * Remote Movie Record
  * Focus Stack
