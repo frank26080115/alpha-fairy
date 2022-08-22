@@ -182,7 +182,7 @@ void gui_showValOnLcd(int32_t val, uint16_t txtfmt, int lcdx, int lcdy, int8_t d
     M5Lcd.setCursor(lcdx, lcdy); // important to keep the coordinate for quick overwriting
     gui_showVal(val, txtfmt, (Print*)&M5Lcd); // show the value
     if (dir != 0) {
-        M5Lcd.print((dir > 0) ? " + " : " - "); // indicate if button press will increment or decrement
+        M5Lcd.print((dir > 0) ? " +> " : " <- "); // indicate if button press will increment or decrement
     }
     else {
         M5Lcd.print("   "); // blanks the indicator
