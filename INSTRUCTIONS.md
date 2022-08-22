@@ -59,6 +59,8 @@ Turn on the camera, and activate the "Control from Smartphone" function. This ma
 
 On the Alpha-Fairy, use the Auto Connect function. A search for the camera will be initiated and when the camera is found, you will be prompted to input the password. Input the password of the camera to complete the connection.
 
+![](doc/img/autoconnect_ani.webp)
+
 Completing the connection will add the camera to the next available Wi-Fi profile slot.
 
 ## Managing Multiple Cameras
@@ -71,6 +73,8 @@ To select one of the slots/cameras to use, go into the Wi-Fi configuration menu,
 
 # General Usage
 
+![](doc/img/4sides.jpg)
+
 There are three buttons: "big", "side", and "power"
 
 The side button navigates, chooses the next item.
@@ -78,6 +82,8 @@ The side button navigates, chooses the next item.
 The big button is used to either enter a menu item, or activate a menu item.
 
 The power button turns the device on, and holding it down for 4 seconds (or more) will shutdown the device. It also acts as an exit button when you press it quickly.
+
+When the battery is low, recharge the remote with an USB-C cable.
 
 ## Usage of Features
 
