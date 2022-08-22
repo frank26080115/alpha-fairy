@@ -1,5 +1,7 @@
 # Installation Setup on PC
 
+This is an open source firmware project, it is free for anybody to download and install onto the M5StickC-Plus. I do not sell any pre-installed units, so for you to build one of these Alpha-Fairy remotes, you must follow these installation instructions.
+
 Install [Arduino IDE](https://www.arduino.cc/en/software), version is 1.8.19 or later
 
 Download a copy of this particular GitHub repo, find the directory called "arduino_workspace". From inside Arduino IDE, use the menu bar, File->Preferences, put the path to "arduino_workspace" into "Sketchbook Location".
@@ -9,8 +11,6 @@ Follow instructions to install ESP32 for Arduino IDE
  * unofficial instructions https://randomnerdtutorials.com/installing-the-esp32-board-in-arduino-ide-windows-instructions/ , https://microcontrollerslab.com/install-esp32-arduino-ide/
 
 Connect the M5StickC-Plus to the computer, follow instructions to install the FTDI driver (if required): https://docs.m5stack.com/en/quick_start/m5stickc_plus/arduino (this may also contain instructions for steps I've already listed)
-
-Install the "Arduino ESP32 filesystem uploader", follow instructions: https://github.com/me-no-dev/arduino-esp32fs-plugin
 
 Close the Arduino IDE and open it again.
 
@@ -24,9 +24,9 @@ Upload the image files: Tools->"ESP32 Sketch Data Upload"
 
 Click "Upload" on the tool-bar
 
-# Connecting From Camera
+# Connecting Your Camera
 
-## For PTP capable cameras
+## For PTP capable cameras (newer models)
 
 When the AlphaFairy code is running on the M5StickC, turn on the camera.
 
@@ -46,7 +46,7 @@ From the camera menu, connect to the SSID that the AlphaFairy is broadcasting ("
 
 On the M5StickC's screen, the "no signal" icon should disappear. On the camera's screen, the Wi-Fi symbol should be fully white and the PC icon should be fully white.
 
-## For older cameras using HTTP JSON-RPC protocol
+## For HTTP JSON-RPC protocol cameras (older models)
 
 Turn on the camera, and activate the "Control from Smartphone" function. This may be implemented differently on different cameras:
 
@@ -79,6 +79,12 @@ The big button is used to either enter a menu item, or activate a menu item.
 
 The power button turns the device on, and holding it down for 4 seconds (or more) will shutdown the device. It also acts as an exit button when you press it quickly.
 
+## Usage of Features
+
+[Click Here](Full-Features-Guide.md) to view the Full Features Guide
+
+## Motion Controls
+
 When trying to adjust a configurable option, there will be either a plus (+) or minus (-) sign beside the number. Tilting the device to the right will use plus mode, pressing the big button will add to the number. Tilting the device to the left will use minus mode, pressing the big button will subtract from the number.
 
 ![](doc/img/config_inc_dec.webp)
@@ -90,5 +96,3 @@ When in delayed remote shutter mode, completely rotating the device will change 
 When in focus pull mode or zoom adjust mode, the tilt of the device determines the speed and direction of the adjustment, press the big button to perform the adjustment.
 
 ![](doc/img/focus_pull_imu.webp)
-
-When in the dual shutter mode, first register the setting for the second photo by setting up your camera, then pressing the big button on the M5StickC. Then change the settings on your camera again for the first photo. Navigate to the "press to shoot" menu item after that. Now, pressing the big button (or activating auto-focus) will take two photos, each with a different shutter speed.
