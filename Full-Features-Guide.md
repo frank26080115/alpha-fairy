@@ -68,6 +68,8 @@ NOTE: the speed of the zoom cannot actually be controlled, even though there are
 
 ## Intervalometer
 
+![](doc/img/intervalometer_working.webp)
+
 The intervalometer mode has configurable options for
 
  * shutter bulb time
@@ -75,6 +77,8 @@ The intervalometer mode has configurable options for
  * interval between photos
  * start delay before first photo
  * number of photos
+
+![](doc/img/intervalometer_options.webp)
 
 NOTE: in astrophotography mode, instead of interval between photos, the user sets a pause between each photo.
 
@@ -177,7 +181,15 @@ Entering the Wi-Fi configuration menu item will launch the HTTP server, and the 
 
 The submenu items contain information and QR codes for a smartphone to establish a connection to the remote.
 
+![](doc/img/wificfg_qrcode.jpg)
+
+![](doc/img/wificonfig_androidwifi.png)
+
 With a smartphone browser, the entire list of Wi-Fi profiles (ie. cameras registered with the remote) can be edited, and also new entries can be added.
+
+![](doc/img/wificonfig_captiveportal.png)
+
+NOTE: this uses a captive portal, but another QR code is provided for a normal web browser too
 
 One of the submenu items is the profile switcher. Rotate the remote to select another profile number. Press the big-button to save the selection, that profile will be used on the next boot. Press and hold the big-button to save and reboot the remote immediately.
 
@@ -189,4 +201,6 @@ One of these submenu items is a factory reset option.
 
 This will simply display the current Wi-Fi settings, useful to look at while the user is configuring the camera.
 
-## TODO: this document is still a work in progress
+![](doc/img/wifiinfo_example.jpg)
+
+When a camera is connected, this screen will also show the camera's name.

@@ -61,5 +61,7 @@ Battery life is a bit short. Do not use it for intervalometer purposes without a
 
 ## More
 
+ * [Instructions for Setup and Usage](INSTRUCTIONS.md)
+ * [Full Features Guide](Full-Features-Guide.md)
  * [Firmware Engineering](doc/Firmware-Engineering.md)
  * [Camera Reverse Engineering](doc/Camera-Reverse-Engineering.md)
