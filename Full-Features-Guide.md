@@ -42,6 +42,8 @@ When armed, the remote will send the shutter command when the microphone detects
 
 The triggering sound level can be adjusted. The sound level and triggering threshold are displayed as a bar at the top of the screen.
 
+![](doc/img/soundtrigger.jpg)
+
 The side-button navigates through items. The big-button will edit the current item. The tilt angle of the remote determines if the big-button will add or subtract from the value. When the item says "ARMED", it means the trigger is armed, the trigger is not armed when you are editing the settings.
 
 Optionally, a time delay can be set. When the trigger sound is detected, the remote will wait for a while before sending the shutter command.
