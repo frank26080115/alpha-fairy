@@ -65,8 +65,8 @@ void btns_init()
     attachInterrupt(PIN_BTN_SIDE, btnSide_isr, FALLING);
     pinMode(PIN_BTN_BIG, INPUT_PULLUP);
     attachInterrupt(PIN_BTN_BIG, btnBig_isr, FALLING);
-    gpio_wakeup_enable(GPIO_BTN_SIDE, GPIO_INTR_LOW_LEVEL);
-    gpio_wakeup_enable(GPIO_BTN_BIG , GPIO_INTR_LOW_LEVEL);
+    //gpio_wakeup_enable(GPIO_BTN_SIDE, GPIO_INTR_LOW_LEVEL);
+    //gpio_wakeup_enable(GPIO_BTN_BIG , GPIO_INTR_LOW_LEVEL);
 }
 
 void btns_poll()
