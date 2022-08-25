@@ -248,6 +248,9 @@ bool app_poll()
         }
 
         yield();
+
+        pwr_lightSleepEnter();
+
         return true; // can do more low priority tasks
     }
 

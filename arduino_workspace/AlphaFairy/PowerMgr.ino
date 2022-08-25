@@ -2,6 +2,9 @@
 #include <M5StickCPlus.h>
 #include <M5DisplayExt.h>
 
+#include "esp_pm.h"
+#include "esp32/pm.h"
+
 uint8_t batt_status = BATTSTAT_NONE;
 
 float batt_vbus  = -1;
@@ -96,6 +99,10 @@ void gui_drawStatusBar(bool is_black)
 
     if (prevent_status_bar_thread) {
         return;
+    }
+
+    if (batt_status == BATTSTAT_LOW && batt_vbatt < 3.05) {
+        pwr_shutdown();
     }
 
     static uint32_t max_x = 0;
@@ -244,6 +251,44 @@ void pwr_sleepCheck()
     #endif
 }
 
+void pwr_lightSleepEnter()
+{
+    #if 0
+    static esp_err_t old_e = ESP_OK;
+    pwr_lightSleepSetup();
+    esp_err_t e = esp_light_sleep_start();
+    if (e != ESP_OK)
+    {
+        if (old_e != e) {
+            Serial.printf("[%u] light sleep err %d\r\n", millis(), e);
+        }
+    }
+    old_e = e;
+    #endif
+}
+
+void pwr_lightSleepSetup()
+{
+    static bool has_configed = false;
+    if (has_configed) {
+        return;
+    }
+    has_configed = true;
+
+    const esp_pm_config_esp32_t cfg = {
+        .max_freq_mhz = 80,
+        .min_freq_mhz = 10,
+        .light_sleep_enable = true,
+    };
+    esp_pm_configure(&cfg);
+    // esp_wifi_set_ps called during connection
+
+    esp_sleep_enable_gpio_wakeup();
+    // note: gpio_wakeup_enable is called from btns_init
+    esp_sleep_enable_wifi_wakeup();
+    esp_sleep_enable_timer_wakeup(10000);
+}
+
 void pwr_shutdown()
 {
     esp_wifi_disconnect();
@@ -299,30 +344,54 @@ void show_poweroff()
     srand(t + lroundf(imu.accX) + lroundf(imu.accY) + lroundf(imu.accZ));
     M5Lcd.setRotation(0);
     M5Lcd.fillScreen(TFT_BLACK);
-    M5Lcd.drawPngFile(SPIFFS, "/sleep.png", 0, 0);
-    delay(500);
-    if ((rand() % 2) == 0)
+    if (batt_vbatt > 3.05 || batt_vbatt <= 0 || batt_status == BATTSTAT_CHARGING || batt_status == BATTSTAT_CHARGING_LOW)
     {
-        int y, dly = 10, m = 50;
-        for (y = m + 0; y < M5Lcd.height() - m; y += 4) {
-            M5Lcd.drawFastHLine(0, y, M5Lcd.width(), TFT_BLACK);
-            delay(dly);
+        M5Lcd.drawPngFile(SPIFFS, "/sleep.png", 0, 0);
+        delay(500);
+        if ((rand() % 2) == 0)
+        {
+            int y, dly = 10, m = 50;
+            for (y = m + 0; y < M5Lcd.height() - m; y += 4) {
+                M5Lcd.drawFastHLine(0, y, M5Lcd.width(), TFT_BLACK);
+                delay(dly);
+            }
+            for (y = m + 2; y < M5Lcd.height() - m; y += 4) {
+                M5Lcd.drawFastHLine(0, y, M5Lcd.width(), TFT_BLACK);
+                delay(dly);
+            }
+            for (y = m + 1; y < M5Lcd.height() - m; y += 4) {
+                M5Lcd.drawFastHLine(0, y, M5Lcd.width(), TFT_BLACK);
+                delay(dly);
+            }
+            for (y = m + 3; y < M5Lcd.height() - m; y += 4) {
+                M5Lcd.drawFastHLine(0, y, M5Lcd.width(), TFT_BLACK);
+                delay(dly);
+            }
         }
-        for (y = m + 2; y < M5Lcd.height() - m; y += 4) {
-            M5Lcd.drawFastHLine(0, y, M5Lcd.width(), TFT_BLACK);
-            delay(dly);
-        }
-        for (y = m + 1; y < M5Lcd.height() - m; y += 4) {
-            M5Lcd.drawFastHLine(0, y, M5Lcd.width(), TFT_BLACK);
-            delay(dly);
-        }
-        for (y = m + 3; y < M5Lcd.height() - m; y += 4) {
-            M5Lcd.drawFastHLine(0, y, M5Lcd.width(), TFT_BLACK);
-            delay(dly);
+        else
+        {
+            int b = config_settings.lcd_brightness - 1;
+            while (true)
+            {
+                uint32_t d = millis() - t;
+                if (d > 800) {
+                    t = millis();
+                    M5.Axp.ScreenBreath(b);
+                    b -= 1;
+                    if (b < 5) {
+                        break;
+                    }
+                }
+                int x = rand() % M5Lcd.width();
+                int y = 50 + (rand() % (M5Lcd.height() - 100));
+                M5Lcd.fillRect(x, y, 1, 1, TFT_BLACK);
+            }
         }
     }
     else
     {
+        M5Lcd.drawPngFile(SPIFFS, "/dead_batt.png", 0, 0);
+        delay(500);
         int b = config_settings.lcd_brightness - 1;
         while (true)
         {
@@ -336,7 +405,7 @@ void show_poweroff()
                 }
             }
             int x = rand() % M5Lcd.width();
-            int y = 50 + (rand() % (M5Lcd.height() - 100));
+            int y = rand() % M5Lcd.height();
             M5Lcd.fillRect(x, y, 1, 1, TFT_BLACK);
         }
     }

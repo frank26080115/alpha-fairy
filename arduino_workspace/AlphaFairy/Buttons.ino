@@ -7,8 +7,10 @@ interrupts are used to catch new button press events
 a simple debounce algorithm is used
 */
 
-#define PIN_BTN_SIDE 39
-#define PIN_BTN_BIG 37
+#define PIN_BTN_SIDE     39
+#define PIN_BTN_BIG      37
+#define GPIO_BTN_SIDE    GPIO_NUM_39
+#define GPIO_BTN_BIG     GPIO_NUM_37
 
 //#define BTNS_DEBUG
 
@@ -63,6 +65,8 @@ void btns_init()
     attachInterrupt(PIN_BTN_SIDE, btnSide_isr, FALLING);
     pinMode(PIN_BTN_BIG, INPUT_PULLUP);
     attachInterrupt(PIN_BTN_BIG, btnBig_isr, FALLING);
+    gpio_wakeup_enable(GPIO_BTN_SIDE, GPIO_INTR_LOW_LEVEL);
+    gpio_wakeup_enable(GPIO_BTN_BIG , GPIO_INTR_LOW_LEVEL);
 }
 
 void btns_poll()
