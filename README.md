@@ -50,6 +50,7 @@ The fun part about this project for me is to create a usable user interface on a
  * auto power save
  * configurable options
  * serial port debugging and command line interface
+ * smartphone web-browser interface to manage multiple camera logins
 
 ## Known Problems
 
