@@ -144,7 +144,7 @@ void imushow_func(void* cmd, char* argstr, Stream* stream)
     }
 }
 
-extern int32_t mictrig_lastMax, mictrig_filteredMax;
+extern volatile int32_t mictrig_lastMax, mictrig_filteredMax;
 
 void mic_func(void* cmd, char* argstr, Stream* stream)
 {

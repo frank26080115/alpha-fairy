@@ -136,7 +136,6 @@ void setup()
         delay(500);
     }
     M5.Axp.ScreenBreath(config_settings.lcd_brightness);
-    mictrig_init();
     cmdline.print_prompt();
 
     #ifdef USE_SPRITE_MANAGER

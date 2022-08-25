@@ -11,12 +11,14 @@
 #define MICTRIG_LEVEL_TRIG_HEIGHT 12
 
 uint8_t mictrig_buffer8[MICTRIG_READ_LEN * 2] = {0};
-int16_t* mictrig_buffer16;
+
+volatile int16_t* mictrig_buffer16;
 volatile bool mictrig_active = false;
-int32_t mictrig_lastMax = 0;
-int32_t mictrig_filteredMax = 0;
-int32_t mictrig_decay = 0;
+volatile int32_t mictrig_lastMax = 0;
+volatile int32_t mictrig_filteredMax = 0;
+volatile int32_t mictrig_decay = 0;
 volatile bool mictrig_hasTriggered = false;
+
 bool gui_microphoneActive = false;
 uint32_t mictrig_ignoreTime = 0; // ignore the trigger if it's happening too soon after a button click
 
@@ -27,12 +29,49 @@ const configitem_t mictrig_config[] = {
   { NULL, 0, 0, 0, "" }, // end of table
 };
 
+#ifdef MICTRIG_NEW_I2S_LIB
+i2s_chan_handle_t mictrig_i2shandle;
+static IRAM_ATTR bool mictrig_rx_cb(i2s_chan_handle_t handle, i2s_event_data_t *event, void *user_ctx);
+#endif
+
 void mictrig_init()
 {
+    #ifdef MICTRIG_NEW_I2S_LIB
+    i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_AUTO, I2S_ROLE_MASTER);
+    i2s_new_channel(&chan_cfg, NULL, &mictrig_i2shandle);
+    i2s_std_config_t std_cfg = {
+        .clk_cfg = I2S_PDM_RX_CLK_DEFAULT_CONFIG(36000),
+        .slot_cfg = I2S_PDM_RX_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_MONO),
+        .gpio_cfg = {
+            .mclk = I2S_GPIO_UNUSED,
+            .bclk = I2S_GPIO_UNUSED,
+            .ws = GPIO_NUM_0,
+            .dout = I2S_GPIO_UNUSED,
+            .din = GPIO_NUM_34,
+            .invert_flags = {
+                .mclk_inv = false,
+                .bclk_inv = false,
+                .ws_inv = false,
+            },
+        },
+    };
+
+    i2s_channel_init_pdm_rx_mode(mictrig_i2shandle, &pdm_rx_cfg);
+
+    i2s_event_callbacks_t cbs = {
+        .on_recv = mictrig_rx_cb,
+        .on_recv_q_ovf = NULL,
+        .on_sent = NULL,
+        .on_send_q_ovf = NULL,
+    };
+    i2s_channel_register_event_callback(mictrig_i2shandle, &cbs, NULL);
+
+    #else
+
     // code adapted from https://github.com/m5stack/M5StickC/blob/master/examples/Basics/Micophone/Micophone.ino
     i2s_config_t i2s_config = {
         .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX | I2S_MODE_PDM), // Set the I2S operating mode
-        .sample_rate     = 44100,                                           // Set the I2S sampling rate
+        .sample_rate     = 38000,                                           // Set the I2S sampling rate
         .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,                       // Fixed 12-bit stereo MSB
         .channel_format  = I2S_CHANNEL_FMT_ALL_RIGHT,                       // Set the channel format
 #if ESP_IDF_VERSION > ESP_IDF_VERSION_VAL(4, 1, 0)
@@ -58,33 +97,29 @@ void mictrig_init()
 
     i2s_driver_install(I2S_NUM_0, &i2s_config, 0, NULL);
     i2s_set_pin(I2S_NUM_0, &pin_config);
-    i2s_set_clk(I2S_NUM_0, 44100, I2S_BITS_PER_SAMPLE_16BIT, I2S_CHANNEL_MONO);
+    i2s_set_clk(I2S_NUM_0, 38000, I2S_BITS_PER_SAMPLE_16BIT, I2S_CHANNEL_MONO);
 
     mictrig_buffer16 = (int16_t*)mictrig_buffer8;
+
+    #endif
 }
 
-void mictrig_poll()
+#ifdef MICTRIG_NEW_I2S_LIB
+static IRAM_ATTR bool mictrig_rx_cb(i2s_chan_handle_t handle, i2s_event_data_t *event, void *user_ctx)
 {
-    // rate limit
-    static uint32_t last_time = 0;
-    uint32_t now = millis();
-    if ((now - last_time) < 100) {
-        return;
-    }
-    last_time = now;
-
-    // code adapted from https://github.com/m5stack/M5StickC/blob/master/examples/Basics/Micophone/Micophone.ino
-    size_t bytesread;
-    i2s_read(I2S_NUM_0, (uint8_t *)mictrig_buffer8, MICTRIG_READ_LEN * 2, &bytesread, (100 / portTICK_RATE_MS));
+    mictrig_buffer16 = (int16_t*)(event->data);
+    uint32_t sz      = (uint32_t)(event->size);
     uint32_t i;
     int32_t m = 0;
-    for (i = 0; i < MICTRIG_READ_LEN; i++) {
+    for (i = 0; i < sz / 2; i++) {
         int16_t s = mictrig_buffer16[i];
         s = (s < 0) ? -s : s;
         if (s > m) {
             m = s;
         }
     }
+
+    mictrig_decayTask();
 
     m *= MICTRIG_GAIN;           // apply gain
     m = m > 0x7FFF ? 0x7FFF : m; // limit after gain
@@ -96,16 +131,85 @@ void mictrig_poll()
         mictrig_decay = 64 * 4;     // slow down the decay
         mictrig_filteredMax = m; // set the new displayed peak
     }
-    else
-    {
-        mictrig_decayTask();
-    }
 
     // check if triggered
     int32_t thresh = config_settings.mictrig_level * 327; // re-map value 0-100 to actual level
     if (m > thresh) {
         mictrig_hasTriggered = true;
     }
+
+    return false;
+}
+
+#endif
+
+void mictrig_unpause()
+{
+    static bool has_init = false;
+    if (has_init == false) {
+        mictrig_init();
+        has_init = true;
+    }
+    #ifdef MICTRIG_NEW_I2S_LIB
+    i2s_channel_enable(mictrig_i2shandle);
+    #else
+    i2s_start(I2S_NUM_0);
+    #endif
+}
+
+void mictrig_pause()
+{
+    #ifdef MICTRIG_NEW_I2S_LIB
+    i2s_channel_disable(mictrig_i2shandle);
+    #else
+    i2s_stop(I2S_NUM_0);
+    #endif
+}
+
+void mictrig_poll()
+{
+    #ifndef MICTRIG_NEW_I2S_LIB
+    size_t bytesread;
+    uint32_t tstart = millis();
+    for (uint8_t iter = 0; iter < 100 && (millis() - tstart) < 100; iter++)
+    {
+        i2s_read(I2S_NUM_0, (uint8_t *)mictrig_buffer8, MICTRIG_READ_LEN * 2, &bytesread, 0);
+
+        uint32_t i;
+        int32_t m = 0;
+        for (i = 0; i < bytesread / 2; i++) {
+            int16_t s = mictrig_buffer16[i];
+            s = (s < 0) ? -s : s;
+            if (s > m) {
+                m = s;
+            }
+        }
+
+        if (bytesread <= 0) {
+            break;
+        }
+
+        m *= MICTRIG_GAIN;           // apply gain
+        m = m > 0x7FFF ? 0x7FFF : m; // limit after gain
+
+        mictrig_decayTask();
+
+        mictrig_lastMax = m; // remember the latest peak
+
+        if (m > mictrig_filteredMax)
+        {
+            mictrig_decay = 64 * 4;     // slow down the decay
+            mictrig_filteredMax = m; // set the new displayed peak
+        }
+
+        // check if triggered
+        int32_t thresh = config_settings.mictrig_level * 327; // re-map value 0-100 to actual level
+        if (m > thresh) {
+            mictrig_hasTriggered = true;
+        }
+    }
+
+    #endif
 }
 
 void mictrig_decayTask()
@@ -146,6 +250,7 @@ void sound_shutter(void* mip)
     mictrig_drawIcon();
     app_waitAllRelease(BTN_DEBOUNCE);
 
+    mictrig_unpause();
     gui_microphoneActive = true;
     mictrig_ignoreTime = millis();
 
@@ -287,6 +392,7 @@ void sound_shutter(void* mip)
         mictrig_drawIcon();
     }
     gui_microphoneActive = false;
+    mictrig_pause();
 }
 
 void mictrig_shoot(void* mip)
