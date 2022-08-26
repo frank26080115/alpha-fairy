@@ -107,6 +107,12 @@ When prompted to input a password for a Wi-Fi connection, a keyboard is displaye
 
 ![](doc/img/imu_keyboard.webp)
 
-# Shutter Release Cable Connector
+## Status Icons
+
+![](doc/img/icon_labels.png)
+
+## Shutter Release Cable Connector
 
 It may be wise to use the intervalometer mode with a shutter release cable, due to the chance of the Wi-Fi connection being unreliable or having too much latency. [See this page for details](doc/Shutter-Release-Cable-Connector.md)
+
+![](doc/img/shutter_release_cable_plugged_in.jpg)
