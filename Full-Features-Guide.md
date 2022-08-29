@@ -94,7 +94,7 @@ NOTE: if Wi-Fi is not connected, the method of sending the shutter command will 
 
 When activated, the camera will start to continuously take photos, and perform a focus adjustment in between each photo. The adjustment is from near to far, so it is recommended to start the camera's focusing point at the minimum focusing point of the lens.
 
-https://github.com/frank26080115/alpha-fairy/blob/main/doc/img/focusstacking_demo_720.mp4
+https://user-images.githubusercontent.com/1427911/187117478-654adc80-a0a3-48cf-8b0b-643bfd7b2884.mp4
 
 There are two focus step sizes available, indicated by the red arrow.
 
@@ -122,7 +122,7 @@ This is an experimental feature that does not work very well.
 
 When activated, the camera will start to continuously take photos, and change the shutter speed to a slower speed between each photo.
 
-https://github.com/frank26080115/alpha-fairy/blob/main/doc/img/shutterstep_demo_720.mp4
+https://user-images.githubusercontent.com/1427911/187117818-dda28b7c-d5e2-45bd-96e9-6ff3c6a178e0.mp4
 
 The camera must be placed in Shutter Priority mode or Manual Exposure mode.
 
