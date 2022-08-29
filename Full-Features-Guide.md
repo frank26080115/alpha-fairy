@@ -94,6 +94,8 @@ NOTE: if Wi-Fi is not connected, the method of sending the shutter command will 
 
 When activated, the camera will start to continuously take photos, and perform a focus adjustment in between each photo. The adjustment is from near to far, so it is recommended to start the camera's focusing point at the minimum focusing point of the lens.
 
+doc/img/focusstacking_demo_720.mp4
+
 There are two focus step sizes available, indicated by the red arrow.
 
 The camera must be placed in manual focus mode.
@@ -108,6 +110,8 @@ NOTE: the camera's API offers 3 step sizes, but the biggest step size is too lar
 
 When activated, the camera will start to continuously take photos, and change the focus spot to one of 9 points between each photo.
 
+doc/img/focus9points_demo_720.mp4
+
 The camera must be placed in movable spot autofocus mode.
 
 ## Shutter Speed Step
@@ -117,6 +121,8 @@ The camera must be placed in movable spot autofocus mode.
 This is an experimental feature that does not work very well.
 
 When activated, the camera will start to continuously take photos, and change the shutter speed to a slower speed between each photo.
+
+doc/img/shutterstep_demo_720.mp4
 
 The camera must be placed in Shutter Priority mode or Manual Exposure mode.
 

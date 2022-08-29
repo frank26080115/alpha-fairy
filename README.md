@@ -67,3 +67,9 @@ Battery life is a bit short. Do not use it for intervalometer purposes without a
  * [Firmware Engineering](doc/Firmware-Engineering.md)
  * [Camera Reverse Engineering](doc/Camera-Reverse-Engineering.md)
  * [My personal website blog post](https://eleccelerator.com/alpha-fairy-wireless-camera-remote/)
+
+## Demo Videos
+
+doc/img/focusstacking_demo_720.mp4
+
+doc/img/shutterstep_demo_720.mp4
