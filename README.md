@@ -70,6 +70,6 @@ Battery life is a bit short. Do not use it for intervalometer purposes without a
 
 ## Demo Videos
 
-doc/img/focusstacking_demo_720.mp4
+https://github.com/frank26080115/alpha-fairy/blob/main/doc/img/focusstacking_demo_720.mp4
 
-doc/img/shutterstep_demo_720.mp4
+https://github.com/frank26080115/alpha-fairy/blob/main/doc/img/shutterstep_demo_720.mp4
