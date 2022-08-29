@@ -110,7 +110,7 @@ NOTE: the camera's API offers 3 step sizes, but the biggest step size is too lar
 
 When activated, the camera will start to continuously take photos, and change the focus spot to one of 9 points between each photo.
 
-https://github.com/frank26080115/alpha-fairy/blob/main/doc/img/focus9points_demo_720.mp4
+https://user-images.githubusercontent.com/1427911/187118098-8fa0dbad-dda0-40ed-ad42-8bafc61e2450.mp4
 
 The camera must be placed in movable spot autofocus mode.
 
