@@ -319,7 +319,7 @@ void gui_valIncDec(configitem_t* cfgitm)
     }
 }
 
-int8_t gui_drawFocusPullState()
+int8_t gui_drawFocusPullState(int y)
 {
     int ang = lroundf(imu.getPitch());
     int aang = (ang < 0) ? (-ang) : (ang);
@@ -328,7 +328,7 @@ int8_t gui_drawFocusPullState()
     static const char* prefix = "/fpull_";
     static const char* suffix = ".png";
     char fname[32];
-    int x = 0, y = 108;
+    int x = 0;
     if (aang >= 2) {
         if (ang > 0) {
             n = aang / 12;

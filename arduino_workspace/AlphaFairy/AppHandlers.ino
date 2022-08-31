@@ -706,7 +706,7 @@ void focus_pull(void* mip)
         do_one = false;
 
         app_poll();
-        int8_t n = gui_drawFocusPullState(); // return is -3 to +3
+        int8_t n = gui_drawFocusPullState(108); // return is -3 to +3
         // translate n into Sony's focus step sizes
         if (n >= 0) {
             n = (n ==  2) ?  3 : ((n ==  3) ?  7 : n);
@@ -751,7 +751,7 @@ void zoom_pull(void* mip)
         do_one = false;
 
         app_poll();
-        int8_t n = gui_drawFocusPullState(); // return is -3 to +3
+        int8_t n = gui_drawFocusPullState(108); // return is -3 to +3
         int8_t na = n < 0 ? (-n) : n;
         uint32_t dly = config_settings.focus_pause_time_ms; // the pause between steps is shorter for higher tilt
         if (na == 1) {
@@ -760,7 +760,7 @@ void zoom_pull(void* mip)
         if (ptpcam.isOperating())
         {
             if (n != 0) {
-                ptpcam.cmd_ZoomStep((n > 0) ? -1 : +1);
+                ptpcam.cmd_ZoomStep((n > 0) ? -1 : ((n < 0) ? +1 : 0));
                 ptpcam.wait_while_busy(dly, DEFAULT_BUSY_TIMEOUT, NULL);
             }
         }
@@ -771,6 +771,9 @@ void zoom_pull(void* mip)
         }
     }
 
+    if (ptpcam.isOperating()) {
+        ptpcam.cmd_ZoomStep(0);
+    }
     if (httpcam.isOperating()) {
         httpcam.cmd_ZoomStop();
     }
@@ -964,6 +967,8 @@ void wifi_info(void* mip)
 
 void record_movie(void* mip)
 {
+    menuitem_t* menuitm = (menuitem_t*)mip;
+
     dbg_ser.println("record_movie");
 
     ledblink_setMode(LEDMODE_OFF);
@@ -989,11 +994,15 @@ void record_movie(void* mip)
 
     fairycam.cmd_MovieRecordToggle();
 
-    // slight delay, for debouncing, and a chance for the movie recording status to change so we can indicate on-screen
-    uint32_t t = millis();
-    if ((millis() - t) < 300) {
-        app_sleep(50, true);
-        gui_drawMovieRecStatus();
+    if (menuitm->id == MENUITEM_RECORDMOVIE)
+    {
+        // slight delay, for debouncing, and a chance for the movie recording status to change so we can indicate on-screen
+        uint32_t t = millis();
+        if ((millis() - t) < 300) {
+            app_sleep(50, true);
+            gui_drawMovieRecStatus();
+        }
     }
+
     app_waitAllRelease(BTN_DEBOUNCE);
 }

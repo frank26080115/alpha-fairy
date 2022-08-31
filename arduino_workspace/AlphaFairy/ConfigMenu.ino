@@ -14,7 +14,6 @@ const configitem_t config_items[] = {
   { (int32_t*)&(config_settings.lcd_brightness         ),   12,    7,     1, "LCD bright"             , TXTFMT_LCDBRITE },
   { (int32_t*)&(config_settings.lcd_dim_secs           ), 1000,    0,     1, "LCD dim time (s)"       , TXTFMT_BYTENS   },
   { (int32_t*)&(config_settings.wifi_pwr               ),   14,    0,     1, "WiFi power"             , TXTFMT_BYTENS   },
-  { (int32_t*)&(config_settings.zoom_enabled           ),    1,    0,     1, "zoom en"                , TXTFMT_BOOL     },
   { (int32_t*)&(config_settings.led_enabled            ),    1,    0,     1, "LED en"                 , TXTFMT_BOOL     },
   { (int32_t*)&(config_settings.infrared_enabled       ),    1,    0,     1, "IR en"                  , TXTFMT_BOOL     },
   { (int32_t*)&(config_settings.gpio_enabled           ),    1,    0,     1, "GPIO en"                , TXTFMT_BOOL     },

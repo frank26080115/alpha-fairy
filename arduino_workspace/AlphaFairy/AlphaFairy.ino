@@ -16,6 +16,7 @@ PtpIpSonyAlphaCamera ptpcam((char*)"ALPHA-FAIRY", NULL);
 SonyHttpCamera httpcam;
 AlphaFairyCamera fairycam(&ptpcam, &httpcam);
 
+void quick_remote   (void* mip);
 void remote_shutter (void* mip);
 void focus_stack    (void* mip);
 void focus_9point   (void* mip);
@@ -46,11 +47,8 @@ const menuitem_t menu_items_main[] = {
 
 const menuitem_t menu_items_remote[] = {
     // ID                       , FILE-NAME               , FUNCTION POINTER
-    { MENUITEM_REMOTESHUTTER_NOW, "/remoteshutter.png"    , remote_shutter },
+    { MENUITEM_QUICKREMOTE      , "/qikrmt_faded.png"     , quick_remote   },
     { MENUITEM_REMOTESHUTTER_DLY, "/remoteshutter_d.png"  , remote_shutter },
-    { MENUITEM_RECORDMOVIE      , "/recordmovie.png"      , record_movie   },
-    { MENUITEM_FOCUS_PULL       , "/focus_pull.png"       , focus_pull     },
-    { MENUITEM_ZOOM_PULL        , "/zoom_adjust.png"      , zoom_pull      },
     { MENUITEM_SOUNDSHUTTER     , "/soundshutter.png"     , sound_shutter  },
     { MENUITEM_DUALSHUTTER_REG  , "/dualshutter_reg.png"  , dual_shutter   },
     { MENUITEM_DUALSHUTTER_SHOOT, "/dualshutter_shoot.png", dual_shutter   },

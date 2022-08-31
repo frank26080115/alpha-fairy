@@ -47,10 +47,6 @@ bool guimenu_task(menustate_t* m)
     }
     #endif
 
-    if (m->last_idx != m->idx && (m->items[m->idx].id == MENUITEM_ZOOM_PULL) && config_settings.zoom_enabled == 0) {
-        m->idx++; // skip this zoom menu item if zoom is disabled
-    }
-
     if (m->last_idx != m->idx && m->items[m->idx].id == MENUITEM_FOCUSFRUSTRATION) {
         focusfrust_reset();
     }
@@ -119,7 +115,7 @@ bool guimenu_task(menustate_t* m)
         gui_drawMovieRecStatus();
     }
     else if ((m->items[m->idx].id == MENUITEM_FOCUS_PULL && httpcam.isOperating() == false) || m->items[m->idx].id == MENUITEM_ZOOM_PULL) {
-        gui_drawFocusPullState();
+        gui_drawFocusPullState(108);
     }
     else if (m->items[m->idx].id == MENUITEM_REMOTESHUTTER_DLY)
     {

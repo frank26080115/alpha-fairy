@@ -38,7 +38,6 @@ typedef struct
   int32_t nine_point_dist;
   int32_t shutter_speed_step_cnt;
   int32_t shutter_step_time_ms;
-  int32_t zoom_enabled;
   int32_t infrared_enabled;
   int32_t gpio_enabled;
 
