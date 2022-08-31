@@ -6,15 +6,17 @@
 
 This project is not a product, it is my experiment. Some of the features I've implemented are purely for fun and are gimmicks. Some of them may not work all of the time, and have camera compatibility issues.
 
-## Remote Shutter
+## Quick Remote
 
-![](screens_240/remoteshutter.png)
+![](doc/img/quickremote_demo.webp)
 
-Press the big button to take a photo. This functions exactly like all other camera remotes.
+Press the side button to lock or unlock the motion selection, rotate the remote to change the selection. Pressing the big button will activate the function that is selected.
 
 If the camera is not connected by Wi-Fi, and the infrared emitter feature is enabled, then pressing the big button will send out the remote shutter command via the infrared emitter.
 
 If the camera is not connected by Wi-Fi, and the infrared emitter feature is disabled, and the GPIO feature is enabled, then pressing the big button will send out the remote shutter command via the shutter release cable connected to the GPIO.
+
+The focus function and zoom function are only functional on lenses that have those functions.
 
 ## Timed Remote Shutter
 
@@ -23,16 +25,6 @@ Uses a countdown before sending the remote shutter command.
 ![](doc/img/spin_num_select.webp)
 
 Rotate the remote to change the time delay amount.
-
-## Movie
-
-![](screens_240/recordmovie.png)
-
-Press to start or stop movie recording.
-
-This feature also supports infrared emitter mode if Wi-Fi connection is not established.
-
-When Wi-Fi is available, it attempts to display the recording status with a red dot.
 
 ## Sound Shutter
 
@@ -57,16 +49,6 @@ NOTE: it is a very basic peak detector, it cannot detect words like "cheese", wh
 ![](doc/img/focus_pull_imu.webp)
 
 Adjusts the camera's manual focus. The adjustment speed is determined by the tilt angle of the remote. Press the big-button to actually perform the adjustment.
-
-## Zoom Adjust
-
-![](screens_240/zoom_adjust.png)
-
-Adjusts the camera's zoom. The tilt angle determines the direction of the zoom adjustment. Press the big-button to actually perform the adjustment.
-
-NOTE: this only works with lenses with motorized zoom
-
-NOTE: the speed of the zoom cannot actually be controlled, even though there are three arrows indicating
 
 ## Intervalometer
 
