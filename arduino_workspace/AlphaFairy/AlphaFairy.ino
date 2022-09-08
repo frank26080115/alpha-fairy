@@ -9,6 +9,7 @@
 #include <AlphaFairy_NetMgr.h>
 #include <AlphaFairyImu.h>
 #include <FairyKeyboard.h>
+#include <FairyEncoder.h>
 #include <SerialCmdLine.h>
 #include <SonyCameraInfraredRemote.h>
 
@@ -111,6 +112,7 @@ SpriteMgr* sprites;
 #endif
 
 AlphaFairyImu imu;
+FairyEncoder fencoder;
 
 void setup()
 {
@@ -160,6 +162,7 @@ void setup()
     btnAll_clrPressed();
 
     imu.poll();
+    fencoder.begin();
 
     welcome(); // splash screen for a few seconds
     pwr_tick(true);
@@ -227,6 +230,7 @@ bool app_poll()
     if (ptpcam.isKindaBusy() == false) {
         imu.poll();
         cmdline.task();
+        fenc_task();
 
         if (imu.hasMajorMotion) {
             // do not sleep if the user is moving the device

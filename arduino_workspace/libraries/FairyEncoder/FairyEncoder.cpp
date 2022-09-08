@@ -18,6 +18,15 @@ FairyEncoder::FairyEncoder(TwoWire* wire, uint8_t i2c_addr, uint32_t chk_intv_fa
     _check_interval = _chkintv_slow;
 }
 
+void FairyEncoder::begin()
+{
+    _wire->begin();
+    _last_cnt = 0;
+    _last_read = 0;
+    _last_check_time = 0;
+    _last_move_time = 0;
+}
+
 void FairyEncoder::task()
 {
     uint32_t now = millis();
@@ -29,8 +38,10 @@ void FairyEncoder::task()
     _last_check_time = now;
 
     bool prev_avail = _avail;
+    int16_t x;
 
-    readBytes(ENCODER_REG, (uint8_t*)&_last_cnt, 2);
+    readBytes(ENCODER_REG, (uint8_t*)&x, 2);
+    _last_cnt = x;
     if (_last_cnt != _last_read) {
         _last_move_time = now;
         _check_interval = _chkintv_fast;

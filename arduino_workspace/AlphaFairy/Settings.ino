@@ -43,6 +43,8 @@ void settings_default() {
 
   config_settings.mictrig_level = 75;
   config_settings.mictrig_delay = 0;
+
+  config_settings.fenc_multi = 1;
 }
 
 bool settings_load() {

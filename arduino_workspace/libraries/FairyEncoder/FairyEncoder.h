@@ -10,11 +10,16 @@
 class FairyEncoder
 {
     public:
-        FairyEncoder(TwoWire* wire = &Wire, uint8_t i2c_addr = 0x40, uint32_t chk_intv_fast = 1, uint32_t chk_intv_slow = 200, uint32_t chk_intv_sleep = 2000);
-        void    task(void);
-        int16_t read(bool clear = true);
-        int16_t readRaw(void);
-        bool    avail(void);
+        FairyEncoder(TwoWire* wire = &Wire, uint8_t i2c_addr = 0x40
+                        , uint32_t chk_intv_fast = 1        // delay between I2C reads if the encoder has recently been rotated (in milliseconds)
+                        , uint32_t chk_intv_slow = 200      // delay between I2C reads if the encoder has not been recently rotated (in milliseconds)
+                        , uint32_t chk_intv_sleep = 2000    // the criteria for being "recent" for the above two delay times (in milliseconds)
+                        );
+        void    begin(void);                                // calls _wire->begin() and resets variables
+        void    task(void);                                 // reads the I2C device when it needs to
+        int16_t read(bool clear = true);                    // returns relative encoder steps since last clear
+        int16_t readRaw(void);                              // returns the absolute encoder steps stored on encoder module
+        bool    avail(void);                                // true if encoder is connected, false if I2C communication has failed
         bool    getButtonStatus(void);
         void    setLEDColor(uint8_t index, uint32_t color);
 

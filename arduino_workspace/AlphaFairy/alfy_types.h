@@ -60,6 +60,8 @@ typedef struct
   int32_t mictrig_level;
   int32_t mictrig_delay;
 
+  int32_t fenc_multi;
+
   uint32_t crc32;
 }
 configsettings_t;
