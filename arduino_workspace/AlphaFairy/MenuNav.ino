@@ -279,6 +279,7 @@ void submenu_enter(void* mip)
         {
             if (app_poll())
             {
+                tallylite_task();
                 if (guimenu_task(m))
                 {
                     return;

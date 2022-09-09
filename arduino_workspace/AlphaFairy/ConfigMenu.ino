@@ -12,6 +12,7 @@ const configitem_t config_items[] = {
   { (int32_t*)&(config_settings.nine_point_dist        ),  240,    0,    10, "9-pt dist"              , TXTFMT_BYTENS   },
   { (int32_t*)&(config_settings.shutter_speed_step_cnt ),    9,    1,     1, "Tv step size"           , TXTFMT_BYTENS   },
   { (int32_t*)&(config_settings.shutter_step_time_ms   ), 5000,    0,    10, "Tv step delay"          , TXTFMT_BYTENS   },
+  { (int32_t*)&(config_settings.tallylite              ),    1,    0,     1, "Tally Light en"         , TXTFMT_BOOL     },
   { (int32_t*)&(config_settings.pwr_save_secs          ), 1000,    0,    10, "power save time (s)"    , TXTFMT_BYTENS   },
   { (int32_t*)&(config_settings.lcd_brightness         ),   12,    7,     1, "LCD bright"             , TXTFMT_LCDBRITE },
   { (int32_t*)&(config_settings.lcd_dim_secs           ), 1000,    0,     1, "LCD dim time (s)"       , TXTFMT_BYTENS   },

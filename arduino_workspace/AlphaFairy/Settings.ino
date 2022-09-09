@@ -46,6 +46,8 @@ void settings_default() {
 
   config_settings.fenc_multi = 1;
   config_settings.fenc_large = 10;
+
+  config_settings.tallylite = 1;
 }
 
 bool settings_load() {

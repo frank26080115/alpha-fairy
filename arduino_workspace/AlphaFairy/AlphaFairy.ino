@@ -182,6 +182,8 @@ void loop()
         // can do more low priority tasks
         // the graphics is very IO-intensive and blocking so we want to do it when the network is not busy
 
+        tallylite_task();
+
         if (guimenu_task(&menustate_main))
         {
             #if defined(USE_PWR_BTN_AS_EXIT) && defined(USE_PWR_BTN_AS_PWROFF)

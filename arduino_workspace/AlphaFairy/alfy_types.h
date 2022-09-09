@@ -63,6 +63,8 @@ typedef struct
   int32_t fenc_multi;
   int32_t fenc_large;
 
+  int32_t tallylite;
+
   uint32_t crc32;
 }
 configsettings_t;
