@@ -36,6 +36,7 @@ void tallylite_show()
     while (fairycam.isOperating() && fairycam.is_movierecording()) // quit if disconnected, or recording has stopped
     {
         app_poll();     // this is where recursion is not allowed
+        fenc_task();    // allow focus pull while red screen
         pwr_tick(true); // prevent screen dimming and sleep
         if (btnAll_hasPressed())
         {
