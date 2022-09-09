@@ -61,6 +61,7 @@ typedef struct
   int32_t mictrig_delay;
 
   int32_t fenc_multi;
+  int32_t fenc_large;
 
   uint32_t crc32;
 }

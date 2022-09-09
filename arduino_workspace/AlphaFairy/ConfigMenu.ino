@@ -5,7 +5,8 @@ extern configsettings_t config_settings;
 const configitem_t config_items[] = {
   // item pointer                                       , max , min , step , text                     , flags
   { (int32_t*)&(config_settings.focus_pause_time_ms    ), 1000,    0,    10, "focus pause"            , TXTFMT_BYTENS   },
-  { (int32_t*)&(config_settings.fenc_multi             ),  100, -100,     1, "focus knob steps"       , TXTFMT_NONE     },
+  { (int32_t*)&(config_settings.fenc_multi             ),  100, -100,     1, "MF knob steps"          , TXTFMT_NONE     },
+  { (int32_t*)&(config_settings.fenc_large             ), 1000,    0,     1, "MF knob large steps"    , TXTFMT_NONE     },
   { (int32_t*)&(config_settings.shutter_press_time_ms  ), 1000,    0,    10, "shutter press duration" , TXTFMT_BYTENS   },
   { (int32_t*)&(config_settings.manual_focus_return    ),    1,    0,     1, "MF return"              , TXTFMT_BOOL     },
   { (int32_t*)&(config_settings.nine_point_dist        ),  240,    0,    10, "9-pt dist"              , TXTFMT_BYTENS   },

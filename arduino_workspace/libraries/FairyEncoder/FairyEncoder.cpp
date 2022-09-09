@@ -94,7 +94,7 @@ bool FairyEncoder::readBytes(uint8_t reg, uint8_t* buffer, uint8_t length)
     _wire->write(reg);
     if (_wire->endTransmission(false) == 0)
     {
-        if (_wire->requestFrom(_i2c_addr, length, true) > 0)
+        if (_wire->requestFrom((uint8_t)_i2c_addr, (uint8_t)length, (uint8_t)true) > 0)
         {
             for (int i = 0; i < length; i++) {
                 buffer[index++] = _wire->read();

@@ -29,18 +29,20 @@ void fenc_task()
     static uint32_t prev_move_time = 0;
     static uint32_t wait_time = 0;
 
-    fencoder.task(); // do the I2C IO operations required to read encoder
+    if (config_settings.fenc_multi == 0) {
+        config_settings.fenc_multi = 1;
+    }
+    int32_t absmulti = config_settings.fenc_multi < 0 ? -config_settings.fenc_multi : config_settings.fenc_multi;
 
+    fencoder.task(); // do the I2C IO operations required to read encoder
     int16_t d = fencoder.read(true); // get the relative step count
+
     if (d != 0) {
         pwr_tick(true);
-        if (config_settings.fenc_multi == 0) {
-            config_settings.fenc_multi = 1;
-        }
         fenc_val += d * config_settings.fenc_multi;
         uint32_t tspan = now - prev_move_time;
-        if (config_settings.fenc_multi > 1) {
-            wait_time = tspan / (config_settings.fenc_multi * 2);
+        if (absmulti > 1) {
+            wait_time = tspan / (absmulti * 2);
             if (wait_time > config_settings.focus_pause_time_ms) {
                 wait_time = config_settings.focus_pause_time_ms;
             }
@@ -62,9 +64,16 @@ void fenc_task()
 
     while (fenc_val > 1 || fenc_val < -1)
     {
+        int16_t absval = fenc_val < 0 ? -fenc_val : fenc_val;
+        int16_t large_step = absmulti * config_settings.fenc_large * 2;
         //dbg_ser.printf("focus knob %d\r\n", fenc_val);
-        ptpcam.cmd_ManualFocusStep(SONYALPHA_FOCUSSTEP_FARTHER_MEDIUM * (fenc_val < 0 ? -1 : 1) * (config_settings.fenc_multi > 0 ? 1 : -1));
-        fenc_val -= 2 * (fenc_val < 0 ? -1 : 1);
+
+        ptpcam.cmd_ManualFocusStep(((absval >= large_step && large_step > 2) ? SONYALPHA_FOCUSSTEP_FARTHER_LARGE : SONYALPHA_FOCUSSTEP_FARTHER_MEDIUM)  // large step size if needed, default medium step size
+                                   * (fenc_val < 0 ? -1 : 1) * (config_settings.fenc_multi < 0 ? -1 : 1)                                                // account for direction
+                                   );
+
+        fenc_val -= ((absval >= large_step && large_step > 2) ? large_step : 2) * (fenc_val < 0 ? -1 : 1);
+
         prev_execute_time = now;
         if (wait_time != 0) { // do only one loop if a wait has been specified
             break;
