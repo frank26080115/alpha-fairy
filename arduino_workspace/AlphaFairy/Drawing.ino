@@ -63,8 +63,8 @@ void gui_drawVerticalDots(int x_offset, int y_margin, int y_offset, int dot_radi
     // draws a line of vertical dots, with one dot that's highlighted
     // the calling function can move the highlighted dot to indicate progress/count-down/busy-status
     // defaults to being in the middle of the screen but the offsets can be defined
-    int lcd_width  = M5Lcd.height();
-    int lcd_height = M5Lcd.width();
+    int lcd_width  = M5Lcd.width();
+    int lcd_height = M5Lcd.height();
     int x = (lcd_width / 2) + x_offset;
     int y_span = lcd_height - (2 * y_margin);
     int i;

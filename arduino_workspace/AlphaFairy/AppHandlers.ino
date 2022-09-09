@@ -158,7 +158,7 @@ void remote_shutter(void* mip)
                 while (((tdiff = ((now = millis()) - tstart)) < (time_delay * 1000))) {
                     if (app_poll()) {
                         if (time_delay > 2) {
-                            gui_drawVerticalDots(0, 20, -1, 3, time_delay, tdiff / 1000, false, TFT_GREEN, TFT_RED);
+                            gui_drawVerticalDots(0, 40, -1, 5, time_delay, tdiff / 1000, false, TFT_GREEN, TFT_RED);
                         }
                     }
                     if (btnSide_hasPressed()) {
@@ -216,7 +216,7 @@ void remote_shutter(void* mip)
         while (((tdiff = ((now = millis()) - tstart)) < (time_delay * 1000)) && fairycam.isOperating()) {
             if (app_poll()) {
                 if (time_delay > 2) {
-                    gui_drawVerticalDots(0, 20, -1, 3, time_delay, tdiff / 1000, false, TFT_DARKGREEN, TFT_RED);
+                    gui_drawVerticalDots(0, 40, -1, 5, time_delay, tdiff / 1000, false, TFT_DARKGREEN, TFT_RED);
                 }
             }
             if (btnSide_hasPressed()) {
@@ -279,7 +279,7 @@ void remote_shutter(void* mip)
     else if (gui_microphoneActive == false)
     {
         // TODO: in this case, the camera didn't take a photo! what should we do?
-        gui_drawVerticalDots(0, 20, -1, 3, time_delay > 2 ? time_delay : 5, 0, false, TFT_RED, TFT_RED);
+        gui_drawVerticalDots(0, 40, -1, 5, time_delay > 2 ? time_delay : 5, 0, false, TFT_RED, TFT_RED);
         dbg_ser.printf("rmtshutter cannot shoot\r\n");
         fail_shown = true;
     }
@@ -391,7 +391,7 @@ void focus_stack(void* mip)
     while (ptpcam.isOperating()) // I wish we had try-catches
     {
         app_poll();
-        gui_drawVerticalDots(0, 20, -1, 3, 5, dot_idx, step_size > 0, TFT_GREEN, TFT_RED);
+        gui_drawVerticalDots(0, 40, -1, 5, 5, dot_idx, step_size > 0, TFT_GREEN, TFT_RED);
         if (is_contshoot == false)
         {
             ledblink_on();
@@ -423,7 +423,7 @@ void focus_stack(void* mip)
         do
         {
             app_poll();
-            gui_drawVerticalDots(0, 20, -1, 3, 5, dot_idx, step_size < 0, TFT_GREEN, TFT_RED);
+            gui_drawVerticalDots(0, 40, -1, 5, 5, dot_idx, step_size < 0, TFT_GREEN, TFT_RED);
             ptpcam.cmd_ManualFocusStep(step_size * -1);
             steps_done--;
             ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
@@ -629,7 +629,7 @@ void shutter_step(void* mip)
         }
 
         ledblink_off();
-        gui_drawVerticalDots(0, 20, -1, 3, 5, dot_idx, false, TFT_GREEN, TFT_RED);
+        gui_drawVerticalDots(0, 40, -1, 5, 5, dot_idx, false, TFT_GREEN, TFT_RED);
         dot_idx++;
         if (ptpcam.isOperating()) {
             cur_ss = ptpcam.get_property_enum(SONYALPHA_PROPCODE_ShutterSpeed, cur_ss, -config_settings.shutter_speed_step_cnt);
