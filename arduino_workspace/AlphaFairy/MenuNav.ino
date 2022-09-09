@@ -233,6 +233,11 @@ bool guimenu_task(menustate_t* m)
             m->last_idx = -1; // force redraw
         }
 
+        if (m->items[m->idx].id == MENUITEM_FENCCALIB) {
+            m->last_idx = m->idx;
+            redraw_flag = false;
+        }
+
         ledblink_setMode(LEDMODE_NORMAL);
         app_sleep(50, true); // kinda sorta a debounce and rate limit, don't think I need this here
         btnBig_clrPressed();

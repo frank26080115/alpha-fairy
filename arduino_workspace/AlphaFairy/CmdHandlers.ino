@@ -7,6 +7,7 @@ this is used only for testing
 */
 
 void factory_reset_func(void* cmd, char* argstr, Stream* stream);
+void focuscalib_func(void* cmd, char* argstr, Stream* stream);
 #ifndef DISABLE_CMD_LINE
 void shoot_func     (void* cmd, char* argstr, Stream* stream);
 void echo_func      (void* cmd, char* argstr, Stream* stream);
@@ -24,11 +25,11 @@ void infrared_func  (void* cmd, char* argstr, Stream* stream);
 void savewifi_func  (void* cmd, char* argstr, Stream* stream);
 void dumpwifi_func  (void* cmd, char* argstr, Stream* stream);
 void wifipwr_func   (void* cmd, char* argstr, Stream* stream);
-void focuscalib_func(void* cmd, char* argstr, Stream* stream);
 #endif
 
 const cmd_def_t cmds[] = {
   { "factoryreset", factory_reset_func},
+  { "focuscalib", focuscalib_func },
   #ifndef DISABLE_CMD_LINE
   { "shoot"    , shoot_func },
   { "echo"     , echo_func },
@@ -46,7 +47,6 @@ const cmd_def_t cmds[] = {
   { "savewifi" , savewifi_func },
   { "dumpwifi" , dumpwifi_func },
   { "wifipwr"  , wifipwr_func },
-  { "focuscalib", focuscalib_func },
   #endif
   { "", NULL }, // end of table
 };
@@ -61,6 +61,11 @@ void factory_reset_func(void* cmd, char* argstr, Stream* stream)
   settings_default();
   settings_save();
   stream->println("factory reset performed");
+}
+
+void focuscalib_func(void* cmd, char* argstr, Stream* stream)
+{
+    fenc_calibrate();
 }
 
 #ifndef DISABLE_CMD_LINE
@@ -294,11 +299,6 @@ void wifipwr_func(void* cmd, char* argstr, Stream* stream)
         ret = (int)esp_wifi_set_max_tx_power(x);
         stream->printf("WiFi set pwr %d , return code %d\r\n", x, ret);
     }
-}
-
-void focuscalib_func(void* cmd, char* argstr, Stream* stream)
-{
-    //fenc_calibrate();
 }
 
 #endif

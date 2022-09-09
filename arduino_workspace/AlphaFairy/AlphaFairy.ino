@@ -29,6 +29,7 @@ void record_movie   (void* mip);
 void dual_shutter   (void* mip);
 void sound_shutter  (void* mip);
 void conf_settings  (void* mip);
+void focus_calib    (void* mip);
 void submenu_enter  (void* mip);
 void intervalometer_config(void* mip);
 void focusfrust_execute(void* mip);
@@ -78,6 +79,7 @@ const menuitem_t menu_items_utils[] = {
     { MENUITEM_WIFIINFO         , "/wifiinfo.png"         , wifi_info       },
     { MENUITEM_CONFIG           , "/config.png"           , conf_settings   },
     { MENUITEM_WIFICONFIG       , "/wifi_config.png"      , wifi_config     },
+    { MENUITEM_FENCCALIB        , "/focus_calib.png"      , focus_calib     },
     #ifdef MENU_INCLUDE_ABOUT
     { MENUITEM_ABOUT            , "/about.png"            , NULL            },
     #endif
