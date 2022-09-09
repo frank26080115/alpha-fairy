@@ -44,11 +44,36 @@ NOTE: this was super fun to implement, and annoying because the button clicks us
 
 NOTE: it is a very basic peak detector, it cannot detect words like "cheese", which is what inspired this feature
 
+## Talley Light
+
+The entire screen will turn bright red when the camera is recording a movie.
+
+![](doc/img/talleylight.webp)
+
+When the camera stops recording, the red screen will disappear and the remote will go back to normal state. Pressing any button will also clear the screen and make the remote go back to normal.
+
+This feature can be disabled through the configuration menu.
+
 ## Focus Pull
 
 ![](doc/img/focus_pull_imu.webp)
 
 Adjusts the camera's manual focus. The adjustment speed is determined by the tilt angle of the remote. Press the big-button to actually perform the adjustment.
+
+## Focus Knob
+
+A focus knob can be attached to the remote.
+
+![](doc/img/focusknob_small.jpg)
+
+The focus knob function does not need to be activated through any menus. As long as a focus knob is connected and the camera is in manual focus mode, the focus knob will work.
+
+In the configuration menu, there are two settings that can be adjusted:
+
+ * MF knob steps: the number of steps of MF movement to perform for every click of the knob
+ * MF knob large steps: the number of queued steps before the step size changes to the larger step size
+
+These two parameters needs to be calibrated for true linear operation, and the parameters will be different depending on which lens is attached to the camera.
 
 ## Intervalometer
 

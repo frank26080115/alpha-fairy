@@ -31,6 +31,8 @@ The fun part about this project for me is to create a usable user interface on a
  * Focus 9-Point
    * takes consecutive photos as the auto-focus point moves around the scene, to obtain multiple photos focused on multiple objects, convenient for landscape photography
  * Focus Pull
+   * with optional focus knob
+ * Talley Light
  * Sound Triggered Shutter
    * with adjustable sound level threshold and adjustable delay
  * Dual Shutter

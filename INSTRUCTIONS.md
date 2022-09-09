@@ -116,3 +116,9 @@ When prompted to input a password for a Wi-Fi connection, a keyboard is displaye
 It may be wise to use the intervalometer mode with a shutter release cable, due to the chance of the Wi-Fi connection being unreliable or having too much latency. [See this page for details](doc/Shutter-Release-Cable-Connector.md)
 
 ![](doc/img/shutter_release_cable_plugged_in.jpg)
+
+## Focus Knob
+
+A rotary encoder can be purchased (from M5Stack) and connected to the remote. It is recommended that a larger knob and handle be 3D printed for practical focus pulling, and for attaching to a rig.
+
+![](doc/img/focusknob_1440.jpg)
