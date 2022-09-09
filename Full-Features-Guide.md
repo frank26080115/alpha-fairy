@@ -75,6 +75,10 @@ In the configuration menu, there are two settings that can be adjusted:
 
 These two parameters needs to be calibrated for true linear operation, and the parameters will be different depending on which lens is attached to the camera.
 
+There is also a utility to automatically calibrate the large steps.
+
+![](screens_240/focus_calib.png)
+
 ## Intervalometer
 
 ![](doc/img/intervalometer_working.webp)
