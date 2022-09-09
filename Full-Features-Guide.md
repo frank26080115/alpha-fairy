@@ -62,7 +62,7 @@ Adjusts the camera's manual focus. The adjustment speed is determined by the til
 
 ## Focus Knob
 
-A focus knob can be attached to the remote.
+A focus knob can be attached to the remote. It will adjust focus **linearly** on focus-by-wire lenses, one click of the knob equals a fixed number of focus adjustment steps.
 
 ![](doc/img/focusknob_small.jpg)
 

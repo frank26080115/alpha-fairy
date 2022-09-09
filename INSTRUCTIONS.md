@@ -119,6 +119,6 @@ It may be wise to use the intervalometer mode with a shutter release cable, due 
 
 ## Focus Knob
 
-A rotary encoder can be purchased (from M5Stack) and connected to the remote. It is recommended that a larger knob and handle be 3D printed for practical focus pulling, and for attaching to a rig.
+A rotary encoder can be purchased (from M5Stack) and connected to the remote to function as a focus pulling knob. It will adjust focus **linearly** with focus-by-wire lenses, one click of the knob equals a fixed number of focus adjustment steps. It is recommended that a larger knob and handle be 3D printed for practical focus pulling, and for attaching to a rig.
 
 ![](doc/img/focusknob_1440.jpg)
