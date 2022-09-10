@@ -37,9 +37,23 @@ void fenc_task()
     fencoder.task(); // do the I2C IO operations required to read encoder
     int16_t d = fencoder.read(true); // get the relative step count
 
-    if (d != 0) {
+    if (d != 0)
+    {
         pwr_tick(true);
-        fenc_val += d * config_settings.fenc_multi;
+
+        int32_t additional = d * config_settings.fenc_multi;
+        #if 1
+        // if there are queued steps remaining but the direction changed, immediately change direction
+        if (additional * fenc_val < 0)
+        {
+            fenc_val = additional;
+        }
+        else
+        #endif
+        {
+            fenc_val += additional;
+        }
+
         uint32_t tspan = now - prev_move_time;
         if (absmulti > 1) {
             wait_time = tspan / (absmulti * 2);
