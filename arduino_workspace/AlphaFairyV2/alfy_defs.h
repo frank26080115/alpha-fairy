@@ -67,6 +67,7 @@ enum
   TXTFMT_ISO      = 0x0040,
   TXTFMT_LCDBRITE = 0x0080,
   TXTFMT_BYTENS   = 0x0100,
+  TXTFMT_AUTOCFG  = 0xFFFF,
 };
 
 enum

@@ -2,6 +2,7 @@
 #include <M5StickCPlus.h>
 #include <M5DisplayExt.h>
 #include <SpriteMgr.h>
+#include "FairyMenu.h"
 #include <PtpIpCamera.h>
 #include <PtpIpSonyAlphaCamera.h>
 #include <SonyHttpCamera.h>
@@ -25,8 +26,12 @@ bool redraw_flag = false; // forces menu redraw
 SpriteMgr* sprites;
 #endif
 
+bool http_is_active;
+
 AlphaFairyImu imu;
 FairyEncoder  fencoder;
+
+FairySubmenu main_menu(NULL, 0);
 
 void setup()
 {
@@ -35,7 +40,11 @@ void setup()
 
     SonyCamIr_Init();
     Serial.begin(115200);
+
     dbg_ser.enabled = true;
+
+    setup_menus();
+
     M5.begin(false); // do not initialize the LCD, we have our own extended M5Lcd class to initialize later
     M5.IMU.Init();
     M5.IMU.SetGyroFsr(M5.IMU.GFS_500DPS);
@@ -55,10 +64,6 @@ void setup()
     sprites = new SpriteMgr(&M5Lcd);
     #endif
 
-    #ifdef QUICK_HTTP_TEST
-    wifi_config(NULL);
-    #endif
-
     httpcam.borrowBuffer(ptpcam.donateBuffer(), DATA_BUFFER_SIZE);
 
     cam_cb_setup();
@@ -72,7 +77,6 @@ void setup()
     imu.poll();
     fencoder.begin();
 
-    welcome(); // splash screen for a few seconds
     pwr_tick(true);
 
     #ifdef DISABLE_ALL_MSG
@@ -85,4 +89,137 @@ void setup()
 
 void loop()
 {
+    main_menu.on_execute();
+}
+
+FairySubmenu         menu_remote  ("/main_remote.png"  , MENUITEM_REMOTE);
+FairySubmenu         menu_focus   ("/main_focus.png"   , MENUITEM_FOCUS);
+FairyCfgApp          menu_interval("/main_interval.png", "/intervalometer.png", MENUITEM_INTERVAL);
+FairyCfgApp          menu_astro   ("/main_astro.png"   , "/galaxy_icon.png", MENUITEM_ASTRO);
+FairySubmenu         menu_utils   ("/main_utils.png"   , MENUITEM_UTILS);
+FairySubmenu         menu_auto    ("/main_auto.png"    , MENUITEM_AUTOCONN);
+
+void setup_menus()
+{
+    main_menu.install(&menu_remote  );
+    main_menu.install(&menu_focus   );
+    main_menu.install(&menu_interval);
+    main_menu.install(&menu_astro   );
+    main_menu.install(&menu_utils   );
+    main_menu.install(&menu_auto    );
+
+    setup_qikrmt();
+    setup_remoteshutter();
+    setup_soundshutter();
+    setup_focuscalib();
+}
+
+bool app_poll()
+{
+    // high priority tasks
+    NetMgr_task();
+    ptpcam.task();
+    httpcam.task();
+    //httpsrv_poll();
+
+    // do low priority tasks if the networking is not busy
+    if (ptpcam.isKindaBusy() == false) {
+        imu.poll();
+        cmdline.task();
+        fenc_task();
+        btnPwr_poll();
+        shutterrelease_task();
+
+        if (imu.hasMajorMotion) {
+            // do not sleep if the user is moving the device
+            imu.hasMajorMotion = false;
+            pwr_tick(true);
+        }
+
+        yield();
+
+        pwr_lightSleepEnter();
+
+        return true; // can do more low priority tasks
+    }
+
+    return false; // should not do more low priority tasks
+}
+
+void shutterrelease_task()
+{
+    if (gpio_time != 0)
+    {
+        // release the GPIO after a timeout
+        uint32_t telapsed = millis() - gpio_time;
+        int32_t tlimit = config_settings.intv_bulb;
+        tlimit = (tlimit <= 0) ? config_settings.astro_bulb : tlimit;
+        tlimit *= 1000; // previous units were in seconds, next unit is in milliseconds
+        tlimit = (tlimit <= 0) ? config_settings.shutter_press_time_ms : tlimit;
+        if (tlimit > 0 && (telapsed >= tlimit)) {
+            #ifdef SHUTTER_GPIO_ACTIVE_HIGH
+            digitalWrite(SHUTTER_GPIO, LOW);
+            #endif
+            pinMode(SHUTTER_GPIO, INPUT);
+            gpio_time = 0;
+        }
+    }
+}
+
+extern int wifi_err_reason;
+extern bool prevent_status_bar_thread;
+
+void critical_error(const char* fp)
+{
+    prevent_status_bar_thread = true;
+    pwr_tick(true);
+    M5.Axp.GetBtnPress();
+    uint32_t t = millis(), now = t;
+    esp_wifi_disconnect();
+    esp_wifi_stop();
+    esp_wifi_deinit();
+    M5Lcd.setRotation(0);
+    M5Lcd.drawPngFile(SPIFFS, fp, 0, 0);
+
+    if (wifi_err_reason != 0)
+    {
+        M5Lcd.setTextFont(2);
+        M5Lcd.highlight(true);
+        M5Lcd.setTextWrap(true);
+        M5Lcd.setHighlightColor(TFT_BLACK);
+        M5Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+        M5Lcd.setCursor(5, M5Lcd.height() - 16);
+        M5Lcd.printf("REASON: %d", wifi_err_reason);
+    }
+
+    while (true)
+    {
+        pwr_sleepCheck();
+        if (btnBoth_hasPressed()) {
+            #if 0
+            delay(100);
+            btnBoth_clrPressed();
+            while (btnBig_isPressed() || btnSide_isPressed()) {
+                delay(100);
+            }
+            NetMgr_reboot();
+            redraw_flag = true;
+            return;
+            #else
+            ESP.restart();
+            #endif
+        }
+        if (M5.Axp.GetBtnPress() != 0) {
+            show_poweroff();
+            M5.Axp.PowerOff();
+        }
+        if (((now = millis()) - t) > 2000) {
+            Serial.print("CRITICAL ERROR");
+            if (wifi_err_reason != 0) {
+                Serial.printf(", WIFI REASON %d", wifi_err_reason);
+            }
+            Serial.println();
+            t = now;
+        }
+    }
 }

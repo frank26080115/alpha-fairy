@@ -8,25 +8,6 @@
 
 typedef struct
 {
-  const uint8_t id;
-  const char fname[32];
-  void (*func)(void*);
-}
-menuitem_t;
-
-typedef struct
-{
-    menuitem_t* items;
-    int8_t      id;
-    int8_t      idx;
-    int8_t      last_idx;
-    uint8_t     cnt;
-    uint8_t     flags;
-}
-menustate_t;
-
-typedef struct
-{
   uint32_t magic;
   uint32_t len;
 
@@ -68,17 +49,6 @@ typedef struct
   uint32_t crc32;
 }
 configsettings_t;
-
-typedef struct
-{
-  int32_t*       ptr_val;
-  const int32_t  val_max;
-  const int32_t  val_min;
-  const int32_t  step_size;
-  const char     text[64];
-  const uint16_t flags;
-}
-configitem_t;
 
 enum
 {
