@@ -13,11 +13,11 @@
 uint8_t mictrig_buffer8[MICTRIG_READ_LEN * 2] = {0};
 
 volatile int16_t* mictrig_buffer16;
-volatile bool mictrig_active = false;
 volatile int32_t mictrig_lastMax = 0;
 volatile int32_t mictrig_filteredMax = 0;
 volatile int32_t mictrig_decay = 0;
 volatile bool mictrig_hasTriggered = false;
+bool gui_microphoneActive = false;
 
 #ifdef MICTRIG_NEW_I2S_LIB
 i2s_chan_handle_t mictrig_i2shandle;
@@ -145,6 +145,7 @@ void mictrig_unpause()
     #else
     i2s_start(I2S_NUM_0);
     #endif
+    gui_microphoneActive = true;
 }
 
 void mictrig_pause()
@@ -154,6 +155,7 @@ void mictrig_pause()
     #else
     i2s_stop(I2S_NUM_0);
     #endif
+    gui_microphoneActive = false;
 }
 
 void mictrig_poll()
@@ -269,7 +271,7 @@ class PageSoundTrigger : public FairyCfgItem
     public:
         PageSoundTrigger(const char* disp_name, int32_t* linked_var, int32_t val_min, int32_t val_max, int32_t step_size, uint16_t fmt_flags) : FairyCfgItem(disp_name, linked_var, val_min, val_max, step_size, fmt_flags)
         { this->_margin_y = MICTRIG_LEVEL_MARGIN; this->_autosave = true; };
-        PageSoundTrigger(const char* disp_name, bool (*cb)(void), const char* icon) : FairyCfgItem(disp_name, cb, icon)
+        PageSoundTrigger(const char* disp_name, bool (*cb)(void*), const char* icon) : FairyCfgItem(disp_name, cb, icon)
         { this->_margin_y = MICTRIG_LEVEL_MARGIN; this->_autosave = true; };
 
         virtual void on_drawLive (void) { mictrig_drawLevel(); };

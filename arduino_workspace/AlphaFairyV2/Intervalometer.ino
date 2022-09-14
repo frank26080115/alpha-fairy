@@ -2,10 +2,55 @@
 #include <M5DisplayExt.h>
 #include "FairyMenu.h"
 
-void intervalometer_func(void* ptr)
+static uint32_t intervalometer_start_time;
+
+void interval_drawTimer(int8_t x)
 {
-    PageInterval* pg = (PageInterval*)ptr;
-    uint16_t caller_id = pg->get_parentId();
+    static uint8_t i = 0;
+    char fname[24];
+    if (x < 0) { // negative arg means auto-increment
+        i++;
+    }
+    else {
+        i = x; // otherwise, assign
+    }
+    i %= 12;
+    sprintf(fname, "/timer_%u.png", i);
+
+    #if defined(USE_SPRITE_MANAGER)
+    if ((sprites->holder_flag & SPRITESHOLDER_FOCUSPULL) == 0) {
+        sprites->draw(fname, M5Lcd.width() - 60, M5Lcd.height() - 60, 60, 60);
+        sprites->holder_flag |= SPRITESHOLDER_INTERVAL;
+    }
+    else {
+        M5Lcd.drawPngFile(SPIFFS, fname, M5Lcd.width() - 60, M5Lcd.height() - 60);
+    }
+    #else
+    M5Lcd.drawPngFile(SPIFFS, fname, M5Lcd.width() - 60, M5Lcd.height() - 60);
+    #endif
+
+    if (i == 0) {
+        gui_drawStatusBar(true);
+    }
+}
+
+uint32_t interval_calcTotal(uint8_t menu_id)
+{
+    uint32_t total_time = 0, shot_cnt = 0;
+    if (menu_id == MENUITEM_INTERVAL) {
+        shot_cnt = config_settings.intv_limit;
+        total_time = shot_cnt * config_settings.intv_intval;
+    }
+    else if (menu_id == MENUITEM_ASTRO) {
+        shot_cnt = config_settings.intv_limit;
+        if (config_settings.astro_bulb == 0) {
+            total_time = shot_cnt * config_settings.astro_pause;
+        }
+        else {
+            total_time = shot_cnt * (config_settings.astro_bulb + config_settings.astro_pause);
+        }
+    }
+    return total_time;
 }
 
 class PageInterval : public FairyCfgItem
@@ -34,6 +79,70 @@ class PageInterval : public FairyCfgItem
             blank_line();
         };
 
+        void draw_start(void)
+        {
+            FairyCfgItem::draw_name();
+            FairyCfgItem::draw_icon();
+            M5Lcd.setTextFont(4);
+            int linenum = 1;
+            M5Lcd.setCursor(_margin_x, get_y(linenum));
+            if (_parent_id == MENUITEM_INTERVAL)
+            {
+                if (config_settings.intv_bulb != 0) {
+                    M5Lcd.print("Bulb: ");
+                    gui_showVal(config_settings.intv_bulb, TXTFMT_TIME, (Print*)&M5Lcd);
+                    blank_line();
+                    linenum++;
+                    M5Lcd.setCursor(_margin_x, get_y(linenum));
+                }
+                gui_showVal(config_settings.intv_intval, TXTFMT_TIME, (Print*)&M5Lcd);
+                blank_line();
+                if (config_settings.intv_limit != 0 && config_settings.intv_limit < 1000) {
+                    linenum++;
+                    M5Lcd.setCursor(_margin_x, get_y(linenum));
+                    M5Lcd.print("#: ");
+                    M5Lcd.print(config_settings.intv_limit, DEC);
+                    M5Lcd.print("x");
+                }
+            }
+            else if (_parent_id == MENUITEM_ASTRO)
+            {
+                if (config_settings.astro_bulb != 0) {
+                    M5Lcd.print(config_settings.astro_bulb, DEC);
+                    M5Lcd.print("s");
+                }
+                if (config_settings.astro_pause > 1) {
+                    M5Lcd.print(" + ");
+                    M5Lcd.print(config_settings.astro_pause, DEC);
+                    M5Lcd.print("s");
+                }
+                else if (config_settings.astro_bulb == 0) {
+                    M5Lcd.print(config_settings.astro_pause, DEC);
+                    M5Lcd.print("s");
+                }
+                blank_line();
+                if (config_settings.intv_limit != 0 && config_settings.intv_limit < 1000) {
+                    linenum++;
+                    M5Lcd.setCursor(_margin_x, get_y(linenum));
+                    M5Lcd.print("#: ");
+                    M5Lcd.print(config_settings.intv_limit, DEC);
+                    M5Lcd.print("x");
+                }
+            }
+
+            uint32_t total_time = interval_calcTotal(_parent_id);
+
+            if (total_time > 0)
+            {
+                linenum++;
+                M5Lcd.setCursor(_margin_x, get_y(linenum));
+                M5Lcd.setTextFont(2);
+                M5Lcd.print("T: ");
+                gui_showVal(total_time, TXTFMT_TIMELONG, (Print*)&M5Lcd);
+                blank_line();
+            }
+        };
+
         virtual void on_readjust(void)
         {
             if (is_value() == false) {
@@ -41,7 +150,253 @@ class PageInterval : public FairyCfgItem
             }
             draw_total();
         };
+
+        virtual void on_redraw(void)
+        {
+            if (is_func())
+            {
+                draw_start();
+            }
+            else if (is_value())
+            {
+                FairyCfgItem::on_redraw();
+                draw_total();
+            }
+        };
 };
+
+bool intervalometer_func(void* ptr)
+{
+    PageInterval* pg = (PageInterval*)ptr;
+    uint16_t caller_id = pg->get_parentId();
+
+    uint32_t t = millis(), now = t;
+    intervalometer_start_time = t;
+
+    bool stop_flag = false, stop_request = false;
+
+    int32_t cnt = config_settings.intv_limit;
+    cnt = cnt <= 0 ? -1 : cnt; // zero means infinite, indicated by negative
+
+    uint32_t bulb         = (caller_id == MENUITEM_ASTRO) ?  config_settings.astro_bulb                                : config_settings.intv_bulb;
+    int32_t  intv_time    = (caller_id == MENUITEM_ASTRO) ?  config_settings.astro_pause                               : config_settings.intv_intval;
+    int32_t  total_period = (caller_id == MENUITEM_ASTRO) ? (config_settings.astro_bulb + config_settings.astro_pause) : config_settings.intv_intval;
+
+    gui_startAppPrint();
+    M5Lcd.fillScreen(TFT_BLACK);
+    interval_drawTimer(0); // reset the icon
+    app_waitAllRelease();
+    M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);
+    M5Lcd.setTextFont(4);
+
+    if (config_settings.intv_delay > 0) {
+        stop_flag |= intervalometer_wait(config_settings.intv_delay, t, cnt, "Start in...", false, total_period);
+    }
+
+    if (stop_flag) {
+        return false;
+    }
+
+    t = now;
+    pwr_tick(true);
+    imu.hasMajorMotion = false;
+
+    // for the number of frames we want (or infinite if negative)
+    for (; cnt != 0 && stop_flag == false; )
+    {
+        app_poll();
+        pwr_tick(false); // app_poll already checks for IMU motion to undim the LCD
+
+        if (redraw_flag) {
+            redraw_flag = false;
+            gui_startAppPrint();
+            M5Lcd.fillScreen(TFT_BLACK);
+            M5Lcd.setTextFont(4);
+        }
+
+        if (btnSide_hasPressed())
+        {
+            stop_flag = true;
+            btnSide_clrPressed();
+            break;
+        }
+
+        if (btnPwr_hasPressed())
+        {
+            btnPwr_clrPressed();
+            break;
+        }
+
+        interval_drawTimer(-1);
+
+        t = millis();
+        if (bulb == 0)
+        {
+            cam_shootQuick();
+            if (intv_time <= 0 && bulb <= 0)
+            {
+                M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);
+                M5Lcd.print("SHOOT!");
+                gui_blankRestOfLine();
+            }
+        }
+        else
+        {
+            cam_shootOpen();
+            stop_flag |= intervalometer_wait(bulb, t, cnt, "Shutter Open", true, total_period);
+            cam_shootClose();
+        }
+        cnt--;
+
+        if (stop_flag) {
+            break;
+        }
+        interval_drawTimer(-1);
+
+        if (caller_id == MENUITEM_ASTRO) {
+            t = millis();
+        }
+
+        if (intv_time > 0)
+        {
+            stop_flag |= intervalometer_wait(intv_time, t, cnt, (bulb != 0) ? "Next in..." : "Interval", false, total_period);
+            if (stop_flag) {
+                break;
+            }
+            interval_drawTimer(-1);
+        }
+
+        if (intv_time <= 0 && bulb <= 0)
+        { 
+            M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);
+            M5Lcd.print("Timer Active");
+            gui_blankRestOfLine();
+        }
+    }
+
+    return false;
+}
+
+extern bool gui_microphoneActive;
+
+bool intervalometer_wait(int32_t twait, uint32_t tstart, int32_t cnt, const char* msg, bool pausable, int32_t total_period)
+{
+    uint32_t now, telapsed;
+    bool stop_flag = false, stop_request = false;
+    bool need_blank = false, need_icon = false;
+    if (twait < 0) {
+        return false;
+    }
+    twait *= 1000;
+
+    while ((telapsed = ((now = millis()) - tstart)) < twait)
+    {
+        app_poll();
+
+        if (redraw_flag) {
+            redraw_flag = false;
+            gui_startAppPrint();
+            M5Lcd.fillScreen(TFT_BLACK);
+            M5Lcd.setTextFont(4);
+        }
+
+        if (btnSide_hasPressed())
+        {
+            btnSide_clrPressed();
+            if (pausable)
+            {
+                if (stop_request == false) {
+                    stop_request = true;
+
+                    need_blank = true; // these actions need to only happen once
+                    need_icon = true;  // these actions need to only happen once
+                }
+                else if (stop_flag != false) {
+                    // a release means two button press, if a second press is detected, quit immediately
+                    break;
+                }
+            }
+            else
+            {
+                stop_flag = true;
+                break;
+            }
+        }
+        if (btnSide_isPressed() == false && stop_request != false) {
+            // a release means two button press, if a second press is detected, quit immediately
+            stop_flag = true;
+        }
+
+        if (btnPwr_hasPressed())
+        {
+            stop_flag = true;
+            stop_request = true;
+            btnPwr_clrPressed();
+            break;
+        }
+
+        M5Lcd.setCursor(SUBMENU_X_OFFSET, gui_microphoneActive == false ? SUBMENU_Y_OFFSET : MICTRIG_LEVEL_MARGIN);
+        if (stop_request == false) {
+            M5Lcd.print(msg);
+        }
+        else {
+            // stop has been requested
+            M5Lcd.print("Stop in...");
+        }
+        gui_blankRestOfLine();
+
+        M5Lcd.println();
+        gui_setCursorNextLine();
+        gui_showVal(twait - telapsed, TXTFMT_TIMEMS, (Print*)&M5Lcd); // show remaining time
+        gui_blankRestOfLine();
+
+        if (cnt > 0 && stop_request == false) {
+            M5Lcd.println();
+            gui_setCursorNextLine();
+            M5Lcd.print("# Rem: ");
+            M5Lcd.print(cnt, DEC);
+            gui_blankRestOfLine();
+            if (total_period > 0) // only show if data is available
+            {
+                uint32_t total_time = total_period * cnt;
+                M5Lcd.println();
+                gui_setCursorNextLine();
+                if (total_time > 120 && cnt > 5) { // this counter isn't live, so don't show it if it needs to be precise
+                    M5Lcd.print("T Rem: ");
+                    gui_showVal(total_time, TXTFMT_TIMELONG, (Print*)&M5Lcd);
+                }
+                gui_blankRestOfLine();
+            }
+        }
+        else if (need_blank) {
+            M5Lcd.println();
+            gui_setCursorNextLine();
+            gui_blankRestOfLine();
+            M5Lcd.println();
+            gui_setCursorNextLine();
+            gui_blankRestOfLine();
+            need_blank = false; // do only once
+        }
+        if (stop_request && need_icon) {
+            M5Lcd.drawPngFile(SPIFFS, "/back_icon.png", M5Lcd.width() - 60, 0);
+            need_icon = false; // do only once, SPI flash file read and file decoding is extremely slow
+        }
+        interval_drawTimer(-1);
+    }
+
+    // make sure 0 is the last number shown
+    if (stop_request == false)
+    {
+        M5Lcd.setCursor(SUBMENU_X_OFFSET, gui_microphoneActive == false ? SUBMENU_Y_OFFSET : MICTRIG_LEVEL_MARGIN);
+        M5Lcd.print(msg);
+        M5Lcd.println();
+        gui_setCursorNextLine();
+        gui_showVal(0, TXTFMT_TIMEMS, (Print*)&M5Lcd); // show remaining time of zero
+        gui_blankRestOfLine();
+    }
+
+    return stop_flag;
+}
 
 class AppIntervalometer : public FairyCfgApp
 {
@@ -54,17 +409,17 @@ class AppIntervalometer : public FairyCfgApp
             {
                 if (id == MENUITEM_INTERVAL)
                 {
-                    install(new PageInterval("Bulb Time", (int32_t*)&(config_settings.intv_bulb)  , 0, 10000, 1, TXTFMT_TIME | TXTFMT_BULB);
-                    install(new PageInterval("Interval" , (int32_t*)&(config_settings.intv_intval), 0, 10000, 1, TXTFMT_TIME);
+                    install(new PageInterval("Bulb Time", (int32_t*)&(config_settings.intv_bulb)  , 0, 10000, 1, TXTFMT_TIME | TXTFMT_BULB));
+                    install(new PageInterval("Interval" , (int32_t*)&(config_settings.intv_intval), 0, 10000, 1, TXTFMT_TIME));
                 }
                 else if (id == MENUITEM_ASTRO)
                 {
-                    install(new PageInterval("Bulb Time", (int32_t*)&(config_settings.astro_bulb) , 0, 10000, 1, TXTFMT_TIME | TXTFMT_BULB);
-                    install(new PageInterval("Pause Gap", (int32_t*)&(config_settings.astro_pause), 0, 10000, 1, TXTFMT_TIME);
+                    install(new PageInterval("Bulb Time", (int32_t*)&(config_settings.astro_bulb) , 0, 10000, 1, TXTFMT_TIME | TXTFMT_BULB));
+                    install(new PageInterval("Pause Gap", (int32_t*)&(config_settings.astro_pause), 0, 10000, 1, TXTFMT_TIME));
                 }
-                install(new PageInterval("Start Delay" , (int32_t*)&(config_settings.intv_delay), 0, 10000, 1, TXTFMT_TIME);
-                install(new PageInterval("Num of Shots", (int32_t*)&(config_settings.intv_limit), 0, 10000, 1, TXTFMT_BYTENS);
-                install(new PageInterval("Start", intervalometer_func, "/start_icon.png");
+                install(new PageInterval("Start Delay" , (int32_t*)&(config_settings.intv_delay), 0, 10000, 1, TXTFMT_TIME));
+                install(new PageInterval("Num of Shots", (int32_t*)&(config_settings.intv_limit), 0, 10000, 1, TXTFMT_BYTENS));
+                install(new PageInterval("Start", intervalometer_func, "/start_icon.png"));
             };
 };
 

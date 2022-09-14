@@ -173,7 +173,7 @@ FairyCfgItem::FairyCfgItem(const char* disp_name, int32_t* linked_var, int32_t v
     }
 }
 
-FairyCfgItem::FairyCfgItem(const char* disp_name, bool (*cb)(void), const char* icon)
+FairyCfgItem::FairyCfgItem(const char* disp_name, bool (*cb)(void*), const char* icon)
 {
     _cb = cb;
     if (icon != NULL) {

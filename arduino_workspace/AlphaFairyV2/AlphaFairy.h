@@ -40,6 +40,8 @@ extern bool app_poll(void);
 extern void app_waitAllRelease(void);
 extern void app_sleep(uint32_t x, bool forget_btns);
 
+extern void settings_save(void);
+
 extern void pwr_lcdUndim(void);
 extern void pwr_sleepCheck(void);
 extern void pwr_tick(bool);
