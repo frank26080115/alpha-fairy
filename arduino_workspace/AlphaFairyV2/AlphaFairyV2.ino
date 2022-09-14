@@ -103,8 +103,7 @@ void setup_menus()
 {
     main_menu.install(&menu_remote  );
     main_menu.install(&menu_focus   );
-    main_menu.install(&menu_interval);
-    main_menu.install(&menu_astro   );
+    setup_intervalometer();
     main_menu.install(&menu_utils   );
     main_menu.install(&menu_auto    );
 

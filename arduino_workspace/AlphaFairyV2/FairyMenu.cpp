@@ -9,6 +9,7 @@ extern void gui_drawStatusBar(bool);
 extern void gui_showVal(int32_t x, uint16_t txtfmt, Print* printer);
 
 int8_t FairyCfgApp::prev_tilt = 0;
+bool FairyCfgItem::dirty = false;
 
 FairyMenuItem::FairyMenuItem(const char* img_fname, uint16_t id)
 {
@@ -60,7 +61,7 @@ bool FairySubmenu::on_execute(void)
 
 void FairySubmenu::install(FairyItem* itm)
 {
-    itm->set_parent((void*)this);
+    itm->set_parent((void*)this, this->_id);
 
     if (head_node == NULL)
     {
@@ -307,6 +308,7 @@ void FairyCfgItem::on_checkAdjust(int8_t tilt)
             else {
                 next_step = _step_size; // indicate that change has been made
             }
+            dirty = true;
         }
         else if (tilt < 0)
         {
@@ -317,12 +319,14 @@ void FairyCfgItem::on_checkAdjust(int8_t tilt)
             else {
                 next_step = -_step_size; // indicate that change has been made
             }
+            dirty = true;
         }
         else
         {
             // flip boolean variable even if there's no tilt
             if ((_fmt_flags & TXTFMT_BOOL) != 0) {
                 (*_linked_ptr) = ((*_linked_ptr) == 0) ? 1 : 0;
+                dirty = true;
             }
         }
         draw_value(tilt);
@@ -386,7 +390,7 @@ bool FairyCfgItem::on_execute(void)
     if (_cb == NULL) {
         return false;
     }
-    return _cb();
+    return _cb(this);
 }
 
 int16_t FairyCfgItem::get_y(int8_t linenum)

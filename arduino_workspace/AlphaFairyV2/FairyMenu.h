@@ -14,14 +14,15 @@ class FairyItem
     public:
         inline  uint16_t get_id           (void) { return _id; };
         virtual bool     on_execute       (void) { return false; };
-        virtual void     set_parent(void* x) { _parent = x; };
+        virtual void     set_parent(void* x, uint16_t id) { _parent = x; _parent_id = id; };
+        inline  uint16_t get_parentId     (void) { return _parent_id; };
         virtual bool     can_navTo        (void) { return true; };
         virtual void     on_navTo         (void) { };
         virtual void     on_navOut        (void) { };
         virtual void     on_eachFrame     (void) { };
     protected:
         void* _parent = NULL;
-        uint16_t _id;
+        uint16_t _id, _parent_id = 0;
 };
 
 typedef struct
@@ -81,7 +82,7 @@ class FairyCfgItem : public FairyItem
 {
     public:
         FairyCfgItem(const char* disp_name, int32_t* linked_var, int32_t val_min, int32_t val_max, int32_t step_size, uint16_t fmt_flags);
-        FairyCfgItem(const char* disp_name, bool (*cb)(void), const char* icon = NULL);
+        FairyCfgItem(const char* disp_name, bool (*cb)(void*), const char* icon = NULL);
                void    set_icon(const char* icon);
                void    set_font(int fn);
         inline int32_t get_val (void) { return *_linked_ptr; };
@@ -92,7 +93,7 @@ class FairyCfgItem : public FairyItem
         virtual bool     on_execute     (void);
         virtual bool     can_navTo      (void) { return true; };
         virtual void     on_navTo       (void);
-        virtual void     on_navOut      (void) {};
+        virtual void     on_navOut      (void) { if (_autosave && dirty) { dirty = false; settings_save(); } };
         virtual void     on_redraw      (void);
         virtual void     on_eachFrame   (void) { on_extraPoll(); on_drawLive(); };
         virtual void     on_readjust    (void) {};
@@ -113,9 +114,11 @@ class FairyCfgItem : public FairyItem
         char* _icon_fpath = NULL;
         int16_t _icon_width = 0;
         int32_t* _linked_ptr = NULL;
-        bool (*_cb)(void) = NULL;
+        bool (*_cb)(void*) = NULL;
         int32_t _val_min, _val_max, _step_size;
         uint16_t _fmt_flags;
+        bool _autosave = false;
+        static bool dirty;
 
         void set_name(const char*);
         int16_t get_y(int8_t linenum);
