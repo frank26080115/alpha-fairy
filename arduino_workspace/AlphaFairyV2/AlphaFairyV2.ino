@@ -26,7 +26,7 @@ bool redraw_flag = false; // forces menu redraw
 SpriteMgr* sprites;
 #endif
 
-bool http_is_active;
+//extern bool http_is_active;
 
 AlphaFairyImu imu;
 FairyEncoder  fencoder;
@@ -111,6 +111,8 @@ void setup_menus()
     setup_remoteshutter();
     setup_soundshutter();
     setup_focuscalib();
+
+    setup_wifimenus();
 }
 
 bool app_poll()

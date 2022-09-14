@@ -67,6 +67,28 @@ class PageInterval : public FairyCfgItem
                     {
                     };
 
+        virtual void on_readjust(void)
+        {
+            if (is_value() == false) {
+                return;
+            }
+            draw_total();
+        };
+
+        virtual void on_redraw(void)
+        {
+            if (is_func())
+            {
+                draw_start();
+            }
+            else if (is_value())
+            {
+                FairyCfgItem::on_redraw();
+                draw_total();
+            }
+        };
+
+    protected:
         void draw_total(void)
         {
             uint32_t total_time = interval_calcTotal(_parent_id);
@@ -140,27 +162,6 @@ class PageInterval : public FairyCfgItem
                 M5Lcd.print("T: ");
                 gui_showVal(total_time, TXTFMT_TIMELONG, (Print*)&M5Lcd);
                 blank_line();
-            }
-        };
-
-        virtual void on_readjust(void)
-        {
-            if (is_value() == false) {
-                return;
-            }
-            draw_total();
-        };
-
-        virtual void on_redraw(void)
-        {
-            if (is_func())
-            {
-                draw_start();
-            }
-            else if (is_value())
-            {
-                FairyCfgItem::on_redraw();
-                draw_total();
             }
         };
 };

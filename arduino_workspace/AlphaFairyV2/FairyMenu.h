@@ -40,11 +40,12 @@ class FairyMenuItem : public FairyItem
         virtual void     reset            (void) {};
         virtual bool     on_execute       (void) { return false; };
         virtual bool     can_navTo        (void) { return true; };
-        virtual void     on_navTo         (void) { draw_mainImage(); };
+        virtual void     on_navTo         (void) { on_redraw(); };
         virtual void     on_navOut        (void) {};
         virtual void     on_eachFrame     (void) {};
         virtual void     on_spin          (int8_t x) {};
-        virtual void     on_redraw        (void) {};
+        virtual void     on_redraw        (void) { draw_mainImage(); };
+        virtual bool     check_redraw     (void) { return false; };
         virtual void     draw_mainImage   (void);
         virtual void     draw_statusBar   (void);
         inline  char*    get_mainImage    (void) { return _main_img; };

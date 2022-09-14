@@ -8,6 +8,8 @@ extern void gui_startAppPrint(void);
 extern void gui_drawStatusBar(bool);
 extern void gui_showVal(int32_t x, uint16_t txtfmt, Print* printer);
 
+extern void tallylite_task(void);
+
 int8_t FairyCfgApp::prev_tilt = 0;
 bool FairyCfgItem::dirty = false;
 
@@ -42,12 +44,14 @@ FairySubmenu::FairySubmenu(const char* img_fname, uint16_t id) : FairyMenuItem(i
 bool FairySubmenu::on_execute(void)
 {
     FairyMenuItem* itm = (FairyMenuItem*)cur_node->item;
-    itm->draw_mainImage();
+    itm->on_navTo();
     app_waitAllRelease();
     while (true)
     {
         if (app_poll())
         {
+            tallylite_task();
+
             if (task())
             {
                 itm->on_navOut();
@@ -120,20 +124,22 @@ bool FairySubmenu::task(void)
 
     itm = (FairyMenuItem*)cur_node->item;
 
+    redraw |= itm->check_redraw();
+
     if (redraw)
     {
         itm->on_redraw();
         redraw_flag = false;
     }
 
-    itm->on_eachFrame();
-    itm->draw_statusBar(); // the status bar function has its own frame rate control
-
     if (imu.getSpin() != 0)
     {
         itm->on_spin(imu.getSpin());
         imu.resetSpin();
     }
+
+    itm->on_eachFrame();
+    itm->draw_statusBar(); // the status bar function has its own frame rate control
 
     if (btnBig_hasPressed())
     {
@@ -495,7 +501,7 @@ bool FairyCfgApp::on_execute(void)
 {
     FairyCfgItem* itm = (FairyCfgItem*)cur_node->item;
     gui_startAppPrint();
-    itm->on_redraw();
+    itm->on_navTo();
     app_waitAllRelease();
     while (true)
     {
