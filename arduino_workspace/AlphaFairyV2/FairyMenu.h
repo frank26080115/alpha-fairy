@@ -57,6 +57,9 @@ class FairyMenuItem : public FairyItem
     protected:
         char* _main_img;
         int16_t _main_img_x = 0, _main_img_y = 0;
+
+        bool must_be_connected(void);
+        bool must_be_ptp(void);
 };
 
 class FairySubmenu : public FairyMenuItem

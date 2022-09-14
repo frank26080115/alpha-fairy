@@ -105,11 +105,13 @@ void setup_menus()
     main_menu.install(&menu_focus   );
     setup_intervalometer();
     main_menu.install(&menu_utils   );
-    main_menu.install(&menu_auto    );
+    setup_autoconnect();
 
     setup_qikrmt();
     setup_remoteshutter();
     setup_soundshutter();
+    setup_dualshutter();
+
     setup_focuscalib();
 
     setup_wifimenus();

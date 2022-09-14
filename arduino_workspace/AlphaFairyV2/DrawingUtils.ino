@@ -91,6 +91,11 @@ void gui_blankRestOfLine()
     }
 }
 
+void gui_drawTopThickLine(uint16_t thickness, uint16_t colour)
+{
+    M5Lcd.fillRect(0, 0, M5Lcd.width(), thickness, colour);
+}
+
 void gui_showVal(int32_t x, uint16_t txtfmt, Print* printer)
 {
     char str[16]; int i = 0;

@@ -232,12 +232,17 @@ void btnPwr_poll()
     static uint32_t btn_last_time = 0;
     if ((now - btn_last_time) > 100 || btn_last_time == 0) {
         btn_last_time = now;
-        uint8_t b = M5.Axp.GetBtnPress();
-        if (b != 0) {
-            btnPwr_cnt++;
-            dbg_ser.printf("user pressed power button\r\n");
-            pwr_tick(true);
-        }
+        btnPwr_quickPoll();
+    }
+}
+
+void btnPwr_quickPoll()
+{
+    uint8_t b = M5.Axp.GetBtnPress();
+    if (b != 0) {
+        btnPwr_cnt++;
+        dbg_ser.printf("user pressed power button\r\n");
+        pwr_tick(true);
     }
 }
 

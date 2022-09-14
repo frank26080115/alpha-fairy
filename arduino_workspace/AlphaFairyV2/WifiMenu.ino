@@ -376,16 +376,28 @@ class AppWifiConfig : public FairySubmenu
             install(new PageWifiQr(false, "/wificfg_url.png"));
             install(new PageWifiSelectProfile());
             install(new PageFactoryReset());
+            _already_running = false;
         };
 
         virtual bool on_execute(void)
         {
-            if (NetMgr_getOpMode() == WIFIOPMODE_STA) {
-                wifiprofile_connect(0);
+            bool ret = false;
+            if (_already_running == false)
+            {
+                _already_running = true;
+                if (NetMgr_getOpMode() == WIFIOPMODE_STA) {
+                    wifiprofile_connect(0);
+                }
+                httpsrv_init();
+                rewind();
+                ret = FairySubmenu::on_execute();
+                _already_running = false;
             }
-            httpsrv_init();
-            return FairySubmenu::on_execute();
+            return ret;
         };
+
+    protected:
+        bool _already_running;
 };
 
 class AppWifiInfo : public FairySubmenu
@@ -407,4 +419,9 @@ void setup_wifimenus()
 {
     menu_utils.install(&app_wificfg);
     menu_utils.install(&app_wifinfo);
+}
+
+void run_wifi_cfg()
+{
+    app_wificfg.on_execute();
 }

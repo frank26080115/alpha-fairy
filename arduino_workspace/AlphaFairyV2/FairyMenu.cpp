@@ -518,3 +518,21 @@ bool FairyCfgApp::on_execute(void)
     }
     return false;
 }
+
+bool FairyMenuItem::must_be_connected(void)
+{
+    if (fairycam.isOperating() == false) {
+        app_waitAllReleaseConnecting();
+        return false;
+    }
+    return true;
+}
+
+bool FairyMenuItem::must_be_ptp(void)
+{
+    if (httpcam.isOperating()) {
+        app_waitAllReleaseUnsupported();
+        return false;
+    }
+    return true;
+}

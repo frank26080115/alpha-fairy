@@ -16,6 +16,7 @@
 #include <PtpIpCamera.h>
 #include <PtpIpSonyAlphaCamera.h>
 #include <SonyHttpCamera.h>
+#include "AlphaFairyCamera.h"
 #include <AlphaFairy_NetMgr.h>
 #include <AlphaFairyImu.h>
 #include <FairyKeyboard.h>
@@ -26,10 +27,10 @@
 
 extern PtpIpSonyAlphaCamera ptpcam;
 extern SonyHttpCamera       httpcam;
+extern AlphaFairyCamera     fairycam;
 extern DebuggingSerial      dbg_ser;
 extern SerialCmdLine        cmdline;
 extern configsettings_t     config_settings;
-extern AlphaFairyImu        imu;
 extern AlphaFairyImu        imu;
 #ifdef USE_SPRITE_MANAGER
 extern SpriteMgr* sprites;
@@ -38,6 +39,8 @@ extern SpriteMgr* sprites;
 extern bool app_poll(void);
 
 extern void app_waitAllRelease(void);
+extern void app_waitAllReleaseConnecting(void);
+extern void app_waitAllReleaseUnsupported(void);
 extern void app_sleep(uint32_t x, bool forget_btns);
 
 extern void settings_save(void);
