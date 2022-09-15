@@ -152,6 +152,26 @@ void remote_shutter(uint8_t time_delay, bool use_gui)
     app_waitAllRelease();
 }
 
+void record_movie()
+{
+    if (fairycam.isOperating() == false)
+    {
+        if (config_settings.infrared_enabled) {
+            dbg_ser.println("IR - movie");
+            SonyCamIr_Movie();
+            return;
+        }
+        else {
+            dbg_ser.println("record_movie but no camera connected");
+            app_waitAllReleaseConnecting();
+            return;
+        }
+    }
+
+    fairycam.cmd_MovieRecordToggle();
+    app_waitAllRelease();
+}
+
 #include "FairyMenu.h"
 
 class AppRemoteShutter : public FairyMenuItem

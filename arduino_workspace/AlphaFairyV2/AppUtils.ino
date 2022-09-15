@@ -98,6 +98,31 @@ void app_sleep(uint32_t x, bool forget_btns)
     }
 }
 
+int8_t imu_getFocusPull()
+{
+    int n;
+    int ang = lroundf(imu.getPitch());
+    int aang = (ang < 0) ? (-ang) : (ang);
+    if (aang >= 2) {
+        if (ang > 0) {
+            n = aang / 12;
+        }
+        else {
+            n = aang / 7;
+        }
+        n = n > 3 ? 3 : n;
+    }
+    return (ang < 0) ? (-n) : (n);
+}
+
+int focus_tiltToStepSize(int8_t tilt)
+{
+    // translate tilt into Sony's focus step sizes
+    int atilt = tilt < 0 ? -tilt : tilt;
+    int n = (atilt ==  2) ?  SONYALPHA_FOCUSSTEP_FARTHER_MEDIUM : ((atilt ==  3) ?  SONYALPHA_FOCUSSTEP_FARTHER_LARGE : n);
+    return (tilt < 0) ? -n : n;
+}
+
 uint32_t shutter_to_millis(uint32_t x)
 {
     uint16_t* p16 = (uint16_t*)&x;

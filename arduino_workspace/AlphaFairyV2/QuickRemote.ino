@@ -177,17 +177,15 @@ class AppQuickRemote : public FairyMenuItem
                 {
                     btnBig_clrPressed();
                     if (qikrmt_row == 0 && qikrmt_col == 0) { // remote shutter
-                        //remote_shutter(mip);
+                        remote_shutter(0, false);
                     }
                     else if (qikrmt_row == 0 && qikrmt_col == 1) { // record movie
-                        //record_movie(mip);
+                        record_movie();
                     }
                     else if (qikrmt_row == 1) // zoom
                     {
                         bool can_do = true;
-                        if (fairycam.isOperating() == false)
-                        {
-                            app_waitAllReleaseConnecting();
+                        if (must_be_connected() == false) {
                             can_do = false;
                         }
                         if (can_do)
@@ -222,53 +220,16 @@ class AppQuickRemote : public FairyMenuItem
                     else if (qikrmt_row == 2) // focus
                     {
                         bool can_do = true;
-                        if (ptpcam.isOperating() == false)
-                        {
-                            if (httpcam.isOperating()) {
-                                app_waitAllReleaseUnsupported();
-                                can_do = false;
-                            }
-                            else {
-                                app_waitAllReleaseConnecting();
-                                can_do = false;
-                            }
+                        if (must_be_connected() == false) {
+                            can_do = false;
                         }
+                        else if (must_be_ptp() == false) {
+                            can_do = false;
+                        }
+
                         if (can_do)
                         {
-                            bool starting_mf = ptpcam.is_manuallyfocused();
-
-                            if (starting_mf == false && ptpcam.isOperating()) {
-                                // force into manual focus mode
-                                ptpcam.cmd_ManualFocusMode(true, false);
-                                ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
-                            }
-
-                            bool do_one = true;
-
-                            while ((btnBig_isPressed() || do_one) && ptpcam.isOperating())
-                            {
-                                do_one = false;
-
-                                int8_t n = gui_drawFocusPullState(QIKRMT_FPULL_Y); // return is -3 to +3
-                                app_poll();
-                                // translate n into Sony's focus step sizes
-                                if (n >= 0) {
-                                    n = (n ==  2) ?  3 : ((n ==  3) ?  7 : n);
-                                }
-                                else {
-                                    n = (n == -2) ? -3 : ((n == -3) ? -7 : n);
-                                }
-                                if (n != 0) {
-                                    ptpcam.cmd_ManualFocusStep(n);
-                                    ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
-                                }
-                            }
-                            
-                            if (starting_mf == false && ptpcam.isOperating()) {
-                                // restore AF state
-                                ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
-                                ptpcam.cmd_ManualFocusMode(false, false);
-                            }
+                            focus_pull(true, QIKRMT_FPULL_Y);
                         }
                     }
                 }
