@@ -112,6 +112,8 @@ void setup_menus()
     setup_soundshutter();
     setup_dualshutter();
 
+    setup_focusstack();
+
     setup_focuscalib();
 
     setup_wifimenus();
