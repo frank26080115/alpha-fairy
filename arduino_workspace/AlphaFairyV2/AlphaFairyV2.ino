@@ -113,6 +113,7 @@ void setup_menus()
     setup_dualshutter();
 
     setup_focusstack();
+    setup_shutterstep();
     setup_focuspull();
 
     setup_focuscalib();
