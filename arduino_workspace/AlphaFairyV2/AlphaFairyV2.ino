@@ -115,6 +115,7 @@ void setup_menus()
     setup_focusstack();
     setup_shutterstep();
     setup_focuspull();
+    setup_focusfrustration();
 
     setup_focuscalib();
 
