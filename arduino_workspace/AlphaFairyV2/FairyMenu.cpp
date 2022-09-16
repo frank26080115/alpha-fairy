@@ -10,6 +10,8 @@ extern void gui_showVal(int32_t x, uint16_t txtfmt, Print* printer);
 
 extern void tallylite_task(void);
 
+extern void handle_user_reauth(void);
+
 int8_t FairyCfgApp::prev_tilt = 0;
 bool FairyCfgItem::dirty = false;
 
@@ -108,6 +110,8 @@ FairyItem* FairySubmenu::nav_next(void)
 
 bool FairySubmenu::task(void)
 {
+    handle_user_reauth();
+
     FairyMenuItem* itm;
     bool redraw = redraw_flag;
 
@@ -242,15 +246,15 @@ void FairyCfgItem::draw_icon(void)
     if (_icon_fpath == NULL || _icon_width == 0) {
         return;
     }
-    #ifdef USE_SPRITE_MANAGER
-    sprites->draw(
-    #else
+    //#ifdef USE_SPRITE_MANAGER
+    //sprites->draw(
+    //#else
     M5Lcd.drawPngFile(SPIFFS,
-    #endif
+    //#endif
         _icon_fpath, M5Lcd.width() - _icon_width, 0
-    #ifdef USE_SPRITE_MANAGER
-        , _icon_width, _icon_width
-    #endif
+    //#ifdef USE_SPRITE_MANAGER
+    //    , _icon_width, _icon_width
+    //#endif
         );
 }
 
@@ -429,20 +433,22 @@ void FairyCfgApp::draw_icon(void)
     if (_icon_fname == NULL || _icon_width == 0) {
         return;
     }
-    #ifdef USE_SPRITE_MANAGER
-    sprites->draw(
-    #else
+    //#ifdef USE_SPRITE_MANAGER
+    //sprites->draw(
+    //#else
     M5Lcd.drawPngFile(SPIFFS,
-    #endif
+    //#endif
         _icon_fname, M5Lcd.width() - _icon_width, M5Lcd.height() - _icon_width
-    #ifdef USE_SPRITE_MANAGER
-        , _icon_width, _icon_width
-    #endif
+    //#ifdef USE_SPRITE_MANAGER
+    //    , _icon_width, _icon_width
+    //#endif
         );
 }
 
 bool FairyCfgApp::task(void)
 {
+    handle_user_reauth();
+
     FairyCfgItem* itm;
     bool redraw = redraw_flag;
 

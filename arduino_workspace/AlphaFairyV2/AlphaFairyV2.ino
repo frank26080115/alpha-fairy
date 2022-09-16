@@ -117,9 +117,10 @@ void setup_menus()
     setup_focuspull();
     setup_focusfrustration();
 
-    setup_focuscalib();
-
     setup_wifimenus();
+    setup_configmenu();
+    setup_focuscalib();
+    setup_aboutme();
 }
 
 bool app_poll()
@@ -230,4 +231,18 @@ void critical_error(const char* fp)
             t = now;
         }
     }
+}
+
+class AppAboutMe : public FairyMenuItem
+{
+    public:
+        AppAboutMe() : FairyMenuItem("/about.png", MENUITEM_ABOUT)
+        {
+        };
+};
+
+void setup_aboutme(void)
+{
+    static AppAboutMe app;
+    menu_utils.install(&app);
 }

@@ -142,3 +142,52 @@ void ptpcam_onConfirmedAvail()
 {
     httpcam.setForbidden();
 }
+
+void handle_user_reauth()
+{
+    // NOTE: only call this function from GUI thread
+
+    if (signal_wifiauthfailed == false) {
+        return;
+    }
+    signal_wifiauthfailed = false;
+
+    autoconnect_active = true;
+    bool user_quit = false;
+
+    M5Lcd.setRotation(0);
+    M5Lcd.drawPngFile(SPIFFS, "/wifi_reject.png", 0, 0);
+    while (true)
+    {
+        autoconnect_poll();
+        if (btnBoth_hasPressed())
+        {
+            // normal button press means retry entering the password
+            dbg_ser.printf("autoconnect user wants retry\r\n");
+            btnBoth_clrPressed();
+            break;
+        }
+        if (btnPwr_hasPressed())
+        {
+            // power button press means give up
+            dbg_ser.printf("autoconnect user wants give up\r\n");
+            btnPwr_clrPressed();
+            user_quit = true;
+        }
+    }
+
+    if (user_quit == false)
+    {
+        uint8_t profile_num = config_settings.wifi_profile;
+        wifiprofile_t profile;
+        bool got_profile = wifiprofile_getProfile(profile_num, &profile); // this can't possibly fail
+        if (wifi_newConnectOrPrompt(profile_num, &profile, true, false)) {
+            // user cancel
+        }
+        else {
+            // user did not cancel
+        }
+    }
+    autoconnect_active = false;
+    redraw_flag = true;
+}

@@ -109,6 +109,8 @@ class AppFocusFrustration : public FairyMenuItem
             }
 
             execute();
+
+            return false;
         };
 
     protected:

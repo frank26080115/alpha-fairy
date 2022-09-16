@@ -252,20 +252,17 @@ class AppFocusCalib : public FairyMenuItem
 
         virtual bool on_execute(void)
         {
-            if (ptpcam.isOperating() == false) {
-                if (httpcam.isOperating()) {
-                    app_waitAllReleaseUnsupported();
-                }
-                else {
-                    // show user that the camera isn't connected
-                    app_waitAllReleaseConnecting();
-                }
+            if (must_be_connected() == false) {
                 return false;
             }
 
-            M5Lcd.drawPngFile(SPIFFS, "/focus_calib.png", 0, 0);
+            if (must_be_ptp() == false) {
+                return false;
+            }
+
+            M5Lcd.drawPngFile(SPIFFS, "/focus_calib.png", 0, 0); // lazy clearing of screen
             bool success = fenc_calibrate();
-            M5Lcd.drawPngFile(SPIFFS, "/focus_calib.png", 0, 0);
+            M5Lcd.drawPngFile(SPIFFS, "/focus_calib.png", 0, 0); // lazy clearing of screen
 
             focus_calib_write(success ? TFT_BLACK : TFT_RED);
             return false;

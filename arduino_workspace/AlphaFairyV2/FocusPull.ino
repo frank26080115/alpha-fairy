@@ -70,6 +70,8 @@ class AppFocusPull : public FairyMenuItem
             }
 
             focus_pull(false, _bar_y);
+
+            return false;
         };
 
     protected:
