@@ -31,7 +31,6 @@ void gui_startAppPrint()
     // all black screen, rotated landscape, white text
     M5Lcd.fillScreen(TFT_BLACK);
     M5Lcd.setRotation(1);
-    M5Lcd.setTextFont(2);
     M5Lcd.highlight(true);
     M5Lcd.setTextWrap(true);
     M5Lcd.setHighlightColor(TFT_BLACK); // there's no frame buffer, so use the highlight function to prevent messy overlapping text

@@ -4,7 +4,7 @@
 class AppFocusStack : public FairyMenuItem
 {
     public:
-        AppFocusStack() : FairyMenuItem("/focusstack_far_1.png", MENUITEM_FOCUSSTACK)
+        AppFocusStack() : FairyMenuItem("/focusstack_far_2.png")
         {
             _speed = 3;
         };
@@ -34,10 +34,6 @@ class AppFocusStack : public FairyMenuItem
 
         virtual bool on_execute(void)
         {
-            if (must_be_connected() == false) {
-                return false;
-            }
-
             if (must_be_ptp() == false) {
                 return false;
             }
@@ -170,7 +166,7 @@ class AppFocusStack : public FairyMenuItem
                 ptpcam.cmd_ManualFocusMode(false, false);
             }
 
-            redraw_flag = true;
+            set_redraw();
             return false;
         };
 
@@ -188,16 +184,12 @@ class AppFocusStack : public FairyMenuItem
 class AppFocus9Point : public FairyMenuItem
 {
     public:
-        AppFocus9Point() : FairyMenuItem("", MENUITEM_FOCUS_9POINT)
+        AppFocus9Point() : FairyMenuItem("/focus_9point.png")
         {
         };
 
         virtual bool on_execute(void)
         {
-            if (must_be_connected() == false) {
-                return false;
-            }
-
             if (must_be_ptp() == false) {
                 return false;
             }
@@ -207,7 +199,7 @@ class AppFocus9Point : public FairyMenuItem
                 // we can't pick one for them
                 // show user the error message
                 M5Lcd.drawPngFile(SPIFFS, "/9point_unable.png", 0, 0);
-                redraw_flag = true;
+                set_redraw();
                 app_waitAllRelease();
                 return false;
             }
@@ -283,7 +275,7 @@ class AppFocus9Point : public FairyMenuItem
                 }
             }
 
-            redraw_flag = true;
+            set_redraw();
             return false;
         };
 };

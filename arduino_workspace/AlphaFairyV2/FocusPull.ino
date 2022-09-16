@@ -44,7 +44,7 @@ void focus_pull(bool live, int bar_y)
 class AppFocusPull : public FairyMenuItem
 {
     public:
-        AppFocusPull() : FairyMenuItem("/focusstack_far_1.png", MENUITEM_FOCUSSTACK)
+        AppFocusPull() : FairyMenuItem("/focus_pull.png")
         {
             _dir = 0;
         };
@@ -56,10 +56,6 @@ class AppFocusPull : public FairyMenuItem
 
         virtual bool on_execute(void)
         {
-            if (must_be_connected() == false) {
-                return false;
-            }
-
             if (must_be_ptp() == false) {
                 return false;
             }

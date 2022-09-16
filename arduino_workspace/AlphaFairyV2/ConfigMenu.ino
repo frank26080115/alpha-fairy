@@ -31,7 +31,7 @@ class PageLcdBrightness : public FairyCfgItem
 class AppConfigMenu : public FairyCfgApp
 {
     public:
-        AppConfigMenu() : FairyCfgApp("/config.png", "/config_icon.png", MENUITEM_CONFIG)
+        AppConfigMenu() : FairyCfgApp("/config.png", "/config_icon.png")
         {
 install(new FairyCfgItem("focus pause"            , (int32_t*)&(config_settings.focus_pause_time_ms    ),    0, 1000,    10, TXTFMT_BYTENS   ));
 install(new FairyCfgItem("MF knob steps"          , (int32_t*)&(config_settings.fenc_multi             ), -100,  100,     1, TXTFMT_NONE     ));

@@ -19,14 +19,16 @@ SonyHttpCamera       httpcam;
 AlphaFairyCamera     fairycam(&ptpcam, &httpcam);
 DebuggingSerial      dbg_ser(&Serial);
 
+#if defined(SERDBG_DISABLE) && !defined(DISABLE_ALL_MSG)
+#error serial port disabled via library but messages are enabled
+#endif
+
 uint32_t gpio_time = 0; // keeps track of the GPIO shutter activation time so it doesn't get stuck
 
 bool redraw_flag = false; // forces menu redraw
 #ifdef USE_SPRITE_MANAGER
 SpriteMgr* sprites;
 #endif
-
-//extern bool http_is_active;
 
 AlphaFairyImu imu;
 FairyEncoder  fencoder;
@@ -43,8 +45,6 @@ void setup()
 
     dbg_ser.enabled = true;
 
-    setup_menus();
-
     M5.begin(false); // do not initialize the LCD, we have our own extended M5Lcd class to initialize later
     M5.IMU.Init();
     M5.IMU.SetGyroFsr(M5.IMU.GFS_500DPS);
@@ -58,6 +58,9 @@ void setup()
         delay(500);
     }
     M5.Axp.ScreenBreath(config_settings.lcd_brightness);
+
+    setup_menus();
+
     cmdline.print_prompt();
 
     #ifdef USE_SPRITE_MANAGER
@@ -90,14 +93,17 @@ void setup()
 void loop()
 {
     main_menu.on_execute();
+    // exited
+    pwr_shutdown();
+    // NOTE: app_poll will call yield, which resets the watchdog
 }
 
-FairySubmenu         menu_remote  ("/main_remote.png"  , MENUITEM_REMOTE);
-FairySubmenu         menu_focus   ("/main_focus.png"   , MENUITEM_FOCUS);
-FairyCfgApp          menu_interval("/main_interval.png", "/intervalometer.png", MENUITEM_INTERVAL);
-FairyCfgApp          menu_astro   ("/main_astro.png"   , "/galaxy_icon.png", MENUITEM_ASTRO);
-FairySubmenu         menu_utils   ("/main_utils.png"   , MENUITEM_UTILS);
-FairySubmenu         menu_auto    ("/main_auto.png"    , MENUITEM_AUTOCONN);
+FairySubmenu menu_remote  ("/main_remote.png");
+FairySubmenu menu_focus   ("/main_focus.png");
+FairyCfgApp  menu_interval("/main_interval.png", "/intervalometer.png", MENUITEM_INTERVAL);
+FairyCfgApp  menu_astro   ("/main_astro.png"   , "/galaxy_icon.png"   , MENUITEM_ASTRO);
+FairySubmenu menu_utils   ("/main_utils.png");
+FairySubmenu menu_auto    ("/main_auto.png");
 
 void setup_menus()
 {
@@ -129,7 +135,9 @@ bool app_poll()
     NetMgr_task();
     ptpcam.task();
     httpcam.task();
-    //httpsrv_poll();
+    #ifdef HTTP_ON_BOOT
+    httpsrv_poll();
+    #endif
 
     // do low priority tasks if the networking is not busy
     if (ptpcam.isKindaBusy() == false) {
@@ -236,7 +244,7 @@ void critical_error(const char* fp)
 class AppAboutMe : public FairyMenuItem
 {
     public:
-        AppAboutMe() : FairyMenuItem("/about.png", MENUITEM_ABOUT)
+        AppAboutMe() : FairyMenuItem("/about.png")
         {
         };
 };

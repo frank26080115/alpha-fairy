@@ -215,3 +215,18 @@ void gui_formatISO(uint32_t x, char* str)
     sprintf(str, "%u", x);
     return;
 }
+
+void dissolve_restart(uint16_t colour)
+{
+    esp_wifi_disconnect();
+    esp_wifi_stop();
+    esp_wifi_deinit();
+    srand(millis() + lroundf(imu.accX) + lroundf(imu.accY) + lroundf(imu.accZ));
+    while (btnBig_isPressed())
+    {
+        int x = rand() % M5Lcd.width();
+        int y = rand() % M5Lcd.height();
+        M5Lcd.fillRect(x, y, 1, 1, colour);
+    }
+    ESP.restart();
+}

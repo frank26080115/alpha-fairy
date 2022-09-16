@@ -10,6 +10,8 @@
 #define MICTRIG_LEVEL_BAR_HEIGHT   8
 #define MICTRIG_LEVEL_TRIG_HEIGHT 12
 
+static bool mictrig_hasInit = false;
+
 uint8_t mictrig_buffer8[MICTRIG_READ_LEN * 2] = {0};
 
 volatile int16_t* mictrig_buffer16;
@@ -135,10 +137,9 @@ static IRAM_ATTR bool mictrig_rx_cb(i2s_chan_handle_t handle, i2s_event_data_t *
 
 void mictrig_unpause()
 {
-    static bool has_init = false;
-    if (has_init == false) {
+    if (mictrig_hasInit == false) {
         mictrig_init();
-        has_init = true;
+        mictrig_hasInit = true;
     }
     #ifdef MICTRIG_NEW_I2S_LIB
     i2s_channel_enable(mictrig_i2shandle);
@@ -150,6 +151,9 @@ void mictrig_unpause()
 
 void mictrig_pause()
 {
+    if (mictrig_hasInit == false) {
+        return;
+    }
     #ifdef MICTRIG_NEW_I2S_LIB
     i2s_channel_disable(mictrig_i2shandle);
     #else
@@ -216,7 +220,7 @@ void mictrig_decayTask()
     }
 }
 
-void mictrig_shoot()
+bool mictrig_shoot()
 {
     M5Lcd.setCursor(SUBMENU_X_OFFSET, MICTRIG_LEVEL_MARGIN);
     M5Lcd.fillRect(0, MICTRIG_LEVEL_MARGIN, M5Lcd.width() - 60, M5Lcd.height() - MICTRIG_LEVEL_MARGIN - 12, TFT_BLACK);
@@ -225,12 +229,10 @@ void mictrig_shoot()
     {
         uint32_t now = millis();
         int32_t twait = config_settings.mictrig_delay;
-        #if 0 // todo
         if (intervalometer_wait(twait, now, 0, "MIC TRIG'ed", config_settings.mictrig_delay > 2, 0))
         {
-            return;
+            return true;
         }
-        #endif
     }
     else
     {
@@ -241,6 +243,7 @@ void mictrig_shoot()
     cam_shootQuick();
     mictrig_lastMax = 0;
     mictrig_filteredMax = 0;
+    return false;
 }
 
 TFT_eSprite* miclevel_canvas = NULL;
@@ -301,7 +304,7 @@ bool mictrig_nullfunc(void* ptr)
 class PageSoundTriggerArmed : public PageSoundTrigger
 {
     public:
-        PageSoundTriggerArmed() : PageSoundTrigger("ARMED", mictrig_nullfunc, "/icon_go.png") {
+        PageSoundTriggerArmed() : PageSoundTrigger("ARMED", mictrig_nullfunc, "/go_icon.png") {
         };
 
         virtual void on_redraw(void)
@@ -336,7 +339,7 @@ class PageSoundTriggerArmed : public PageSoundTrigger
                     mictrig_hasTriggered = false;
                     pwr_tick(true);
 
-                    mictrig_shoot();
+                    bool ret = mictrig_shoot();
 
                     gui_startAppPrint();
                     M5Lcd.fillScreen(TFT_BLACK);
@@ -345,7 +348,17 @@ class PageSoundTriggerArmed : public PageSoundTrigger
                     pwr_tick(true);
                     mictrig_hasTriggered = false;
                     _ignore_time = millis();
-                    btnAll_clrPressed();
+                    redraw_flag = true;
+
+                    // if we are falsely triggered by the power button
+                    // then we redirect to another page so we are not armed
+                    if (ret)
+                    {
+                        FairyCfgApp* parent_app = dynamic_cast<FairyCfgApp*>((FairyCfgApp*)get_parent());
+                        if (parent_app != NULL) {
+                            parent_app->rewind();
+                        }
+                    }
                 }
             }
             else
@@ -361,7 +374,7 @@ class PageSoundTriggerArmed : public PageSoundTrigger
 class AppSoundShutter : public FairyCfgApp
 {
     public:
-        AppSoundShutter(const char* img_fname = "/soundshutter.png", const char* icon_fname = "/mic_icon.png", uint16_t id = MENUITEM_FENCCALIB) : FairyCfgApp(img_fname, icon_fname, id) {
+        AppSoundShutter() : FairyCfgApp("/soundshutter.png", "/mic_icon.png") {
             this->install(new PageSoundTriggerLevel());
             this->install(new PageSoundTriggerDelay());
             this->install(new PageSoundTriggerArmed());

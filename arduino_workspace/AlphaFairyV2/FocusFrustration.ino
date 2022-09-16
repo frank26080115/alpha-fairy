@@ -4,7 +4,7 @@
 class AppFocusFrustration : public FairyMenuItem
 {
     public:
-        AppFocusFrustration() : FairyMenuItem("/focus_frust.png", MENUITEM_FOCUSFRUSTRATION)
+        AppFocusFrustration() : FairyMenuItem("/focus_frust.png")
         {
         };
 
@@ -151,7 +151,7 @@ class AppFocusFrustration : public FairyMenuItem
             if (starting_mf == false) {
                 ptpcam.cmd_ManualFocusMode(false, false);
             }
-            redraw_flag = true;
+            set_redraw();
         };
 };
 

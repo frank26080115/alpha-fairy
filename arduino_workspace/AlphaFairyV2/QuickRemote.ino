@@ -138,7 +138,7 @@ void qikrmt_drawBox(uint8_t row, uint8_t col, uint16_t colour)
 class AppQuickRemote : public FairyMenuItem
 {
     public:
-        AppQuickRemote(const char* img_fname = "/qikrmt_faded.png", uint16_t id = MENUITEM_QUICKREMOTE) : FairyMenuItem(img_fname, id) {
+        AppQuickRemote() : FairyMenuItem("/qikrmt_faded.png") {
             reset();
         };
 
@@ -176,6 +176,9 @@ class AppQuickRemote : public FairyMenuItem
                 if (btnBig_hasPressed())
                 {
                     btnBig_clrPressed();
+
+                    bool can_do = true;
+
                     if (qikrmt_row == 0 && qikrmt_col == 0) { // remote shutter
                         remote_shutter(0, false);
                     }
@@ -184,7 +187,6 @@ class AppQuickRemote : public FairyMenuItem
                     }
                     else if (qikrmt_row == 1) // zoom
                     {
-                        bool can_do = true;
                         if (must_be_connected() == false) {
                             can_do = false;
                         }
@@ -219,11 +221,7 @@ class AppQuickRemote : public FairyMenuItem
                     }
                     else if (qikrmt_row == 2) // focus
                     {
-                        bool can_do = true;
-                        if (must_be_connected() == false) {
-                            can_do = false;
-                        }
-                        else if (must_be_ptp() == false) {
+                        if (must_be_ptp() == false) {
                             can_do = false;
                         }
 

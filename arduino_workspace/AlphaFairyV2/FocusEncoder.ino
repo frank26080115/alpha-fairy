@@ -247,15 +247,11 @@ void focus_calib_write(uint16_t colour)
 class AppFocusCalib : public FairyMenuItem
 {
     public:
-        AppFocusCalib(const char* img_fname = "/focus_calib.png", uint16_t id = MENUITEM_FENCCALIB) : FairyMenuItem(img_fname, id) {
+        AppFocusCalib() : FairyMenuItem("/focus_calib.png") {
         };
 
         virtual bool on_execute(void)
         {
-            if (must_be_connected() == false) {
-                return false;
-            }
-
             if (must_be_ptp() == false) {
                 return false;
             }

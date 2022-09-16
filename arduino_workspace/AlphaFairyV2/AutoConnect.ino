@@ -23,7 +23,7 @@ void autoconnect_poll()
 class AppAutoConnect : public FairyMenuItem
 {
     public:
-        AppAutoConnect() : FairyMenuItem("/main_auto.png", MENUITEM_AUTOCONN)
+        AppAutoConnect() : FairyMenuItem("/main_auto.png")
         {
         };
 

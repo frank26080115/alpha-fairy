@@ -42,10 +42,10 @@ void guimenu_drawPages()
         }
 
         // draw a grey dot beside the current black dot, depending on if the user tilted the device angle
-        else if (i == (curmenu->idx - 1) && imu.getTilt() == TILT_IS_DOWN) {
+        else if (i == (curmenu->idx - 1) && imu.getTilt() < 0) {
             fill_color = TFT_LIGHTGREY;
         }
-        else if (i == (curmenu->idx + 1) && imu.getTilt() != TILT_IS_DOWN) {
+        else if (i == (curmenu->idx + 1) && imu.getTilt() >= 0) {
             fill_color = TFT_LIGHTGREY;
         }
 
@@ -214,7 +214,7 @@ void gui_valIncDec(configitem_t* cfgitm)
     }
 
     lcdx = M5Lcd.getCursorX(); lcdy = M5Lcd.getCursorY(); // remember start of line position for quick redraw of values
-    if (imu.getTilt() == TILT_IS_UP)
+    if (imu.getTilt() > 0)
     {
         if (btnBig_hasPressed()) // change the value on button press
         {
@@ -232,7 +232,7 @@ void gui_valIncDec(configitem_t* cfgitm)
             if (gui_microphoneActive) { mictrig_drawLevel(); }
         }
     }
-    else if (imu.getTilt() == TILT_IS_DOWN)
+    else if (imu.getTilt() < 0)
     {
         if (btnBig_hasPressed()) // change the value on button press
         {

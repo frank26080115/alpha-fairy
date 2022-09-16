@@ -77,13 +77,13 @@ class PageInterval : public FairyCfgItem
 
         virtual void on_redraw(void)
         {
+            FairyCfgItem::on_redraw();
             if (is_func())
             {
                 draw_start();
             }
             else if (is_value())
             {
-                FairyCfgItem::on_redraw();
                 draw_total();
             }
         };
@@ -104,21 +104,20 @@ class PageInterval : public FairyCfgItem
         void draw_start(void)
         {
             FairyCfgItem::draw_name();
-            FairyCfgItem::draw_icon();
             M5Lcd.setTextFont(4);
             int linenum = 1;
             M5Lcd.setCursor(_margin_x, get_y(linenum));
             if (_parent_id == MENUITEM_INTERVAL)
             {
-                if (config_settings.intv_bulb != 0) {
-                    M5Lcd.print("Bulb: ");
-                    gui_showVal(config_settings.intv_bulb, TXTFMT_TIME, (Print*)&M5Lcd);
-                    blank_line();
-                    linenum++;
-                    M5Lcd.setCursor(_margin_x, get_y(linenum));
-                }
                 gui_showVal(config_settings.intv_intval, TXTFMT_TIME, (Print*)&M5Lcd);
-                blank_line();
+                if (config_settings.intv_bulb != 0) {
+                    M5Lcd.setTextFont(2);
+                    M5Lcd.print(" (B: ");
+                    gui_showVal(config_settings.intv_bulb, TXTFMT_TIME, (Print*)&M5Lcd);
+                    M5Lcd.print(")");
+                    M5Lcd.setTextFont(4);
+                    blank_line();
+                }
                 if (config_settings.intv_limit != 0 && config_settings.intv_limit < 1000) {
                     linenum++;
                     M5Lcd.setCursor(_margin_x, get_y(linenum));
@@ -163,6 +162,8 @@ class PageInterval : public FairyCfgItem
                 gui_showVal(total_time, TXTFMT_TIMELONG, (Print*)&M5Lcd);
                 blank_line();
             }
+
+            FairyCfgItem::draw_icon();
         };
 };
 
@@ -228,6 +229,12 @@ bool intervalometer_func(void* ptr)
             break;
         }
 
+        if (btnBig_hasPressed())
+        {
+            btnBig_clrPressed();
+            // do nothing, clear the press so it doesn't queue up
+        }
+
         interval_drawTimer(-1);
 
         t = millis();
@@ -275,6 +282,8 @@ bool intervalometer_func(void* ptr)
         }
     }
 
+    redraw_flag = true;
+    app_waitAllRelease();
     return false;
 }
 
@@ -420,7 +429,7 @@ class AppIntervalometer : public FairyCfgApp
                 }
                 install(new PageInterval("Start Delay" , (int32_t*)&(config_settings.intv_delay), 0, 10000, 1, TXTFMT_TIME));
                 install(new PageInterval("Num of Shots", (int32_t*)&(config_settings.intv_limit), 0, 10000, 1, TXTFMT_BYTENS));
-                install(new PageInterval("Start", intervalometer_func, "/start_icon.png"));
+                install(new PageInterval("Start", intervalometer_func, "/go_icon.png"));
             };
 };
 

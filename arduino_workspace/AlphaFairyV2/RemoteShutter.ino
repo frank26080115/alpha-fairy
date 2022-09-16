@@ -177,7 +177,7 @@ void record_movie()
 class AppRemoteShutter : public FairyMenuItem
 {
     public:
-        AppRemoteShutter(const char* img_fname = "/remoteshutter_d.png", uint16_t id = MENUITEM_REMOTESHUTTER_DLY) : FairyMenuItem(img_fname, id) {
+        AppRemoteShutter() : FairyMenuItem("/remoteshutter_d.png") {
         };
 
         uint8_t _delay = 2;

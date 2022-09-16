@@ -32,6 +32,7 @@ void FairyMenuItem::draw_mainImage(void)
     M5Lcd.setRotation(0);
     M5Lcd.drawPngFile(SPIFFS, _main_img, _main_img_x, _main_img_y);
     // if you need to overlay something else on top of the main image, then override this function
+    dbg_ser.printf("draw main img %s - %u\r\n", _main_img, millis());
 }
 
 void FairyMenuItem::draw_statusBar(void)
@@ -57,11 +58,12 @@ bool FairySubmenu::on_execute(void)
             if (task())
             {
                 itm->on_navOut();
-                return true;
+                break;
             }
             pwr_sleepCheck();
         }
     }
+    set_redraw();
     return false;
 }
 
@@ -117,10 +119,24 @@ bool FairySubmenu::task(void)
 
     itm = (FairyMenuItem*)cur_node->item;
 
+    bool to_nav = false;
+
     if (btnSide_hasPressed())
     {
         btnSide_clrPressed();
-        Serial.println("nav");
+        to_nav = true;
+    }
+    else if (_bigbtn_nav)
+    {
+        if (btnBig_hasPressed())
+        {
+            btnBig_clrPressed();
+            to_nav = true;
+        }
+    }
+
+    if (to_nav)
+    {
         itm->on_navOut();
         itm = (FairyMenuItem*)nav_next();
         itm->on_navTo();
@@ -145,7 +161,11 @@ bool FairySubmenu::task(void)
     itm->on_eachFrame();
     itm->draw_statusBar(); // the status bar function has its own frame rate control
 
-    if (btnBig_hasPressed())
+    if (_bigbtn_nav)
+    {
+        // do nothing here
+    }
+    else if (btnBig_hasPressed())
     {
         btnBig_clrPressed();
         #ifdef USE_SPRITE_MANAGER
@@ -243,19 +263,15 @@ void FairyCfgItem::draw_name(void)
 
 void FairyCfgItem::draw_icon(void)
 {
-    if (_icon_fpath == NULL || _icon_width == 0) {
-        return;
+    if (_icon_fpath != NULL && _icon_width > 0)
+    {
+        M5Lcd.drawPngFile(SPIFFS, _icon_fpath, M5Lcd.width() - _icon_width, 0);
     }
-    //#ifdef USE_SPRITE_MANAGER
-    //sprites->draw(
-    //#else
-    M5Lcd.drawPngFile(SPIFFS,
-    //#endif
-        _icon_fpath, M5Lcd.width() - _icon_width, 0
-    //#ifdef USE_SPRITE_MANAGER
-    //    , _icon_width, _icon_width
-    //#endif
-        );
+    FairyCfgApp* p = dynamic_cast<FairyCfgApp*>((FairyCfgApp*)get_parent());
+    if (p != NULL)
+    {
+        p->draw_icon();
+    }
 }
 
 void FairyCfgItem::draw_statusBar(void)
@@ -265,6 +281,7 @@ void FairyCfgItem::draw_statusBar(void)
 
 void FairyCfgItem::blank_text(void)
 {
+    M5Lcd.fillRect(M5Lcd.width() - 60, 0, 60, 60 + _margin_y, TFT_BLACK);
     M5Lcd.fillRect(0, _margin_y, M5Lcd.width() - _icon_width, 60, TFT_BLACK);
     M5Lcd.fillRect(0, 60, M5Lcd.width() - 60, 55, TFT_BLACK);
 }
@@ -288,7 +305,7 @@ void FairyCfgItem::draw_value(int8_t tilt)
     }
     int y = get_y(1);
     M5Lcd.setCursor(_margin_x, y);
-    M5Lcd.setTextFont(2);
+    M5Lcd.setTextFont(4);
     gui_showVal(get_val(), _fmt_flags, (Print*)&M5Lcd);
     if (tilt != 0) {
         M5Lcd.print((tilt > 0) ? " +> " : " <- "); // indicate if button press will increment or decrement
@@ -303,7 +320,7 @@ void FairyCfgItem::draw_value(void)
 
 void FairyCfgItem::blank_line(void)
 {
-    M5Lcd.fillRect(M5Lcd.getCursorX(), M5Lcd.getCursorY(), M5Lcd.width() - M5Lcd.getCursorX() - _icon_width, M5Lcd.fontHeight(), TFT_BLACK);
+    M5Lcd.fillRect(M5Lcd.getCursorX(), M5Lcd.getCursorY(), M5Lcd.width() - M5Lcd.getCursorX() - 60, M5Lcd.fontHeight(), TFT_BLACK);
 }
 
 void FairyCfgItem::on_tiltChange(void)
@@ -416,7 +433,7 @@ int16_t FairyCfgItem::get_y(int8_t linenum)
     {
         return _margin_y;
     }
-    return _margin_y + _line0_height + (linenum * (M5Lcd.fontHeight(2) + _line_space));
+    return _margin_y + _line0_height + (linenum * (M5Lcd.fontHeight(4) + _line_space));
 }
 
 FairyCfgApp::FairyCfgApp(const char* img_fname, const char* icon_fname, uint16_t id) : FairySubmenu(img_fname, id)
@@ -433,16 +450,7 @@ void FairyCfgApp::draw_icon(void)
     if (_icon_fname == NULL || _icon_width == 0) {
         return;
     }
-    //#ifdef USE_SPRITE_MANAGER
-    //sprites->draw(
-    //#else
-    M5Lcd.drawPngFile(SPIFFS,
-    //#endif
-        _icon_fname, M5Lcd.width() - _icon_width, M5Lcd.height() - _icon_width
-    //#ifdef USE_SPRITE_MANAGER
-    //    , _icon_width, _icon_width
-    //#endif
-        );
+    M5Lcd.drawPngFile(SPIFFS, _icon_fname, M5Lcd.width() - _icon_width, M5Lcd.height() - _icon_width);
 }
 
 bool FairyCfgApp::task(void)
@@ -523,12 +531,13 @@ bool FairyCfgApp::on_execute(void)
             if (task())
             {
                 itm->on_navOut();
-                M5Lcd.setRotation(0);
-                return true;
+                break;
             }
             pwr_sleepCheck();
         }
     }
+    M5Lcd.setRotation(0);
+    set_redraw();
     return false;
 }
 
@@ -543,6 +552,9 @@ bool FairyMenuItem::must_be_connected(void)
 
 bool FairyMenuItem::must_be_ptp(void)
 {
+    if (must_be_connected() == false) {
+        return false;
+    }
     if (httpcam.isOperating()) {
         app_waitAllReleaseUnsupported();
         return false;

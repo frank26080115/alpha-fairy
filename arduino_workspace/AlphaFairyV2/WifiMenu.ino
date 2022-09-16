@@ -12,6 +12,7 @@ class PageHttpInfo : public FairyMenuItem
         {
             _prev_ip = 0;
             FairyMenuItem::on_navTo();
+            check_redraw(); // clear redraw flag
         };
 
         virtual void on_redraw(void)
@@ -20,6 +21,7 @@ class PageHttpInfo : public FairyMenuItem
             M5Lcd.fillScreen(TFT_WHITE);
             FairyMenuItem::on_redraw(); // draw_mainImage();
             draw_text();
+            check_redraw(); // clear redraw flag
         };
 
         virtual bool check_redraw(void)
@@ -98,7 +100,9 @@ class PageWifiQr : public FairyMenuItem
 
         virtual void on_redraw(void)
         {
+            M5Lcd.fillScreen(TFT_WHITE);
             FairyMenuItem::on_redraw();
+            //M5Lcd.fillRect(0, 70, M5Lcd.width(), M5Lcd.height() - 16 - 50, TFT_WHITE);
             uint32_t cur_ip = (uint32_t)(IPAddress(WiFi.softAPIP()));
             if (cur_ip == 0) {
                 return;
@@ -186,17 +190,7 @@ class PageWifiSelectProfile : public FairyMenuItem
             }
             if (btnBig_isPressed())
             {
-                esp_wifi_disconnect();
-                esp_wifi_stop();
-                esp_wifi_deinit();
-                srand(t + lroundf(imu.accX) + lroundf(imu.accY) + lroundf(imu.accZ));
-                while (btnBig_isPressed())
-                {
-                    int x = rand() % M5Lcd.width();
-                    int y = rand() % M5Lcd.height();
-                    M5Lcd.fillRect(x, y, 1, 1, TFT_WHITE);
-                }
-                ESP.restart();
+                dissolve_restart(TFT_WHITE);
             }
             return false;
         };
@@ -243,9 +237,11 @@ class PageFactoryReset : public FairyMenuItem
             settings_save();
             wifiprofile_deleteAll();
             M5Lcd.drawPngFile(SPIFFS, "/wificfg_frstdone.png", 0, 0);
-            delay(2000);
-            app_waitAllRelease();
-            ESP.restart();
+            delay(3000);
+            if (btnBig_isPressed())
+            {
+                dissolve_restart(TFT_WHITE);
+            }
             return false;
         };
 };
@@ -263,6 +259,7 @@ class PageWifiInfo : public FairyMenuItem
             _show_rssi = false;
             _prev_connected = fairycam.isOperating();
             FairyMenuItem::on_navTo();
+            check_redraw(); // clear redraw flag
         };
 
         virtual bool can_navTo(void)
@@ -369,7 +366,7 @@ class PageWifiInfo : public FairyMenuItem
 class AppWifiConfig : public FairySubmenu
 {
     public:
-        AppWifiConfig() : FairySubmenu("/wifi_config.png", MENUITEM_WIFICONFIG)
+        AppWifiConfig() : FairySubmenu("/wifi_config.png")
         {
             install(new PageHttpInfo());
             install(new PageWifiQr(true , "/wificfg_login.png"));
@@ -396,6 +393,12 @@ class AppWifiConfig : public FairySubmenu
             return ret;
         };
 
+        virtual bool task(void)
+        {
+            httpsrv_poll();
+            return FairySubmenu::task();
+        };
+
     protected:
         bool _already_running;
 };
@@ -403,7 +406,7 @@ class AppWifiConfig : public FairySubmenu
 class AppWifiInfo : public FairySubmenu
 {
     public:
-        AppWifiInfo() : FairySubmenu("/wifi_config.png", MENUITEM_WIFICONFIG)
+        AppWifiInfo() : FairySubmenu("/wifiinfo.png")
         {
             install(new PageWifiInfo(false));
             install(new PageWifiInfo(true));
@@ -413,12 +416,13 @@ class AppWifiInfo : public FairySubmenu
 };
 
 extern FairySubmenu menu_utils;
-AppWifiConfig app_wificfg;
 AppWifiInfo   app_wifinfo;
+AppWifiConfig app_wificfg;
 void setup_wifimenus()
 {
-    menu_utils.install(&app_wificfg);
     menu_utils.install(&app_wifinfo);
+    menu_utils.install(&app_wificfg);
+    app_wifinfo.set_bigbtn_nav(true);
 }
 
 void run_wifi_cfg()

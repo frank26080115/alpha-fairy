@@ -4,7 +4,7 @@
 class AppShutterStep : public FairyMenuItem
 {
     public:
-        AppShutterStep() : FairyMenuItem("/shutter_step.png", MENUITEM_SHUTTERSTEP)
+        AppShutterStep() : FairyMenuItem("/shutter_step.png")
         {
         };
 
@@ -92,7 +92,7 @@ class AppShutterStep : public FairyMenuItem
                 fairycam.cmd_ManualFocusMode(true, false);
             }
 
-            redraw_flag = true;
+            set_redraw();
             return false;
         };
 };

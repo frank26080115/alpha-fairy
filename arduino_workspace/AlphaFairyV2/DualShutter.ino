@@ -264,8 +264,14 @@ void dualshutter_logSettings()
 class AppDualShutterRegister : public FairyMenuItem
 {
     public:
-        AppDualShutterRegister() : FairyMenuItem("/dualshutter_reg.png", MENUITEM_DUALSHUTTER_REG)
+        AppDualShutterRegister() : FairyMenuItem("/dualshutter_reg.png")
         {
+        };
+
+        virtual void on_redraw(void)
+        {
+            FairyMenuItem::on_redraw();
+            draw_text();
         };
 
         virtual void on_eachFrame(void)
@@ -325,7 +331,7 @@ class AppDualShutterRegister : public FairyMenuItem
 class AppDualShutterShoot : public FairyMenuItem
 {
     public:
-        AppDualShutterShoot() : FairyMenuItem("/dualshutter_shoot.png", MENUITEM_DUALSHUTTER_SHOOT)
+        AppDualShutterShoot() : FairyMenuItem("/dualshutter_shoot.png")
         {
         };
 

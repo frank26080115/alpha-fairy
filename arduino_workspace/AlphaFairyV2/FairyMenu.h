@@ -16,6 +16,7 @@ class FairyItem
         virtual bool     on_execute       (void) { return false; };
         virtual void     set_parent(void* x, uint16_t id) { _parent = x; _parent_id = id; };
         inline  uint16_t get_parentId     (void) { return _parent_id; };
+        inline  void*    get_parent       (void) { return _parent; };
         virtual bool     can_navTo        (void) { return true; };
         virtual void     on_navTo         (void) { };
         virtual void     on_navOut        (void) { };
@@ -36,7 +37,7 @@ FairyItemNode_t;
 class FairyMenuItem : public FairyItem
 {
     public:
-        FairyMenuItem(const char* img_fname, uint16_t id);
+        FairyMenuItem(const char* img_fname, uint16_t id = 0);
         virtual void     reset            (void) {};
         virtual bool     on_execute       (void) { return false; };
         virtual bool     can_navTo        (void) { return true; };
@@ -65,7 +66,8 @@ class FairyMenuItem : public FairyItem
 class FairySubmenu : public FairyMenuItem
 {
     public:
-        FairySubmenu(const char* img_fname, uint16_t id);
+        FairySubmenu(const char* img_fname, uint16_t id = 0);
+        inline  void set_bigbtn_nav(bool x) { _bigbtn_nav = true; };
         virtual void install(FairyItem* itm);
         virtual bool on_execute(void);
         virtual bool task(void);
@@ -79,7 +81,7 @@ class FairySubmenu : public FairyMenuItem
         FairyItemNode_t* head_node = NULL;
         FairyItemNode_t* cur_node = NULL;
 
-        bool _first_run;
+        bool _bigbtn_nav = false;
 };
 
 class FairyCfgItem : public FairyItem
@@ -131,7 +133,7 @@ class FairyCfgItem : public FairyItem
 class FairyCfgApp : public FairySubmenu
 {
     public:
-        FairyCfgApp(const char* img_fname, const char* icon_fname, uint16_t id);
+        FairyCfgApp(const char* img_fname, const char* icon_fname, uint16_t id = 0);
         virtual void install(FairyCfgItem* itm) { FairySubmenu::install((FairyItem*)itm); };
         virtual bool on_execute(void);
         virtual bool task(void);

@@ -16,7 +16,7 @@ bool guimenu_task(menustate_t* m)
     {
         // side-button press means go to another menu item
         // go to the previous item if the angle of the device is "down"
-        if (imu.getTilt() == TILT_IS_DOWN && (m->flags & MENUFLAG_CAN_GO_DOWN) != 0) {
+        if (imu.getTilt() < 0 && (m->flags & MENUFLAG_CAN_GO_DOWN) != 0) {
             if (m->idx > 0) {
                 m->idx -= 1;
                 dbg_ser.printf("menu[%u] prev idx %u\r\n", m->id, m->idx);
