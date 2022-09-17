@@ -176,7 +176,7 @@ class AppFocusStack : public FairyMenuItem
         void draw_text(void)
         {
             gui_startMenuPrint();
-            M5Lcd.setCursor(107, 84);
+            M5Lcd.setCursor(107, 78);
             M5Lcd.printf("%u ", _speed);
         };
 };

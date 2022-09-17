@@ -46,7 +46,6 @@ install(new FairyCfgItem("power save time (s)"    , (int32_t*)&(config_settings.
 install(new PageLcdBrightness("LCD bright"        , (int32_t*)&(config_settings.lcd_brightness         ),    7,   12,     1, TXTFMT_LCDBRITE ));
 install(new FairyCfgItem("LCD dim time (s)"       , (int32_t*)&(config_settings.lcd_dim_secs           ),    0, 1000,     1, TXTFMT_BYTENS   ));
 install(new FairyCfgItem("WiFi power"             , (int32_t*)&(config_settings.wifi_pwr               ),    0,   14,     1, TXTFMT_BYTENS   ));
-install(new FairyCfgItem("LED en"                 , (int32_t*)&(config_settings.led_enabled            ),    0,    1,     1, TXTFMT_BOOL     ));
 install(new FairyCfgItem("IR en"                  , (int32_t*)&(config_settings.infrared_enabled       ),    0,    1,     1, TXTFMT_BOOL     ));
 install(new FairyCfgItem("GPIO en"                , (int32_t*)&(config_settings.gpio_enabled           ),    0,    1,     1, TXTFMT_BOOL     ));
 install(new FairyCfgItem("Save + Exit", config_save_exit, "/back_icon.png"));

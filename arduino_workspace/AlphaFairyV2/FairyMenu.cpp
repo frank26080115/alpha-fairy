@@ -32,7 +32,6 @@ void FairyMenuItem::draw_mainImage(void)
     M5Lcd.setRotation(0);
     M5Lcd.drawPngFile(SPIFFS, _main_img, _main_img_x, _main_img_y);
     // if you need to overlay something else on top of the main image, then override this function
-    dbg_ser.printf("draw main img %s - %u\r\n", _main_img, millis());
 }
 
 void FairyMenuItem::draw_statusBar(void)
@@ -46,6 +45,7 @@ FairySubmenu::FairySubmenu(const char* img_fname, uint16_t id) : FairyMenuItem(i
 
 bool FairySubmenu::on_execute(void)
 {
+    rewind();
     FairyMenuItem* itm = (FairyMenuItem*)cur_node->item;
     itm->on_navTo();
     app_waitAllRelease();
@@ -223,6 +223,7 @@ void FairyCfgItem::set_name(const char* x)
 {
     _disp_name = (char*)malloc(strlen(x) + 2);
     strcpy(_disp_name, x);
+    set_font(-1);
 }
 
 void FairyCfgItem::set_icon(const char* x)
@@ -240,7 +241,7 @@ void FairyCfgItem::set_font(int fn)
         uint16_t dim2 = M5Lcd.height();
         uint16_t dim = dim1 > dim2 ? dim1 : dim2;
         uint16_t w = M5Lcd.textWidth((const char*)_disp_name, _font_num = 4);
-        if (w >= dim - _icon_width) {
+        if (w >= dim - _icon_width - 10) {
             _font_num = 2;
         }
     }
@@ -257,6 +258,7 @@ void FairyCfgItem::draw_name(void)
     M5Lcd.setCursor(_margin_x, y);
     M5Lcd.setTextFont(_font_num);
     M5Lcd.print(_disp_name);
+    M5Lcd.setTextFont(4);
     M5Lcd.fillRect(M5Lcd.getCursorX(), y, M5Lcd.width() - M5Lcd.getCursorX() - _icon_width, M5Lcd.fontHeight(), TFT_BLACK);
     draw_icon();
 }
@@ -433,7 +435,7 @@ int16_t FairyCfgItem::get_y(int8_t linenum)
     {
         return _margin_y;
     }
-    return _margin_y + _line0_height + (linenum * (M5Lcd.fontHeight(4) + _line_space));
+    return _margin_y + _line0_height + ((linenum - 1) * (M5Lcd.fontHeight(4) + _line_space));
 }
 
 FairyCfgApp::FairyCfgApp(const char* img_fname, const char* icon_fname, uint16_t id) : FairySubmenu(img_fname, id)
@@ -520,6 +522,7 @@ bool FairyCfgApp::task(void)
 
 bool FairyCfgApp::on_execute(void)
 {
+    rewind();
     FairyCfgItem* itm = (FairyCfgItem*)cur_node->item;
     gui_startAppPrint();
     itm->on_navTo();

@@ -320,6 +320,7 @@ class AppDualShutterRegister : public FairyMenuItem
 
             return false;
         };
+
     protected:
 
         void draw_text(void)
@@ -333,6 +334,12 @@ class AppDualShutterShoot : public FairyMenuItem
     public:
         AppDualShutterShoot() : FairyMenuItem("/dualshutter_shoot.png")
         {
+        };
+
+        virtual void on_redraw(void)
+        {
+            FairyMenuItem::on_redraw();
+            draw_text();
         };
 
         virtual void on_eachFrame(void)
@@ -358,6 +365,13 @@ class AppDualShutterShoot : public FairyMenuItem
             gui_drawTopThickLine(8, TFT_WHITE);
             app_waitAllRelease();
             return false;
+        };
+
+    protected:
+
+        void draw_text(void)
+        {
+            dualshutter_drawText();
         };
 };
 
