@@ -37,11 +37,11 @@ FairySubmenu main_menu(NULL, 0);
 
 void setup()
 {
+    Serial.begin(115200);
+
     settings_init();
     btns_init();
-
     SonyCamIr_Init();
-    Serial.begin(115200);
 
     dbg_ser.enabled = true;
 
