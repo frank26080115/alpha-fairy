@@ -133,140 +133,120 @@ void qikrmt_drawBox(uint8_t row, uint8_t col, uint16_t colour)
     M5Lcd.drawRect(xstart + 1, ystart + 1, (row == 2 ? linewidth : (linewidth / 2)) - 4, boxheight - 2, colour);
 }
 
-void quick_remote(void* mip)
+#include "FairyMenu.h"
+
+class AppQuickRemote : public FairyMenuItem
 {
-    qikrmt_imuState = QIKRMTIMU_LOCKED;
-    qikrmt_col = 0;
-    qikrmt_row = 0;
-    qikrmt_col_prev = -1;
-    qikrmt_row_prev = -1;
-    qikrmt_imustate_prev = -1;
-    qikrmt_roll_center = 0;
-    redraw_flag = true;
+    public:
+        AppQuickRemote() : FairyMenuItem("/qikrmt_faded.png") {
+            reset();
+        };
 
-    app_waitAllRelease(BTN_DEBOUNCE);
-
-    while (true)
-    {
-        app_poll();
-
-        if (redraw_flag) {
-            M5Lcd.drawPngFile(SPIFFS, "/qikrmt_active.png", 0, 0);
-        }
-
-        qikrmt_task(false);
-        gui_drawStatusBar(false);
-        pwr_sleepCheck();
-
-        redraw_flag = false;
-
-        if (btnBig_hasPressed())
+        virtual void reset(void)
         {
-            btnBig_clrPressed();
-            if (qikrmt_row == 0 && qikrmt_col == 0) { // remote shutter
-                remote_shutter(mip);
-            }
-            else if (qikrmt_row == 0 && qikrmt_col == 1) { // record movie
-                record_movie(mip);
-            }
-            else if (qikrmt_row == 1) // zoom
+            qikrmt_imuState = QIKRMTIMU_LOCKED;
+            qikrmt_col = 0;
+            qikrmt_row = 0;
+            qikrmt_col_prev = -1;
+            qikrmt_row_prev = -1;
+            qikrmt_imustate_prev = -1;
+            qikrmt_roll_center = 0;
+        };
+
+        virtual bool on_execute(void)
+        {
+            reset();
+            set_redraw();
+            app_waitAllRelease();
+
+            while (true)
             {
-                bool can_do = true;
-                if (fairycam.isOperating() == false)
-                {
-                    app_waitAllReleaseConnecting(BTN_DEBOUNCE);
-                    can_do = false;
+                app_poll();
+
+                if (redraw_flag) {
+                    M5Lcd.drawPngFile(SPIFFS, "/qikrmt_active.png", 0, 0);
                 }
-                if (can_do)
+
+                qikrmt_task(false);
+                gui_drawStatusBar(false);
+                pwr_sleepCheck();
+
+                redraw_flag = false;
+
+                if (btnBig_hasPressed())
                 {
-                    bool do_one = true;
-                    while ((btnBig_isPressed() || do_one) && fairycam.isOperating())
+                    btnBig_clrPressed();
+
+                    bool can_do = true;
+
+                    if (qikrmt_row == 0 && qikrmt_col == 0) { // remote shutter
+                        remote_shutter(0, false);
+                    }
+                    else if (qikrmt_row == 0 && qikrmt_col == 1) { // record movie
+                        record_movie();
+                    }
+                    else if (qikrmt_row == 1) // zoom
                     {
-                        do_one = false;
-                        app_poll();
-                        int8_t n = qikrmt_col == 0 ? -1 : +1;
-                        if (ptpcam.isOperating())
+                        if (must_be_connected() == false) {
+                            can_do = false;
+                        }
+                        if (can_do)
                         {
-                            if (n != 0) {
-                                ptpcam.cmd_ZoomStep((n > 0) ? -1 : ((n < 0) ? +1 : 0)); // I am soooo sorry for this
-                                ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+                            bool do_one = true;
+                            while ((btnBig_isPressed() || do_one) && fairycam.isOperating())
+                            {
+                                do_one = false;
+                                app_poll();
+                                int8_t n = qikrmt_col == 0 ? -1 : +1;
+                                if (ptpcam.isOperating())
+                                {
+                                    if (n != 0) {
+                                        ptpcam.cmd_ZoomStep((n > 0) ? -1 : ((n < 0) ? +1 : 0)); // I am soooo sorry for this
+                                        ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+                                    }
+                                }
+                                if (httpcam.isOperating())
+                                {
+                                    httpcam.cmd_ZoomStart(n);
+                                    httpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+                                }
+                            }
+                            if (ptpcam.isOperating()) {
+                                ptpcam.cmd_ZoomStep(0);
+                            }
+                            if (httpcam.isOperating()) {
+                                httpcam.cmd_ZoomStop();
                             }
                         }
-                        if (httpcam.isOperating())
-                        {
-                            httpcam.cmd_ZoomStart(n);
-                            httpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
-                        }
                     }
-                    if (ptpcam.isOperating()) {
-                        ptpcam.cmd_ZoomStep(0);
-                    }
-                    if (httpcam.isOperating()) {
-                        httpcam.cmd_ZoomStop();
-                    }
-                }
-            }
-            else if (qikrmt_row == 2) // focus
-            {
-                bool can_do = true;
-                if (ptpcam.isOperating() == false)
-                {
-                    if (httpcam.isOperating()) {
-                        app_waitAllReleaseUnsupported(BTN_DEBOUNCE);
-                        can_do = false;
-                    }
-                    else {
-                        app_waitAllReleaseConnecting(BTN_DEBOUNCE);
-                        can_do = false;
-                    }
-                }
-                if (can_do)
-                {
-                    bool starting_mf = ptpcam.is_manuallyfocused();
-
-                    if (starting_mf == false && ptpcam.isOperating()) {
-                        // force into manual focus mode
-                        ptpcam.cmd_ManualFocusMode(true, false);
-                        ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
-                    }
-
-                    bool do_one = true;
-
-                    while ((btnBig_isPressed() || do_one) && ptpcam.isOperating())
+                    else if (qikrmt_row == 2) // focus
                     {
-                        do_one = false;
+                        if (must_be_ptp() == false) {
+                            can_do = false;
+                        }
 
-                        int8_t n = gui_drawFocusPullState(QIKRMT_FPULL_Y); // return is -3 to +3
-                        app_poll();
-                        // translate n into Sony's focus step sizes
-                        if (n >= 0) {
-                            n = (n ==  2) ?  3 : ((n ==  3) ?  7 : n);
+                        if (can_do)
+                        {
+                            focus_pull(true, QIKRMT_FPULL_Y);
                         }
-                        else {
-                            n = (n == -2) ? -3 : ((n == -3) ? -7 : n);
-                        }
-                        if (n != 0) {
-                            ptpcam.cmd_ManualFocusStep(n);
-                            ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
-                        }
-                    }
-                    
-                    if (starting_mf == false && ptpcam.isOperating()) {
-                        // restore AF state
-                        ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
-                        ptpcam.cmd_ManualFocusMode(false, false);
                     }
                 }
-            }
-        }
 
-        if (btnPwr_hasPressed())
-        {
-            // this will quit out of the quick remote mode
-            btnPwr_clrPressed();
-            break;
-        }
-    }
+                if (btnPwr_hasPressed())
+                {
+                    // this will quit out of the quick remote mode
+                    btnPwr_clrPressed();
+                    break;
+                }
+            } // end of while loop
+            draw_mainImage();
+            return false;
+        };
+};
 
-    // the only way to quit is the pwr button
+extern FairySubmenu menu_remote;
+void setup_qikrmt()
+{
+    static AppQuickRemote app;
+    menu_remote.install(&app);
 }

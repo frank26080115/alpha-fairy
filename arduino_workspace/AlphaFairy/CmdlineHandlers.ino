@@ -7,8 +7,8 @@ this is used only for testing
 */
 
 void factory_reset_func(void* cmd, char* argstr, Stream* stream);
-void focuscalib_func(void* cmd, char* argstr, Stream* stream);
 #ifndef DISABLE_CMD_LINE
+void focuscalib_func(void* cmd, char* argstr, Stream* stream);
 void shoot_func     (void* cmd, char* argstr, Stream* stream);
 void echo_func      (void* cmd, char* argstr, Stream* stream);
 void memcheck_func  (void* cmd, char* argstr, Stream* stream);
@@ -29,8 +29,8 @@ void wifipwr_func   (void* cmd, char* argstr, Stream* stream);
 
 const cmd_def_t cmds[] = {
   { "factoryreset", factory_reset_func},
-  { "focuscalib", focuscalib_func },
   #ifndef DISABLE_CMD_LINE
+  { "focuscalib", focuscalib_func },
   { "shoot"    , shoot_func },
   { "echo"     , echo_func },
   { "mem"      , memcheck_func },
@@ -63,12 +63,12 @@ void factory_reset_func(void* cmd, char* argstr, Stream* stream)
   stream->println("factory reset performed");
 }
 
+#ifndef DISABLE_CMD_LINE
+
 void focuscalib_func(void* cmd, char* argstr, Stream* stream)
 {
     fenc_calibrate();
 }
-
-#ifndef DISABLE_CMD_LINE
 
 void shoot_func(void* cmd, char* argstr, Stream* stream)
 {
@@ -155,6 +155,7 @@ extern volatile int32_t mictrig_lastMax, mictrig_filteredMax;
 
 void mic_func(void* cmd, char* argstr, Stream* stream)
 {
+    #if 0
     gui_startAppPrint();
     mictrig_drawIcon();
     while (true)
@@ -170,6 +171,7 @@ void mic_func(void* cmd, char* argstr, Stream* stream)
             ESP.restart();
         }
     }
+    #endif
 }
 
 void pwr_func(void* cmd, char* argstr, Stream* stream)

@@ -28,7 +28,6 @@ void settings_default() {
 
   config_settings.lcd_brightness         = 10;
   config_settings.pwr_save_secs          = 60;
-  config_settings.led_enabled            = 0;
   config_settings.lcd_dim_secs           = 5;
 
   config_settings.intv_bulb    = 0;

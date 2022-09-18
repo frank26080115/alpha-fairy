@@ -226,6 +226,26 @@ void btnAll_clrPressed() {
     btnPwr_clrPressed();
 }
 
+void btnPwr_poll()
+{
+    uint32_t now = millis();
+    static uint32_t btn_last_time = 0;
+    if ((now - btn_last_time) > 100 || btn_last_time == 0) {
+        btn_last_time = now;
+        btnPwr_quickPoll();
+    }
+}
+
+void btnPwr_quickPoll()
+{
+    uint8_t b = M5.Axp.GetBtnPress();
+    if (b != 0) {
+        btnPwr_cnt++;
+        dbg_ser.printf("user pressed power button\r\n");
+        pwr_tick(true);
+    }
+}
+
 #if defined(HTTP_MOCKBTNS_ENABLE)
 
 #include <AsyncTCP.h>

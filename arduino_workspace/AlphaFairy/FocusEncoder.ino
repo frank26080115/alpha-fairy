@@ -242,24 +242,32 @@ void focus_calib_write(uint16_t colour)
     M5Lcd.printf("%u", config_settings.fenc_large);
 }
 
-void focus_calib(void* mip)
+#include "FairyMenu.h"
+
+class AppFocusCalib : public FairyMenuItem
 {
-    dbg_ser.println("focus_calib");
+    public:
+        AppFocusCalib() : FairyMenuItem("/focus_calib.png") {
+        };
 
-    if (ptpcam.isOperating() == false) {
-        if (httpcam.isOperating()) {
-            app_waitAllReleaseUnsupported(BTN_DEBOUNCE);
-        }
-        else {
-            // show user that the camera isn't connected
-            app_waitAllReleaseConnecting(BTN_DEBOUNCE);
-        }
-        return;
-    }
+        virtual bool on_execute(void)
+        {
+            if (must_be_ptp() == false) {
+                return false;
+            }
 
-    M5Lcd.drawPngFile(SPIFFS, "/focus_calib.png", 0, 0);
-    bool success = fenc_calibrate();
-    M5Lcd.drawPngFile(SPIFFS, "/focus_calib.png", 0, 0);
+            M5Lcd.drawPngFile(SPIFFS, "/focus_calib.png", 0, 0); // lazy clearing of screen
+            bool success = fenc_calibrate();
+            M5Lcd.drawPngFile(SPIFFS, "/focus_calib.png", 0, 0); // lazy clearing of screen
 
-    focus_calib_write(success ? TFT_BLACK : TFT_RED);
+            focus_calib_write(success ? TFT_BLACK : TFT_RED);
+            return false;
+        };
+};
+
+extern FairySubmenu menu_utils;
+void setup_focuscalib()
+{
+    static AppFocusCalib app;
+    menu_utils.install(&app);
 }

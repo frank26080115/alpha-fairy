@@ -1,5 +1,31 @@
 #include "AlphaFairy.h"
 
+extern void wifi_onConnect(void);
+extern void wifi_onDisconnect(uint8_t, int);
+int wifi_err_reason = 0;
+extern bool autoconnect_active;
+extern int autoconnect_status;
+bool signal_wifiauthfailed = false;
+
+void wifi_init()
+{
+    NetMgr_regCallback(wifi_onConnect, wifi_onDisconnect);
+    wifiprofile_connect(config_settings.wifi_profile);
+    #ifdef HTTP_ON_BOOT
+    httpsrv_init();
+    #endif
+    if (config_settings.wifi_pwr != 0) {
+        NetMgr_setWifiPower((wifi_power_t)wifipwr_table[config_settings.wifi_pwr]);
+    }
+}
+
+void wifi_get_unique_ssid(char* tgt)
+{
+    uint8_t wifi_ap_mac[16];
+    WiFi.macAddress(wifi_ap_mac);
+    sprintf(tgt, WIFI_DEFAULT_SSID "-%u%u%u", wifi_ap_mac[0], wifi_ap_mac[1], wifi_ap_mac[2]);
+}
+
 void wifiprofile_getIdxFname(uint8_t idx, char* tgt)
 {
     sprintf(tgt, "/wifipro_%u.txt", idx);
@@ -292,4 +318,196 @@ int wifiprofile_autoFind(wifiprofile_t* ptgt)
     uint32_t t2 = millis(), t3 = t2 - t;
     Serial.printf("Scan time %u\r\n", t3); // this includes all of the flash file reads
     return -1;
+}
+
+void force_wifi_config(const char* fp)
+{
+    prevent_status_bar_thread = true;
+
+    pwr_tick(true);
+    M5.Axp.GetBtnPress();
+    uint32_t t = millis(), now = t;
+    M5Lcd.setRotation(0);
+    M5Lcd.drawPngFile(SPIFFS, fp, 0, 0);
+
+    if (wifi_err_reason != 0)
+    {
+        M5Lcd.setTextFont(2);
+        M5Lcd.highlight(true);
+        M5Lcd.setTextWrap(true);
+        M5Lcd.setHighlightColor(TFT_BLACK);
+        M5Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+        M5Lcd.setCursor(5, M5Lcd.height() - 16);
+        M5Lcd.printf("REASON: %d", wifi_err_reason);
+    }
+
+    while (true)
+    {
+        app_poll();
+        pwr_sleepCheck();
+        if (btnBoth_hasPressed()) {
+            break;
+        }
+        if (M5.Axp.GetBtnPress() != 0) {
+            show_poweroff();
+            M5.Axp.PowerOff();
+        }
+    }
+    btnBoth_clrPressed();
+
+    run_wifi_cfg();
+}
+
+void wifi_pswdPromptDrawCb()
+{
+    M5Lcd.setTextWrap(false);
+    M5Lcd.setTextColor(TFT_BLACK, TFT_WHITE);
+    M5Lcd.setTextFont(2);
+    M5Lcd.setCursor(5, 4);
+    M5Lcd.print("SSID: ");
+    M5Lcd.print(NetMgr_getSSID());
+    M5Lcd.fillRect(M5Lcd.getCursorX(), M5Lcd.getCursorY(), M5Lcd.width() - M5Lcd.getCursorX(), M5Lcd.fontHeight(), TFT_WHITE);
+    M5Lcd.setCursor(5, 18);
+    M5Lcd.print("Password:");
+}
+
+int wifi_promptForPassword(char* ssid, char* existingPassword, char* newPassword)
+{
+    static FairyKeyboard kbd(&M5Lcd);
+
+    M5Lcd.fillScreen(TFT_WHITE);
+    kbd.register_redraw_cb(wifi_pswdPromptDrawCb);
+    kbd.reset();
+
+    if (existingPassword != NULL) {
+        if (existingPassword[0] != 0) {
+            kbd.set_str(existingPassword);
+        }
+    }
+
+    while (true)
+    {
+        autoconnect_poll();
+        kbd.update(imu.roll, imu.pitch);
+        if (btnSide_hasPressed())
+        {
+            kbd.toggleLowerCase();
+            btnSide_clrPressed();
+        }
+        if (btnBig_hasPressed())
+        {
+            btnBig_clrPressed();
+            if (kbd.click())
+            {
+                char* ns = kbd.get_str();
+                if (strlen(ns) > 0)
+                {
+                    if (newPassword != NULL) {
+                        strncpy(newPassword, ns, WIFI_STRING_LEN);
+                    }
+                    return WIFIPROMPTRET_DONE;
+                }
+                else
+                {
+                    return WIFIPROMPTRET_EMPTY;
+                }
+            }
+        }
+        if (btnPwr_hasPressed())
+        {
+            btnPwr_clrPressed();
+            return WIFIPROMPTRET_CANCEL;
+        }
+    }
+}
+
+bool wifi_newConnectOrPrompt(uint8_t profile_num, wifiprofile_t* profile, bool need_ask, bool can_save)
+{
+    bool user_quit = false;
+    while (user_quit == false) // this loop will prompt the user for a password until a successful connection is made (or the user cancels)
+    {
+        if (need_ask)
+        {
+            dbg_ser.printf("autoconnect starting keyboard\r\n");
+            int pret = wifi_promptForPassword((char*)profile->ssid, (char*)profile->password, (char*)profile->password);
+            if (pret != WIFIPROMPTRET_CANCEL)
+            {
+                dbg_ser.printf("autoconnect keyboard done: %s\r\n", profile->password);
+
+                wifiprofile_writeProfile(profile_num, profile);
+
+                if (can_save && profile_num != config_settings.wifi_profile) { // only save once
+                    config_settings.wifi_profile = profile_num;
+                    settings_save();
+                }
+            }
+            else
+            {
+                dbg_ser.printf("autoconnect user quit keyboard\r\n");
+                user_quit = true;
+                return true;
+            }
+        }
+
+        // attempt connection
+        NetMgr_reset();
+        wifiprofile_connect(can_save ? config_settings.wifi_profile : profile_num);
+        autoconnect_status = AUTOCONNSTS_NONE; // this variable will be set to something by the Wi-Fi callbacks
+
+        // wait for connection (with an animation)
+        dbg_ser.printf("autoconnect waiting for connection\r\n");
+        gui_drawConnecting(true);
+        while (autoconnect_status == AUTOCONNSTS_NONE)
+        {
+            gui_drawConnecting(false);
+            app_poll();
+            if (btnAll_hasPressed())
+            {
+                // any key press means to not wait for connection
+                // no timeout implemented
+                btnAll_clrPressed();
+                user_quit = true;
+                dbg_ser.printf("autoconnect waiting for connection user quit\r\n");
+                return true;
+            }
+        }
+
+        if (autoconnect_status == AUTOCONNSTS_CONNECTED)
+        {
+            // Wi-Fi is connected, cameras are not handshaken but we can quit this loop
+            // this should end up in main menu after the return
+            dbg_ser.printf("autoconnect wifi connect success\r\n");
+            need_ask = false;
+            return false;
+        }
+        else if (autoconnect_status == AUTOCONNSTS_FAILED)
+        {
+            dbg_ser.printf("autoconnect wifi failed\r\n");
+            need_ask = true;
+            WiFi.disconnect();
+            NetMgr_reset();
+            M5Lcd.drawPngFile(SPIFFS, "/wifi_reject.png", 0, 0);
+            while (true)
+            {
+                autoconnect_poll();
+                if (btnBoth_hasPressed())
+                {
+                    // normal button press means retry entering the password
+                    dbg_ser.printf("autoconnect user wants retry\r\n");
+                    btnBoth_clrPressed();
+                    break;
+                }
+                if (btnPwr_hasPressed())
+                {
+                    // power button press means give up
+                    dbg_ser.printf("autoconnect user wants give up\r\n");
+                    btnPwr_clrPressed();
+                    user_quit = true;
+                    return true;
+                }
+            }
+        }
+        // user_quit is evaluated here, the end of the loop
+    }
+    return user_quit;
 }

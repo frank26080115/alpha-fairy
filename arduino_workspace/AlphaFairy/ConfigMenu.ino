@@ -1,141 +1,87 @@
 #include "AlphaFairy.h"
+#include "FairyMenu.h"
 
-extern configsettings_t config_settings;
+static bool has_saved = false;
 
-const configitem_t config_items[] = {
-  // item pointer                                       , max , min , step , text                     , flags
-  { (int32_t*)&(config_settings.focus_pause_time_ms    ), 1000,    0,    10, "focus pause"            , TXTFMT_BYTENS   },
-  { (int32_t*)&(config_settings.fenc_multi             ),  100, -100,     1, "MF knob steps"          , TXTFMT_NONE     },
-  { (int32_t*)&(config_settings.fenc_large             ), 1000,    0,     1, "MF knob large steps"    , TXTFMT_NONE     },
-  { (int32_t*)&(config_settings.shutter_press_time_ms  ), 1000,    0,    10, "shutter press duration" , TXTFMT_BYTENS   },
-  { (int32_t*)&(config_settings.manual_focus_return    ),    1,    0,     1, "MF return"              , TXTFMT_BOOL     },
-  { (int32_t*)&(config_settings.nine_point_dist        ),  240,    0,    10, "9-pt dist"              , TXTFMT_BYTENS   },
-  { (int32_t*)&(config_settings.shutter_speed_step_cnt ),    9,    1,     1, "Tv step size"           , TXTFMT_BYTENS   },
-  { (int32_t*)&(config_settings.shutter_step_time_ms   ), 5000,    0,    10, "Tv step delay"          , TXTFMT_BYTENS   },
-  { (int32_t*)&(config_settings.tallylite              ),    1,    0,     1, "Tally Light en"         , TXTFMT_BOOL     },
-  { (int32_t*)&(config_settings.pwr_save_secs          ), 1000,    0,    10, "power save time (s)"    , TXTFMT_BYTENS   },
-  { (int32_t*)&(config_settings.lcd_brightness         ),   12,    7,     1, "LCD bright"             , TXTFMT_LCDBRITE },
-  { (int32_t*)&(config_settings.lcd_dim_secs           ), 1000,    0,     1, "LCD dim time (s)"       , TXTFMT_BYTENS   },
-  { (int32_t*)&(config_settings.wifi_pwr               ),   14,    0,     1, "WiFi power"             , TXTFMT_BYTENS   },
-  { (int32_t*)&(config_settings.led_enabled            ),    1,    0,     1, "LED en"                 , TXTFMT_BOOL     },
-  { (int32_t*)&(config_settings.infrared_enabled       ),    1,    0,     1, "IR en"                  , TXTFMT_BOOL     },
-  { (int32_t*)&(config_settings.gpio_enabled           ),    1,    0,     1, "GPIO en"                , TXTFMT_BOOL     },
-  { NULL, 0, 0, 0, "" }, // end of table
-};
-
-menustate_t menustate_confsettings;
-
-
-void conf_settings(void* mip)
+bool config_save_exit(void*)
 {
-  menustate_confsettings.idx = 0;
-  // count the number of items
-  for (menustate_confsettings.cnt = 0; ; menustate_confsettings.cnt++) {
-    if (config_items[menustate_confsettings.cnt].ptr_val == NULL) {
-      break;
-    }
-  }
-
-  #ifdef USE_PWR_BTN_AS_EXIT
-  configsettings_t backup;
-  memcpy(&backup, &config_settings, sizeof(configsettings_t)); // allows for changes to be undone
-  #endif
-
-  gui_startAppPrint();
-
-  while (true)
-  {
-    app_poll();
-    pwr_sleepCheck();
-
-    if (redraw_flag) {
-        redraw_flag = false;
-        gui_startAppPrint();
-        M5Lcd.fillScreen(TFT_BLACK);
-        conf_drawIcon();
-    }
-
-    if (btnSide_hasPressed())
-    {
-      menustate_confsettings.idx = (menustate_confsettings.idx >= menustate_confsettings.cnt) ? 0 : (menustate_confsettings.idx + 1);
-      M5Lcd.fillScreen(TFT_BLACK); // item has changed so clear the screen
-      conf_drawIcon();
-      redraw_flag = false;
-      btnSide_clrPressed();
-    }
-    #if defined(USE_PWR_BTN_AS_BACK) && !defined(USE_PWR_BTN_AS_EXIT)
-    if (btnPwr_hasPressed())
-    {
-      menustate_confsettings.idx = (menustate_confsettings.idx <= 0) ? menustate_confsettings.cnt : (menustate_confsettings.idx - 1);
-      M5Lcd.fillScreen(TFT_BLACK); // item has changed so clear the screen
-      conf_drawIcon();
-      redraw_flag = false;
-      btnPwr_clrPressed();
-    }
-    #endif
-
-    configitem_t* cfgitm = (configitem_t*)&(config_items[menustate_confsettings.idx]);
-
-    if (menustate_confsettings.idx == menustate_confsettings.cnt) // last item is the exit item
-    {
-      M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);
-      M5Lcd.setTextFont(4);
-      M5Lcd.print("Save + Exit");
-      gui_drawBackIcon();
-      if (btnBig_hasPressed())
-      {
-        settings_save();
-        M5.Axp.ScreenBreath(config_settings.lcd_brightness);
-        if (config_settings.wifi_pwr != 0) {
-            NetMgr_setWifiPower((wifi_power_t)wifipwr_table[config_settings.wifi_pwr]);
-        }
-        btnBig_clrPressed();
-        return;
-      }
-    }
-    else
-    {
-      configitem_t* cfgitm = (configitem_t*)&(config_items[menustate_confsettings.idx]);
-      // first line shows name of item, second line shows the value
-      M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);
-      if (strlen(cfgitm->text) < 14) {
-          M5Lcd.setTextFont(4);
-      }
-      else {
-          M5Lcd.setTextFont(2);
-      }
-      M5Lcd.print(cfgitm->text);
-      M5Lcd.setTextFont(4);
-      M5Lcd.println();
-      gui_setCursorNextLine();
-      gui_valIncDec(cfgitm);
-    }
-
-    #ifdef USE_PWR_BTN_AS_EXIT
-    if (btnPwr_hasPressed())
-    {
-        memcpy(&config_settings, &backup, sizeof(configsettings_t)); // restore settings to unchanged
-        M5.Axp.ScreenBreath(config_settings.lcd_brightness);
-        btnPwr_clrPressed();
-        return;
-    }
-    #endif
-
-    conf_drawIcon();
-  }
+    has_saved = true;
+    settings_save();
+    return true;
 }
 
-void conf_drawIcon()
+class PageLcdBrightness : public FairyCfgItem
 {
-    gui_drawStatusBar(true);
-    #ifdef USE_SPRITE_MANAGER
-    sprites->draw(
-    #else
-    M5Lcd.drawPngFile(SPIFFS,
-    #endif
-        "/config_icon.png", M5Lcd.width() - 60, M5Lcd.height() - 60
-    #ifdef USE_SPRITE_MANAGER
-        , 60, 60
-    #endif
-        );
+    public:
+        PageLcdBrightness(const char* disp_name, int32_t* linked_var, int32_t val_min, int32_t val_max, int32_t step_size, uint16_t fmt_flags) : FairyCfgItem(disp_name, linked_var, val_min, val_max, step_size, fmt_flags)
+        {
+        };
+
+        virtual void on_readjust(void)
+        {
+            M5.Axp.ScreenBreath(config_settings.lcd_brightness);
+        };
+
+        virtual void on_eachFrame(void)
+        {
+            pwr_tick(true);
+        };
+};
+
+class AppConfigMenu : public FairyCfgApp
+{
+    public:
+        AppConfigMenu() : FairyCfgApp("/config.png", "/config_icon.png")
+        {
+install(new FairyCfgItem("focus pause"            , (int32_t*)&(config_settings.focus_pause_time_ms    ),    0, 1000,    10, TXTFMT_BYTENS   ));
+install(new FairyCfgItem("MF knob steps"          , (int32_t*)&(config_settings.fenc_multi             ), -100,  100,     1, TXTFMT_NONE     ));
+install(new FairyCfgItem("MF knob large steps"    , (int32_t*)&(config_settings.fenc_large             ),    0, 1000,     1, TXTFMT_NONE     ));
+install(new FairyCfgItem("shutter press duration" , (int32_t*)&(config_settings.shutter_press_time_ms  ),    0, 1000,    10, TXTFMT_BYTENS   ));
+install(new FairyCfgItem("MF return"              , (int32_t*)&(config_settings.manual_focus_return    ),    0,    1,     1, TXTFMT_BOOL     ));
+install(new FairyCfgItem("9-pt dist"              , (int32_t*)&(config_settings.nine_point_dist        ),    0,  240,    10, TXTFMT_BYTENS   ));
+install(new FairyCfgItem("Tv step size"           , (int32_t*)&(config_settings.shutter_speed_step_cnt ),    1,    9,     1, TXTFMT_BYTENS   ));
+install(new FairyCfgItem("Tv step delay"          , (int32_t*)&(config_settings.shutter_step_time_ms   ),    0, 5000,    10, TXTFMT_BYTENS   ));
+install(new FairyCfgItem("Tally Light en"         , (int32_t*)&(config_settings.tallylite              ),    0,    1,     1, TXTFMT_BOOL     ));
+install(new FairyCfgItem("power save time (s)"    , (int32_t*)&(config_settings.pwr_save_secs          ),    0, 1000,    10, TXTFMT_BYTENS   ));
+install(new PageLcdBrightness("LCD bright"        , (int32_t*)&(config_settings.lcd_brightness         ),    7,   12,     1, TXTFMT_LCDBRITE ));
+install(new FairyCfgItem("LCD dim time (s)"       , (int32_t*)&(config_settings.lcd_dim_secs           ),    0, 1000,     1, TXTFMT_BYTENS   ));
+install(new FairyCfgItem("WiFi power"             , (int32_t*)&(config_settings.wifi_pwr               ),    0,   14,     1, TXTFMT_BYTENS   ));
+install(new FairyCfgItem("IR en"                  , (int32_t*)&(config_settings.infrared_enabled       ),    0,    1,     1, TXTFMT_BOOL     ));
+install(new FairyCfgItem("GPIO en"                , (int32_t*)&(config_settings.gpio_enabled           ),    0,    1,     1, TXTFMT_BOOL     ));
+install(new FairyCfgItem("Save + Exit", config_save_exit, "/back_icon.png"));
+        };
+
+        virtual bool on_execute(void)
+        {
+            has_saved = false;
+            if (_backup == NULL) {
+                _backup = (configsettings_t*)malloc(sizeof(configsettings_t));
+            }
+            memcpy(_backup, &config_settings, sizeof(configsettings_t)); // allows for changes to be undone
+
+            bool exit = FairyCfgApp::on_execute();
+
+            if (exit)
+            {
+                if (has_saved == false) {
+                    memcpy(&config_settings, _backup, sizeof(configsettings_t)); // restore settings to unchanged
+                    M5.Axp.ScreenBreath(config_settings.lcd_brightness);
+                }
+                if (_backup != NULL) {
+                    free(_backup);
+                    _backup = NULL;
+                }
+            }
+            return exit;
+        }
+
+    protected:
+        configsettings_t* _backup = NULL;
+};
+
+extern FairySubmenu menu_utils;
+void setup_configmenu(void)
+{
+    static AppConfigMenu app;
+    menu_utils.install(&app);
 }

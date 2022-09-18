@@ -18,7 +18,7 @@ extern void MahonyAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay
 AlphaFairyImu::AlphaFairyImu()
 {
     hasChange = false;
-    tilt = TILT_IS_FLAT;
+    tilt = 0;
     resetSpin();
 }
 
@@ -55,14 +55,14 @@ void AlphaFairyImu::poll()
     }
 
     // generalize the angle being reported into a tilt direction
-    if (roll >= TILT_THRESH || (tilt == TILT_IS_UP && roll >= (TILT_THRESH - TILT_HYSTER))) {
-        tilt = TILT_IS_UP;
+    if (roll >= TILT_THRESH || (tilt > 0 && roll >= (TILT_THRESH - TILT_HYSTER))) {
+        tilt = 1;
     }
-    else if (roll <= -TILT_THRESH || (tilt == TILT_IS_DOWN && roll <= -(TILT_THRESH - TILT_HYSTER))) {
-        tilt = TILT_IS_DOWN;
+    else if (roll <= -TILT_THRESH || (tilt < 0 && roll <= -(TILT_THRESH - TILT_HYSTER))) {
+        tilt = -1;
     }
     else {
-        tilt = TILT_IS_FLAT;
+        tilt = 0;
     }
 
     roll_adj  = roll;
@@ -167,7 +167,7 @@ void AlphaFairyImu::resetSpin()
     pitch_accum = 0;
 }
 
-uint8_t AlphaFairyImu::getTilt()
+int8_t AlphaFairyImu::getTilt()
 {
     return tilt;
 }

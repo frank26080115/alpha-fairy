@@ -1,71 +1,10 @@
 #include "AlphaFairy.h"
+#include "FairyMenu.h"
 
 speed_t dual_shutter_next      = { 0, 0, "" };
 speed_t dual_shutter_iso       = { 0, 0, "" };
 speed_t dual_shutter_last_tv   = { 0, 0, "" };
 speed_t dual_shutter_last_iso  = { 0, 0, "" };
-
-void dual_shutter(void* mip)
-{
-    dbg_ser.println("dual_shutter");
-
-    if (fairycam.isOperating() == false) {
-        // show user that the camera isn't connected
-        app_waitAllReleaseConnecting(BTN_DEBOUNCE);
-        return;
-    }
-
-    #ifdef APP_DOES_NOTHING
-    app_waitAllRelease(BTN_DEBOUNCE);
-    return;
-    #endif
-
-    ledblink_setMode(LEDMODE_OFF);
-
-    menuitem_t* menuitm = (menuitem_t*)mip;
-
-    if (menuitm->id == MENUITEM_DUALSHUTTER_REG)
-    {
-        bool gotdata = false;
-        if (ptpcam.isOperating())
-        {
-            if (ptpcam.has_property(SONYALPHA_PROPCODE_ShutterSpeed) && ptpcam.has_property(SONYALPHA_PROPCODE_ISO))
-            {
-                dual_shutter_next.flags = SPEEDTYPE_PTP;
-                dual_shutter_iso.flags  = SPEEDTYPE_PTP;
-                dual_shutter_next.u32 = ptpcam.get_property(SONYALPHA_PROPCODE_ShutterSpeed);
-                dual_shutter_iso.u32  = ptpcam.get_property(SONYALPHA_PROPCODE_ISO);
-                dbg_ser.printf("dualshutter 0x%08X %u\r\n", dual_shutter_next, dual_shutter_iso);
-                gotdata = true;
-            }
-        }
-        else if (httpcam.isOperating())
-        {
-            if (strlen(httpcam.get_shutterspd_str()) > 0 && strlen(httpcam.get_iso_str()) > 0)
-            {
-                dual_shutter_next.flags = SPEEDTYPE_HTTP;
-                dual_shutter_iso.flags  = SPEEDTYPE_HTTP;
-                strcpy(dual_shutter_next.str, httpcam.get_shutterspd_str());
-                strcpy(dual_shutter_iso.str,  httpcam.get_iso_str());
-                gotdata = true;
-            }
-        }
-
-        if (gotdata == false) {
-            dbg_ser.println("dualshutter no data from camera");
-        }
-
-        app_waitAllRelease(BTN_DEBOUNCE);
-        return;
-    }
-
-    // if (menuitm->id == MENUITEM_DUALSHUTTER_SHOOT)
-    gui_drawTopThickLine(8, TFT_RED);
-    dual_shutter_shoot(false, true, &dual_shutter_last_tv, &dual_shutter_last_iso);
-    gui_drawTopThickLine(8, TFT_WHITE);
-
-    app_waitAllRelease(BTN_DEBOUNCE);
-}
 
 void dual_shutter_shoot(bool already_focused, bool read_button, speed_t* restore_shutter, speed_t* restore_iso)
 {
@@ -265,6 +204,181 @@ void dual_shutter_shoot(bool already_focused, bool read_button, speed_t* restore
         fairycam.wait_while_busy(config_settings.shutter_step_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
         fairycam.cmd_AutoFocus(false);
     }
-    app_waitAllRelease(BTN_DEBOUNCE);
+    app_waitAllRelease();
     return;
+}
+
+void dualshutter_drawText()
+{
+    gui_startMenuPrint();
+    M5Lcd.fillRect(0, 52, M5Lcd.width(), 102 - 52, TFT_WHITE);
+    if (dual_shutter_next.flags == SPEEDTYPE_NONE)
+    {
+        M5Lcd.setTextFont(4);
+        M5Lcd.setCursor(0, 70);
+        M5Lcd.printf("  ");
+        M5Lcd.setCursor(6, 70);
+        M5Lcd.printf(" NOT  SET");
+        gui_blankRestOfLine();
+    }
+    else
+    {
+        M5Lcd.setTextFont(2);
+        M5Lcd.setCursor(15, 65);
+        M5Lcd.printf("Tv ");
+        if (dual_shutter_next.flags == SPEEDTYPE_PTP) {
+            gui_showVal(dual_shutter_next.u32, TXTFMT_SHUTTER, (Print*)&M5Lcd);
+        }
+        else {
+            M5Lcd.print(dual_shutter_next.str);
+        }
+        gui_blankRestOfLine();
+        M5Lcd.setCursor(15, 65 + 18);
+        M5Lcd.printf("ISO ");
+        if (dual_shutter_iso.flags == SPEEDTYPE_PTP) {
+            gui_showVal(dual_shutter_iso.u32, TXTFMT_ISO, (Print*)&M5Lcd);
+        }
+        else {
+            M5Lcd.print(dual_shutter_iso.str);
+        }
+        gui_blankRestOfLine();
+    }
+}
+
+void dualshutter_logSettings()
+{
+    if (ptpcam.isOperating() && ptpcam.has_property(SONYALPHA_PROPCODE_ShutterSpeed) && ptpcam.has_property(SONYALPHA_PROPCODE_ISO) && ptpcam.has_property(SONYALPHA_PROPCODE_FocusFound) && ptpcam.get_property(SONYALPHA_PROPCODE_FocusFound) == SONYALPHA_FOCUSSTATUS_NONE)
+    {
+        // remember last known setting
+        uint32_t tv  = ptpcam.get_property(SONYALPHA_PROPCODE_ShutterSpeed);
+        uint32_t iso = ptpcam.get_property(SONYALPHA_PROPCODE_ISO);
+        // only remember if it's not the same (workaround for the camera not responding to restore commands)
+        dual_shutter_last_tv.u32    = (tv  != dual_shutter_next.u32 || dual_shutter_next.flags != SPEEDTYPE_PTP) ?  tv : dual_shutter_last_tv.u32;
+        dual_shutter_last_iso.u32   = (iso != dual_shutter_iso.u32  || dual_shutter_iso.flags  != SPEEDTYPE_PTP) ? iso : dual_shutter_last_iso.u32;
+        dual_shutter_last_tv.flags  = SPEEDTYPE_PTP;
+        dual_shutter_last_iso.flags = SPEEDTYPE_PTP;
+    }
+}
+
+class AppDualShutterRegister : public FairyMenuItem
+{
+    public:
+        AppDualShutterRegister() : FairyMenuItem("/dualshutter_reg.png")
+        {
+        };
+
+        virtual void on_redraw(void)
+        {
+            FairyMenuItem::on_redraw();
+            draw_text();
+        };
+
+        virtual void on_eachFrame(void)
+        {
+            dualshutter_logSettings();
+        };
+
+        virtual bool on_execute(void)
+        {
+            if (must_be_connected() == false) {
+                return false;
+            }
+
+            bool gotdata = false;
+            if (ptpcam.isOperating())
+            {
+                if (ptpcam.has_property(SONYALPHA_PROPCODE_ShutterSpeed) && ptpcam.has_property(SONYALPHA_PROPCODE_ISO))
+                {
+                    dual_shutter_next.flags = SPEEDTYPE_PTP;
+                    dual_shutter_iso.flags  = SPEEDTYPE_PTP;
+                    dual_shutter_next.u32 = ptpcam.get_property(SONYALPHA_PROPCODE_ShutterSpeed);
+                    dual_shutter_iso.u32  = ptpcam.get_property(SONYALPHA_PROPCODE_ISO);
+                    dbg_ser.printf("dualshutter 0x%08X %u\r\n", dual_shutter_next, dual_shutter_iso);
+                    gotdata = true;
+                }
+            }
+            else if (httpcam.isOperating())
+            {
+                if (strlen(httpcam.get_shutterspd_str()) > 0 && strlen(httpcam.get_iso_str()) > 0)
+                {
+                    dual_shutter_next.flags = SPEEDTYPE_HTTP;
+                    dual_shutter_iso.flags  = SPEEDTYPE_HTTP;
+                    strcpy(dual_shutter_next.str, httpcam.get_shutterspd_str());
+                    strcpy(dual_shutter_iso.str,  httpcam.get_iso_str());
+                    gotdata = true;
+                }
+            }
+
+            if (gotdata == false) {
+                dbg_ser.println("dualshutter no data from camera");
+            }
+
+            draw_text();
+
+            app_waitAllRelease();
+
+            return false;
+        };
+
+    protected:
+
+        void draw_text(void)
+        {
+            dualshutter_drawText();
+        };
+};
+
+class AppDualShutterShoot : public FairyMenuItem
+{
+    public:
+        AppDualShutterShoot() : FairyMenuItem("/dualshutter_shoot.png")
+        {
+        };
+
+        virtual void on_redraw(void)
+        {
+            FairyMenuItem::on_redraw();
+            draw_text();
+        };
+
+        virtual void on_eachFrame(void)
+        {
+            if ((ptpcam.isOperating() && ptpcam.has_property(SONYALPHA_PROPCODE_FocusFound) && ptpcam.get_property(SONYALPHA_PROPCODE_FocusFound) == SONYALPHA_FOCUSSTATUS_FOCUSED) || (httpcam.isOperating() && httpcam.is_focused))
+            {
+                // trigger via shutter half press
+                gui_drawTopThickLine(8, TFT_RED); // indicate
+                dual_shutter_shoot(true, false, &dual_shutter_last_tv, &dual_shutter_last_iso);
+                gui_drawTopThickLine(8, TFT_WHITE);
+            }
+            dualshutter_logSettings();
+        };
+
+        virtual bool on_execute(void)
+        {
+            if (must_be_connected() == false) {
+                return false;
+            }
+
+            gui_drawTopThickLine(8, TFT_RED);
+            dual_shutter_shoot(false, true, &dual_shutter_last_tv, &dual_shutter_last_iso);
+            gui_drawTopThickLine(8, TFT_WHITE);
+            app_waitAllRelease();
+            return false;
+        };
+
+    protected:
+
+        void draw_text(void)
+        {
+            dualshutter_drawText();
+        };
+};
+
+extern FairySubmenu menu_remote;
+void setup_dualshutter()
+{
+    static AppDualShutterRegister app_reg;
+    static AppDualShutterShoot    app_shoot;
+    menu_remote.install(&app_reg  );
+    menu_remote.install(&app_shoot);
 }

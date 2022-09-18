@@ -10,24 +10,16 @@
 #define MICTRIG_LEVEL_BAR_HEIGHT   8
 #define MICTRIG_LEVEL_TRIG_HEIGHT 12
 
+static bool mictrig_hasInit = false;
+
 uint8_t mictrig_buffer8[MICTRIG_READ_LEN * 2] = {0};
 
 volatile int16_t* mictrig_buffer16;
-volatile bool mictrig_active = false;
 volatile int32_t mictrig_lastMax = 0;
 volatile int32_t mictrig_filteredMax = 0;
 volatile int32_t mictrig_decay = 0;
 volatile bool mictrig_hasTriggered = false;
-
 bool gui_microphoneActive = false;
-uint32_t mictrig_ignoreTime = 0; // ignore the trigger if it's happening too soon after a button click
-
-const configitem_t mictrig_config[] = {
-  // item pointer                               ,  max , min , step , text            , flags
-  { (int32_t*)&(config_settings.mictrig_level  ),   100,    1,     1, "Trigger Level" , TXTFMT_NONE },
-  { (int32_t*)&(config_settings.mictrig_delay  ), 10000,    0,     1, "Start Delay"   , TXTFMT_TIME },
-  { NULL, 0, 0, 0, "" }, // end of table
-};
 
 #ifdef MICTRIG_NEW_I2S_LIB
 i2s_chan_handle_t mictrig_i2shandle;
@@ -145,25 +137,29 @@ static IRAM_ATTR bool mictrig_rx_cb(i2s_chan_handle_t handle, i2s_event_data_t *
 
 void mictrig_unpause()
 {
-    static bool has_init = false;
-    if (has_init == false) {
+    if (mictrig_hasInit == false) {
         mictrig_init();
-        has_init = true;
+        mictrig_hasInit = true;
     }
     #ifdef MICTRIG_NEW_I2S_LIB
     i2s_channel_enable(mictrig_i2shandle);
     #else
     i2s_start(I2S_NUM_0);
     #endif
+    gui_microphoneActive = true;
 }
 
 void mictrig_pause()
 {
+    if (mictrig_hasInit == false) {
+        return;
+    }
     #ifdef MICTRIG_NEW_I2S_LIB
     i2s_channel_disable(mictrig_i2shandle);
     #else
     i2s_stop(I2S_NUM_0);
     #endif
+    gui_microphoneActive = false;
 }
 
 void mictrig_poll()
@@ -224,178 +220,7 @@ void mictrig_decayTask()
     }
 }
 
-void sound_shutter(void* mip)
-{
-    dbg_ser.println("sound_shutter");
-
-    mictrig_lastMax = 0;
-    mictrig_filteredMax = 0;
-
-    menuitem_t* menuitm = (menuitem_t*)mip;
-    menustate_t* m = &menustate_soundshutter;
-    configitem_t* ctable = (configitem_t*)mictrig_config;
-
-    m->idx = 0;
-    m->last_idx = -1;
-    for (m->cnt = 0; ; m->cnt++) {
-        configitem_t* itm = &(ctable[m->cnt]);
-        if (itm->ptr_val == NULL) {
-            break;
-        }
-    }
-    m->cnt++; // one more for the back option
-
-    gui_startAppPrint();
-    M5Lcd.fillScreen(TFT_BLACK);
-    mictrig_drawIcon();
-    app_waitAllRelease(BTN_DEBOUNCE);
-
-    mictrig_unpause();
-    gui_microphoneActive = true;
-    mictrig_ignoreTime = millis();
-
-    while (true)
-    {
-        app_poll();
-        mictrig_poll();
-
-        if (redraw_flag) {
-            redraw_flag = false;
-            gui_startAppPrint();
-            M5Lcd.fillScreen(TFT_BLACK);
-            mictrig_drawIcon();
-        }
-
-        if (btnSide_hasPressed())
-        {
-            m->idx = (m->idx >= m->cnt) ? 0 : (m->idx + 1);
-            M5Lcd.fillScreen(TFT_BLACK); // item has changed so clear the screen
-            mictrig_drawIcon();
-            redraw_flag = false;
-            mictrig_hasTriggered = false;
-            mictrig_ignoreTime = millis();
-            btnSide_clrPressed();
-        }
-        #if defined(USE_PWR_BTN_AS_BACK) && !defined(USE_PWR_BTN_AS_EXIT)
-        if (btnPwr_hasPressed())
-        {
-            m->idx = (m->idx <= 0) ? m->cnt : (m->idx - 1);
-            M5Lcd.fillScreen(TFT_BLACK); // item has changed so clear the screen
-            mictrig_drawIcon();
-            redraw_flag = false;
-            mictrig_hasTriggered = false;
-            mictrig_ignoreTime = millis();
-            btnPwr_clrPressed();
-        }
-        #endif
-
-        if (m->idx != m->cnt - 1) // not on the armed trigger screen
-        {
-            if (mictrig_hasTriggered) {
-                // turn on the light if it is loud
-                pwr_tick(true);
-                // do not reset mictrig_hasTriggered
-            }
-        }
-
-        configitem_t* cfgitm = (configitem_t*)&(config_items[m->idx]);
-        if (m->idx == m->cnt) // last item is the exit item
-        {
-            M5Lcd.setCursor(SUBMENU_X_OFFSET, MICTRIG_LEVEL_MARGIN);
-            M5Lcd.setTextFont(4);
-            M5Lcd.print("Exit");
-            gui_drawBackIcon();
-            if (btnBig_hasPressed())
-            {
-                settings_save();
-                gui_microphoneActive = false;
-                btnBig_clrPressed();
-                return;
-            }
-            mictrig_hasTriggered = false;
-        }
-        else if (m->idx == m->cnt - 1) // 2nd to last item is the start/stop item
-        {
-            M5Lcd.setCursor(SUBMENU_X_OFFSET, MICTRIG_LEVEL_MARGIN);
-            M5Lcd.setTextFont(4);
-            M5Lcd.print("ARMED");
-            gui_blankRestOfLine();
-            M5Lcd.println();
-            gui_setCursorNextLine();
-            gui_drawGoIcon();
-            M5Lcd.setTextFont(4);
-            M5Lcd.print("Level: ");
-            gui_showVal(config_settings.mictrig_level, TXTFMT_NONE, (Print*)&M5Lcd);
-            gui_blankRestOfLine();
-            M5Lcd.println();
-            gui_setCursorNextLine();
-            M5Lcd.print("Delay: ");
-            M5Lcd.print(config_settings.mictrig_delay, DEC);
-            M5Lcd.print("s");
-            gui_blankRestOfLine();
-
-            if (btnBig_hasPressed())
-            {
-                mictrig_ignoreTime = millis();
-                btnBig_clrPressed();
-            }
-
-            if (mictrig_hasTriggered)
-            {
-                // ignore the trigger if it's happening too soon after a button click
-                if ((millis() - mictrig_ignoreTime) < 1000) {
-                    mictrig_hasTriggered = false;
-                }
-            }
-
-            if (mictrig_hasTriggered)
-            {
-                mictrig_hasTriggered = false;
-                pwr_tick(true);
-                ledblink_setMode(LEDMODE_OFF);
-                mictrig_shoot(mip);
-                ledblink_setMode(LEDMODE_NORMAL);
-                gui_startAppPrint();
-                M5Lcd.fillScreen(TFT_BLACK);
-                mictrig_drawIcon();
-                app_waitAllRelease(BTN_DEBOUNCE);
-                pwr_tick(true);
-                mictrig_hasTriggered = false;
-                mictrig_ignoreTime = millis();
-                btnAll_clrPressed();
-            }
-        }
-        else
-        {
-            configitem_t* cfgitm = (configitem_t*)&(ctable[m->idx]);
-            // first line shows name of item, second line shows the value
-            M5Lcd.setCursor(SUBMENU_X_OFFSET, MICTRIG_LEVEL_MARGIN);
-            M5Lcd.setTextFont(4);
-            M5Lcd.print(cfgitm->text);
-            M5Lcd.println();
-            gui_setCursorNextLine();
-            gui_valIncDec(cfgitm);
-            gui_blankRestOfLine();
-            mictrig_hasTriggered = false;
-        }
-
-        #ifdef USE_PWR_BTN_AS_EXIT
-        if (btnPwr_hasPressed())
-        {
-            btnPwr_clrPressed();
-            gui_microphoneActive = false;
-            return;
-        }
-        #endif
-
-        mictrig_drawLevel();
-        mictrig_drawIcon();
-    }
-    gui_microphoneActive = false;
-    mictrig_pause();
-}
-
-void mictrig_shoot(void* mip)
+bool mictrig_shoot()
 {
     M5Lcd.setCursor(SUBMENU_X_OFFSET, MICTRIG_LEVEL_MARGIN);
     M5Lcd.fillRect(0, MICTRIG_LEVEL_MARGIN, M5Lcd.width() - 60, M5Lcd.height() - MICTRIG_LEVEL_MARGIN - 12, TFT_BLACK);
@@ -406,7 +231,7 @@ void mictrig_shoot(void* mip)
         int32_t twait = config_settings.mictrig_delay;
         if (intervalometer_wait(twait, now, 0, "MIC TRIG'ed", config_settings.mictrig_delay > 2, 0))
         {
-            return;
+            return true;
         }
     }
     else
@@ -415,25 +240,10 @@ void mictrig_shoot(void* mip)
         M5Lcd.setTextFont(4);
         M5Lcd.print("MIC TRIG'ed");
     }
-    remote_shutter(mip);
-    mictrig_ignoreTime = millis();
+    cam_shootQuick();
     mictrig_lastMax = 0;
     mictrig_filteredMax = 0;
-}
-
-void mictrig_drawIcon()
-{
-    gui_drawStatusBar(true);
-    #ifdef USE_SPRITE_MANAGER
-    sprites->draw(
-    #else
-    M5Lcd.drawPngFile(SPIFFS,
-    #endif
-        "/mic_icon.png", M5Lcd.width() - 60, M5Lcd.height() - 60
-    #ifdef USE_SPRITE_MANAGER
-        , 60, 60
-    #endif
-        );
+    return false;
 }
 
 TFT_eSprite* miclevel_canvas = NULL;
@@ -457,4 +267,128 @@ void mictrig_drawLevel()
     miclevel_canvas->fillRect(0     , 0, lvl, MICTRIG_LEVEL_BAR_HEIGHT , TFT_RED  );
     miclevel_canvas->fillRect(thresh, 0, 3  , MICTRIG_LEVEL_TRIG_HEIGHT, TFT_GREEN);
     miclevel_canvas->pushSprite(0, 0);
+}
+
+class PageSoundTrigger : public FairyCfgItem
+{
+    public:
+        PageSoundTrigger(const char* disp_name, int32_t* linked_var, int32_t val_min, int32_t val_max, int32_t step_size, uint16_t fmt_flags) : FairyCfgItem(disp_name, linked_var, val_min, val_max, step_size, fmt_flags)
+        { this->_margin_y = MICTRIG_LEVEL_MARGIN; this->_autosave = true; };
+        PageSoundTrigger(const char* disp_name, bool (*cb)(void*), const char* icon) : FairyCfgItem(disp_name, cb, icon)
+        { this->_margin_y = MICTRIG_LEVEL_MARGIN; this->_autosave = true; };
+
+        virtual void on_drawLive (void) { mictrig_drawLevel(); };
+        virtual void on_extraPoll(void) { mictrig_poll(); };
+};
+
+class PageSoundTriggerLevel : public PageSoundTrigger
+{
+    public:
+        PageSoundTriggerLevel() : PageSoundTrigger("Trigger Level", (int32_t*)&(config_settings.mictrig_level), 0, 100, 1, TXTFMT_NONE) {
+        };
+        virtual void on_redraw (void) { mictrig_unpause(); FairyCfgItem::on_redraw(); };
+};
+
+class PageSoundTriggerDelay : public PageSoundTrigger
+{
+    public:
+        PageSoundTriggerDelay() : PageSoundTrigger("Start Delay", (int32_t*)&(config_settings.mictrig_delay), 0, 1000, 1, TXTFMT_TIME) {
+        };
+};
+
+bool mictrig_nullfunc(void* ptr)
+{
+    return false;
+}
+
+class PageSoundTriggerArmed : public PageSoundTrigger
+{
+    public:
+        PageSoundTriggerArmed() : PageSoundTrigger("ARMED", mictrig_nullfunc, "/go_icon.png") {
+        };
+
+        virtual void on_redraw(void)
+        {
+            FairyCfgItem::on_redraw();
+            M5Lcd.setTextFont(4);
+            M5Lcd.setCursor(_margin_x, get_y(1));
+            M5Lcd.print("Level: ");
+            gui_showVal(config_settings.mictrig_level, TXTFMT_NONE, (Print*)&M5Lcd);
+            blank_line();
+            M5Lcd.setCursor(_margin_x, get_y(2));
+            M5Lcd.print("Delay: ");
+            M5Lcd.print(config_settings.mictrig_delay, DEC);
+            M5Lcd.print("s");
+            blank_line();
+        };
+
+        virtual void on_navTo(void)
+        {
+            _ignore_time = millis();
+            on_redraw();
+        };
+
+        virtual void on_eachFrame(void)
+        {
+            on_extraPoll(); on_drawLive();
+            uint32_t now = millis();
+            if ((now - _ignore_time) > 1000)
+            {
+                if (mictrig_hasTriggered)
+                {
+                    mictrig_hasTriggered = false;
+                    pwr_tick(true);
+
+                    bool ret = mictrig_shoot();
+
+                    gui_startAppPrint();
+                    M5Lcd.fillScreen(TFT_BLACK);
+                    draw_icon();
+                    app_waitAllRelease();
+                    pwr_tick(true);
+                    mictrig_hasTriggered = false;
+                    _ignore_time = millis();
+                    redraw_flag = true;
+
+                    // if we are falsely triggered by the power button
+                    // then we redirect to another page so we are not armed
+                    if (ret)
+                    {
+                        FairyCfgApp* parent_app = dynamic_cast<FairyCfgApp*>((FairyCfgApp*)get_parent());
+                        if (parent_app != NULL) {
+                            parent_app->rewind();
+                        }
+                    }
+                }
+            }
+            else
+            {
+                mictrig_hasTriggered = false;
+            }
+        };
+
+    protected:
+        uint32_t _ignore_time = 0;
+};
+
+class AppSoundShutter : public FairyCfgApp
+{
+    public:
+        AppSoundShutter() : FairyCfgApp("/soundshutter.png", "/mic_icon.png") {
+            this->install(new PageSoundTriggerLevel());
+            this->install(new PageSoundTriggerDelay());
+            this->install(new PageSoundTriggerArmed());
+        };
+
+        virtual void on_navOut(void)
+        {
+            mictrig_pause();
+        };
+};
+
+extern FairySubmenu menu_remote;
+void setup_soundshutter()
+{
+    static AppSoundShutter app;
+    menu_remote.install(&app);
 }
