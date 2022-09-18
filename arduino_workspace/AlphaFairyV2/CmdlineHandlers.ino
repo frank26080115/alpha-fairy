@@ -6,8 +6,6 @@ handles command line commands
 this is used only for testing
 */
 
-#define DISABLE_CMD_LINE
-
 void factory_reset_func(void* cmd, char* argstr, Stream* stream);
 #ifndef DISABLE_CMD_LINE
 void focuscalib_func(void* cmd, char* argstr, Stream* stream);

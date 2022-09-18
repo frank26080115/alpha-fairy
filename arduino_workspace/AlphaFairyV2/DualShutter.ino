@@ -211,6 +211,7 @@ void dual_shutter_shoot(bool already_focused, bool read_button, speed_t* restore
 void dualshutter_drawText()
 {
     gui_startMenuPrint();
+    M5Lcd.fillRect(0, 52, M5Lcd.width(), 102 - 52, TFT_WHITE);
     if (dual_shutter_next.flags == SPEEDTYPE_NONE)
     {
         M5Lcd.setTextFont(4);
@@ -223,9 +224,7 @@ void dualshutter_drawText()
     else
     {
         M5Lcd.setTextFont(2);
-        M5Lcd.setCursor(0, 65);
-        M5Lcd.printf("  ");
-        M5Lcd.setCursor(10, 65);
+        M5Lcd.setCursor(15, 65);
         M5Lcd.printf("Tv ");
         if (dual_shutter_next.flags == SPEEDTYPE_PTP) {
             gui_showVal(dual_shutter_next.u32, TXTFMT_SHUTTER, (Print*)&M5Lcd);
@@ -234,7 +233,7 @@ void dualshutter_drawText()
             M5Lcd.print(dual_shutter_next.str);
         }
         gui_blankRestOfLine();
-        M5Lcd.setCursor(10, 65 + 18);
+        M5Lcd.setCursor(15, 65 + 18);
         M5Lcd.printf("ISO ");
         if (dual_shutter_iso.flags == SPEEDTYPE_PTP) {
             gui_showVal(dual_shutter_iso.u32, TXTFMT_ISO, (Print*)&M5Lcd);
