@@ -2,6 +2,10 @@
 #include <M5StickCPlus.h>
 #include <driver/i2s.h>
 
+/*
+NOTE: the newer I2S code in ESP-IDF has not made it into the Arduino ESP32 core yet
+*/
+
 #define PIN_I2S_CLK     0
 #define PIN_I2S_DATA    34
 #define MICTRIG_READ_LEN 256
@@ -194,7 +198,7 @@ void mictrig_poll()
 
         if (m > mictrig_filteredMax)
         {
-            mictrig_decay = 64 * 4;     // slow down the decay
+            mictrig_decay = 64 * 4;  // slow down the decay
             mictrig_filteredMax = m; // set the new displayed peak
         }
 
@@ -229,6 +233,7 @@ bool mictrig_shoot()
     {
         uint32_t now = millis();
         int32_t twait = config_settings.mictrig_delay;
+        // wait with a countdown on the GUI
         if (intervalometer_wait(twait, now, 0, "MIC TRIG'ed", config_settings.mictrig_delay > 2, 0))
         {
             return true;
@@ -239,8 +244,13 @@ bool mictrig_shoot()
         M5Lcd.setCursor(SUBMENU_X_OFFSET, MICTRIG_LEVEL_MARGIN);
         M5Lcd.setTextFont(4);
         M5Lcd.print("MIC TRIG'ed");
+        gui_blankRestOfLine();
     }
+
+    // do the actual shutter command, depending on connectivity method
     cam_shootQuick();
+
+    // reset the mic states
     mictrig_lastMax = 0;
     mictrig_filteredMax = 0;
     return false;
@@ -255,9 +265,12 @@ void mictrig_drawLevel()
         miclevel_canvas->createSprite(M5Lcd.width() - 60, MICTRIG_LEVEL_MARGIN);
     }
 
+    // calculate the length of the red bar representing the current sound level peak
     uint32_t lvl = (mictrig_filteredMax + 90) / 182;
     lvl = (lvl < MICTRIG_LEVEL_BAR_HEIGHT) ? MICTRIG_LEVEL_BAR_HEIGHT : lvl;
     lvl = (lvl > 180) ? 180 : lvl;
+
+    // calculate the position of the green tick representing the trigger level
     volatile uint32_t thresh = config_settings.mictrig_level;
     thresh *= 318;
     thresh /= 180;
@@ -269,6 +282,7 @@ void mictrig_drawLevel()
     miclevel_canvas->pushSprite(0, 0);
 }
 
+// parent class that handles checking the mic samples and drawing the level bar
 class PageSoundTrigger : public FairyCfgItem
 {
     public:
@@ -296,6 +310,7 @@ class PageSoundTriggerDelay : public PageSoundTrigger
         };
 };
 
+// called via button press, button should do nothing, triggering is done by sound
 bool mictrig_nullfunc(void* ptr)
 {
     return false;
@@ -324,28 +339,24 @@ class PageSoundTriggerArmed : public PageSoundTrigger
 
         virtual void on_navTo(void)
         {
-            _ignore_time = millis();
+            _ignore_time = millis(); // since each button press causes the mic to pick up sound, ignore the sound for a time period after button press
             on_redraw();
         };
 
         virtual void on_eachFrame(void)
         {
             on_extraPoll(); on_drawLive();
+            pwr_tick(true); // no sleep while listening
             uint32_t now = millis();
-            if ((now - _ignore_time) > 1000)
+            if ((now - _ignore_time) > 1000) // since each button press causes the mic to pick up sound, ignore the sound for a time period after button press
             {
                 if (mictrig_hasTriggered)
                 {
                     mictrig_hasTriggered = false;
-                    pwr_tick(true);
 
                     bool ret = mictrig_shoot();
 
-                    gui_startAppPrint();
-                    M5Lcd.fillScreen(TFT_BLACK);
-                    draw_icon();
                     app_waitAllRelease();
-                    pwr_tick(true);
                     mictrig_hasTriggered = false;
                     _ignore_time = millis();
                     redraw_flag = true;

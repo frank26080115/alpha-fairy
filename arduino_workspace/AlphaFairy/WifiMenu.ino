@@ -1,6 +1,20 @@
 #include "AlphaFairy.h"
 #include "FairyMenu.h"
 
+static uint32_t wifinfo_previp = 0;
+
+bool wifinfo_check_redraw(void)
+{
+    // need to redraw if the IP was suddenly changed (most often it starts off as 0.0.0.0)
+    uint32_t cur_ip = (uint32_t)(IPAddress(WiFi.softAPIP()));
+    if (cur_ip != wifinfo_previp)
+    {
+        wifinfo_previp = cur_ip;
+        return true;
+    }
+    return false;
+};
+
 class PageHttpInfo : public FairyMenuItem
 {
     public:
@@ -8,11 +22,12 @@ class PageHttpInfo : public FairyMenuItem
         {
         };
 
+        virtual bool check_redraw(void) { return wifinfo_check_redraw(); };
+
         virtual void on_navTo(void)
         {
-            _prev_ip = 0;
             FairyMenuItem::on_navTo();
-            check_redraw(); // clear redraw flag
+            check_redraw(); // clear redraw flag, sets the _prev_ip correctly
         };
 
         virtual void on_redraw(void)
@@ -21,23 +36,10 @@ class PageHttpInfo : public FairyMenuItem
             M5Lcd.fillScreen(TFT_WHITE);
             FairyMenuItem::on_redraw(); // draw_mainImage();
             draw_text();
-            check_redraw(); // clear redraw flag
-        };
-
-        virtual bool check_redraw(void)
-        {
-            uint32_t cur_ip = (uint32_t)(IPAddress(WiFi.softAPIP()));
-            if (cur_ip != _prev_ip)
-            {
-                _prev_ip = cur_ip;
-                return true;
-            }
-            return false;
+            check_redraw(); // clear redraw flag, sets the _prev_ip correctly
         };
 
     protected:
-
-        uint32_t _prev_ip;
 
         void draw_text()
         {
@@ -71,32 +73,16 @@ class PageHttpInfo : public FairyMenuItem
         };
 };
 
+// this QR code page is used for 4 different things, 2 of them are for the WiFi Info app, 2 for the WiFi Config app
 class PageWifiQr : public FairyMenuItem
 {
     public:
         PageWifiQr(bool is_wifi, const char* img_fname) : FairyMenuItem(img_fname, 0)
         {
-            _is_wifi = is_wifi;
+            _is_wifi = is_wifi; // is_wifi: true = show WiFi login ; false = show browser URL
         };
 
-        #if 0
-        virtual bool can_navTo(void)
-        {
-            uint32_t cur_ip = (uint32_t)(IPAddress(WiFi.softAPIP()));
-            return (cur_ip != 0);
-        };
-        #endif
-
-        virtual bool check_redraw(void)
-        {
-            uint32_t cur_ip = (uint32_t)(IPAddress(WiFi.softAPIP()));
-            if (cur_ip != _prev_ip)
-            {
-                _prev_ip = cur_ip;
-                return true;
-            }
-            return false;
-        };
+        virtual bool check_redraw(void) { return wifinfo_check_redraw(); };
 
         virtual void on_redraw(void)
         {
@@ -130,7 +116,6 @@ class PageWifiQr : public FairyMenuItem
 
     protected:
         bool _is_wifi;
-        uint32_t _prev_ip;
 };
 
 class PageWifiSelectProfile : public FairyMenuItem
@@ -158,6 +143,8 @@ class PageWifiSelectProfile : public FairyMenuItem
             if (x > 0)
             {
                 _profile_num = _profile_num + 1;
+                // allowed to go up until a blank profile
+                // there will never be a gap in the profile list
                 if (wifiprofile_isBlank(_profile_num)) {
                     _profile_num = 0;
                 }
@@ -171,6 +158,8 @@ class PageWifiSelectProfile : public FairyMenuItem
                 else {
                     _profile_num -= 1;
                 }
+                // there will never be a gap in the profile list
+                // in the event of a negative rollover, find the last profile 
                 while (wifiprofile_isBlank(_profile_num) && _profile_num > 0) {
                     _profile_num--;
                 }
@@ -179,10 +168,11 @@ class PageWifiSelectProfile : public FairyMenuItem
 
         virtual bool on_execute(void)
         {
-            // press button to save, hold button to save-and-reboot
+            // press button to save
             config_settings.wifi_profile = _profile_num;
             settings_save();
             M5Lcd.drawPngFile(SPIFFS, "/wificfg_profilesave.png", 95, 53);
+            // hold button to save-and-reboot
             uint32_t now, t = millis();
             while (((now = millis()) - t) < 2000 && btnBig_isPressed()) {
                 app_poll();
@@ -214,6 +204,7 @@ class PageWifiSelectProfile : public FairyMenuItem
             wifiprofile_t wifi_profile;
             wifiprofile_getProfile(_profile_num, &wifi_profile);
             char* ssid_str = wifi_profile.ssid;
+            // make the string shorter if it's a recognized format
             if (memcmp("DIRECT-", ssid_str, 7) == 0) {
                 ssid_str += 4;
                 ssid_str[0] = '.';
@@ -246,12 +237,13 @@ class PageFactoryReset : public FairyMenuItem
         };
 };
 
+// both the first and second page of the WiFi Info app show text info, but one page is for access point info, the second page is for camera info
 class PageWifiInfo : public FairyMenuItem
 {
     public:
         PageWifiInfo(bool show_cam) : FairyMenuItem("/wifiinfo_head.png", 0)
         {
-            _show_cam = show_cam;
+            _show_cam = show_cam; // wifi AP info or camera info
         };
 
         virtual void on_navTo(void)
@@ -272,6 +264,7 @@ class PageWifiInfo : public FairyMenuItem
 
         virtual bool check_redraw(void)
         {
+            // need to redraw if the connection state changes
             bool connected = fairycam.isOperating();
             if (connected != _prev_connected)
             {
@@ -304,7 +297,7 @@ class PageWifiInfo : public FairyMenuItem
                     M5Lcd.setCursor(_left_margin, _top_margin);
                     M5Lcd.printf("Wi-Fi SSID: (RSSI %d)", rssi); gui_blankRestOfLine();
                     M5Lcd.setRotation(0);
-                    _show_rssi = true;
+                    _show_rssi = true; // make sure the RSSI keeps displaying
                 }
             }
         };
@@ -379,13 +372,16 @@ class AppWifiConfig : public FairySubmenu
         virtual bool on_execute(void)
         {
             bool ret = false;
-            if (_already_running == false)
+            if (_already_running == false) // prevent calling from another thread
             {
                 _already_running = true;
+
+                // use AP default mode
                 if (NetMgr_getOpMode() == WIFIOPMODE_STA) {
                     wifiprofile_connect(0);
                 }
-                httpsrv_init();
+                httpsrv_init(); // start HTTP server if not already started
+
                 rewind();
                 ret = FairySubmenu::on_execute();
                 _already_running = false;
@@ -400,7 +396,7 @@ class AppWifiConfig : public FairySubmenu
         };
 
     protected:
-        bool _already_running;
+        bool _already_running; // prevent calling from another thread
 };
 
 class AppWifiInfo : public FairySubmenu

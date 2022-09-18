@@ -83,7 +83,7 @@ class AppFocusStack : public FairyMenuItem
             }
 
             int step_size, step_cnt, i;
-
+            // pick a step size and step count based on the "speed" indicator
             switch (_speed)
             {
                 case 1:

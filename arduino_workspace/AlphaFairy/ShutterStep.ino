@@ -30,6 +30,8 @@ class AppShutterStep : public FairyMenuItem
             uint32_t cur_ss;
             int cur_ss_idx;
             char next_ss[32] = {0};
+
+            // get the current shutter speed
             if (ptpcam.isOperating()) {
                 cur_ss = ptpcam.get_property(SONYALPHA_PROPCODE_ShutterSpeed);
             }
@@ -56,6 +58,7 @@ class AppShutterStep : public FairyMenuItem
                     httpcam.poll();
                 }
                 fairycam.cmd_Shutter(false);
+                // wait the amount of time that the shutter speed says we need to pause for
                 while (((now = millis()) - t) < shutter_ms && fairycam.isOperating() && btnBig_isPressed()) {
                     ptpcam.poll();
                     httpcam.poll();
@@ -63,6 +66,8 @@ class AppShutterStep : public FairyMenuItem
 
                 gui_drawVerticalDots(0, 40, -1, 5, 5, dot_idx, false, TFT_GREEN, TFT_RED);
                 dot_idx++;
+
+                // calculate the next shutter speed to change to
                 if (ptpcam.isOperating()) {
                     cur_ss = ptpcam.get_property_enum(SONYALPHA_PROPCODE_ShutterSpeed, cur_ss, -config_settings.shutter_speed_step_cnt);
                 }
@@ -75,6 +80,10 @@ class AppShutterStep : public FairyMenuItem
                 }
                 shutter_ms = shutter_to_millis(cur_ss);
                 dbg_ser.printf("shutter_step next %u\r\n", shutter_ms);
+
+                // TODO: maybe wait here a bit longer? maybe we need to check for buffer state?
+
+                // set the new shutter speed
                 fairycam.wait_while_busy(config_settings.shutter_step_time_ms / 2, DEFAULT_BUSY_TIMEOUT, NULL);
                 if (ptpcam.isOperating()) {
                     ptpcam.cmd_ShutterSpeedSet32(cur_ss);

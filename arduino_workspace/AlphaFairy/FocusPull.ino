@@ -11,19 +11,19 @@ void focus_pull(bool live, int bar_y)
         ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
     }
 
-    int8_t n = focus_tiltToStepSize(gui_drawFocusPullState(bar_y));
+    int8_t step_size = focus_tiltToStepSize(gui_drawFocusPullState(bar_y));
 
     while (ptpcam.isOperating())
     {
         app_poll();
 
         if (live) {
-            n = focus_tiltToStepSize(gui_drawFocusPullState(bar_y));
+            step_size = focus_tiltToStepSize(gui_drawFocusPullState(bar_y));
         }
 
-        if (n != 0)
+        if (step_size != 0)
         {
-            ptpcam.cmd_ManualFocusStep(n);
+            ptpcam.cmd_ManualFocusStep(step_size);
             ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
         }
 

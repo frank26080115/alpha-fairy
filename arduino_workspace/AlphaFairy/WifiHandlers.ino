@@ -4,16 +4,17 @@ extern bool autoconnect_active;
 extern int autoconnect_status;
 extern bool signal_wifiauthfailed;
 
+// assign all callback functions for camera events
 void cam_cb_setup()
 {
-    ptpcam.cb_onConnect = ptpcam_onConnect;
-    ptpcam.cb_onDisconnect = ptpcam_onDisconnect;
-    ptpcam.cb_onCriticalError = ptpcam_onCriticalError;
-    ptpcam.cb_onReject = ptpcam_onReject;
+    ptpcam.cb_onConnect        = ptpcam_onConnect;
+    ptpcam.cb_onDisconnect     = ptpcam_onDisconnect;
+    ptpcam.cb_onCriticalError  = ptpcam_onCriticalError;
+    ptpcam.cb_onReject         = ptpcam_onReject;
     ptpcam.cb_onConfirmedAvail = ptpcam_onConfirmedAvail;
 
-    httpcam.cb_onConnect = ptpcam_onConnect;
-    httpcam.cb_onDisconnect = httpcam_onDisconnect;
+    httpcam.cb_onConnect       = ptpcam_onConnect;
+    httpcam.cb_onDisconnect    = httpcam_onDisconnect;
     httpcam.cb_onCriticalError = httpcam_onCriticalError;
 }
 
@@ -22,6 +23,7 @@ void wifi_onConnect()
     dbg_ser.printf("application wifi event handler called\r\n");
     autoconnect_status = AUTOCONNSTS_CONNECTED;
     pwr_tick(true);
+
     if (ptpcam.canNewConnect()) {
         uint32_t newip = NetMgr_getConnectableClient();
         if (newip != 0)
@@ -44,6 +46,7 @@ void wifi_onConnect()
             ptpcam.install_guid((config_settings.wifi_profile == 0 || has_profile == false) ? NULL : wp.guid);
         }
     }
+
     if (httpcam.canNewConnect()) {
         uint32_t newip = NetMgr_getConnectableClient();
         if (newip != 0) {

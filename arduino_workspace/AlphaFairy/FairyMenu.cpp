@@ -10,7 +10,7 @@ extern void gui_showVal(int32_t x, uint16_t txtfmt, Print* printer);
 
 extern void tallylite_task(void);
 
-extern void handle_user_reauth(void);
+extern void handle_user_reauth(void); // shows the wifi error screen and offers the user a way of changing wifi password
 
 int8_t FairyCfgApp::prev_tilt = 0;
 bool FairyCfgItem::dirty = false;
@@ -31,7 +31,7 @@ void FairyMenuItem::draw_mainImage(void)
 {
     M5Lcd.setRotation(0);
     M5Lcd.drawPngFile(SPIFFS, _main_img, _main_img_x, _main_img_y);
-    // if you need to overlay something else on top of the main image, then override this function
+    // if you need to overlay something else on top of the main image, then override this function, call it first, then do whatever you need to do
 }
 
 void FairyMenuItem::draw_statusBar(void)
@@ -46,23 +46,26 @@ FairySubmenu::FairySubmenu(const char* img_fname, uint16_t id) : FairyMenuItem(i
 bool FairySubmenu::on_execute(void)
 {
     rewind();
+    imu.resetSpin();
     FairyMenuItem* itm = (FairyMenuItem*)cur_node->item;
     itm->on_navTo();
     app_waitAllRelease();
-    while (true)
+    do
     {
-        if (app_poll())
+        if (app_poll()) // true if low priority tasks can execute
         {
             tallylite_task();
 
-            if (task())
+            if (task()) // true if user wants to exit out of submenu
             {
                 itm->on_navOut();
                 break;
             }
             pwr_sleepCheck();
         }
-    }
+    } 
+    while (true);
+    // user exit
     set_redraw();
     return false;
 }
@@ -71,7 +74,7 @@ void FairySubmenu::install(FairyItem* itm)
 {
     itm->set_parent((void*)this, this->_id);
 
-    if (head_node == NULL)
+    if (head_node == NULL) // first node of the list, need to be assigned to head_node
     {
         head_node = (FairyItemNode_t*)malloc(sizeof(FairyItemNode_t));
         head_node->item = itm;
@@ -79,7 +82,7 @@ void FairySubmenu::install(FairyItem* itm)
         head_node->prev_node = (void*)head_node;
         cur_node = head_node;
     }
-    else
+    else // not first node, need to insert between head node and tail node, to become the new tail node
     {
         FairyItemNode_t* tail_node = get_tailNode();
         FairyItemNode_t* new_node = (FairyItemNode_t*)malloc(sizeof(FairyItemNode_t));
@@ -101,6 +104,7 @@ FairyItem* FairySubmenu::nav_next(void)
     for (i = 0; i < 10; i++) // this is a for loop just to prevent infinite loops
     {
         n = (FairyItemNode_t*)(n->next_node);
+        // find the next node that isn't hidden
         if (n->item->can_navTo())
         {
             cur_node = n;
@@ -123,11 +127,13 @@ bool FairySubmenu::task(void)
 
     if (btnSide_hasPressed())
     {
+        // next button pressed
         btnSide_clrPressed();
         to_nav = true;
     }
     else if (_bigbtn_nav)
     {
+        // big button becomes next button
         if (btnBig_hasPressed())
         {
             btnBig_clrPressed();
@@ -135,11 +141,12 @@ bool FairySubmenu::task(void)
         }
     }
 
-    if (to_nav)
+    if (to_nav) // next button pressed
     {
         itm->on_navOut();
         itm = (FairyMenuItem*)nav_next();
         itm->on_navTo();
+        imu.resetSpin();
     }
 
     itm = (FairyMenuItem*)cur_node->item;
@@ -152,6 +159,7 @@ bool FairySubmenu::task(void)
         redraw_flag = false;
     }
 
+    // user has spun the 
     if (imu.getSpin() != 0)
     {
         itm->on_spin(imu.getSpin());
@@ -163,7 +171,7 @@ bool FairySubmenu::task(void)
 
     if (_bigbtn_nav)
     {
-        // do nothing here
+        // do nothing here, big button is acting as the next button
     }
     else if (btnBig_hasPressed())
     {
@@ -332,7 +340,13 @@ void FairyCfgItem::on_tiltChange(void)
 
 void FairyCfgItem::on_checkAdjust(int8_t tilt)
 {
-    int32_t next_step = 0;
+    // this function handles:
+    //  * displaying the arrows beside the value according to tilt
+    //  * changing the value on button press
+    //  * changing the value even faster when the button is held down
+
+    int32_t next_step = 0; // this will latch the direction of change during button-hold
+
     if (btnBig_hasPressed())
     {
         if (tilt > 0)
@@ -455,6 +469,7 @@ void FairyCfgApp::draw_icon(void)
     M5Lcd.drawPngFile(SPIFFS, _icon_fname, M5Lcd.width() - _icon_width, M5Lcd.height() - _icon_width);
 }
 
+// this function is similar to FairySubmenu::task(void)
 bool FairyCfgApp::task(void)
 {
     handle_user_reauth();
@@ -497,8 +512,7 @@ bool FairyCfgApp::task(void)
     else if (itm->is_value())
     {
         int8_t tilt = imu.getTilt();
-        if (tilt != prev_tilt)
-        {
+        if (tilt != prev_tilt) {
             itm->on_tiltChange();
         }
         itm->on_checkAdjust(tilt);
@@ -506,6 +520,7 @@ bool FairyCfgApp::task(void)
     }
     else
     {
+        // this case is not supposed to ever happen, but we need to clear the big button's event flag
         if (btnBig_hasPressed()) {
             btnBig_clrPressed();
         }
@@ -520,6 +535,7 @@ bool FairyCfgApp::task(void)
     return false;
 }
 
+// this function is similar to FairySubmenu::on_execute(void)
 bool FairyCfgApp::on_execute(void)
 {
     rewind();

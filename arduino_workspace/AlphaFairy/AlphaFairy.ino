@@ -92,10 +92,9 @@ void setup()
 
 void loop()
 {
-    main_menu.on_execute();
+    main_menu.on_execute(); // this runs an internal loop, the loop calls app_poll, and app_poll will call yield, which resets the watchdog
     // exited
     pwr_shutdown();
-    // NOTE: app_poll will call yield, which resets the watchdog
 }
 
 FairySubmenu menu_remote  ("/main_remote.png");
@@ -107,6 +106,12 @@ FairySubmenu menu_auto    ("/main_auto.png");
 
 void setup_menus()
 {
+    // install menu items
+    // these calls must be in the correct order because internally the menu system uses a linked list
+
+    // taking advantage of Arduino's automatic function prototype generation
+    // each *.ino file can have its own setup_xxx function
+
     main_menu.install(&menu_remote  );
     main_menu.install(&menu_focus   );
     setup_intervalometer();
@@ -188,10 +193,13 @@ extern bool prevent_status_bar_thread;
 
 void critical_error(const char* fp)
 {
-    prevent_status_bar_thread = true;
+    prevent_status_bar_thread = true; // critical error can happen from the WiFi thread, so prevent the GUI thread from drawing a status bar over the error screen
+
     pwr_tick(true);
     M5.Axp.GetBtnPress();
     uint32_t t = millis(), now = t;
+
+    // disconnect
     esp_wifi_disconnect();
     esp_wifi_stop();
     esp_wifi_deinit();
@@ -200,36 +208,32 @@ void critical_error(const char* fp)
 
     if (wifi_err_reason != 0)
     {
+        // indicate the error code if there is one
         M5Lcd.setTextFont(2);
         M5Lcd.highlight(true);
         M5Lcd.setTextWrap(true);
         M5Lcd.setHighlightColor(TFT_BLACK);
         M5Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
-        M5Lcd.setCursor(5, M5Lcd.height() - 16);
+        M5Lcd.setCursor(5, M5Lcd.height() - 16); // bottom of screen
         M5Lcd.printf("REASON: %d", wifi_err_reason);
     }
 
     while (true)
     {
         pwr_sleepCheck();
+
+        // restart on button press
         if (btnBoth_hasPressed()) {
-            #if 0
-            delay(100);
-            btnBoth_clrPressed();
-            while (btnBig_isPressed() || btnSide_isPressed()) {
-                delay(100);
-            }
-            NetMgr_reboot();
-            redraw_flag = true;
-            return;
-            #else
             ESP.restart();
-            #endif
         }
+
+        // shutdown on power button press
         if (M5.Axp.GetBtnPress() != 0) {
             show_poweroff();
             M5.Axp.PowerOff();
         }
+
+        // if debugging over serial port, or allow the user to plug it in now, repeat the message
         if (((now = millis()) - t) > 2000) {
             Serial.print("CRITICAL ERROR");
             if (wifi_err_reason != 0) {

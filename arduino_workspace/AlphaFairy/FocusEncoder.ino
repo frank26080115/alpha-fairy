@@ -10,7 +10,7 @@ void fenc_task()
     // we don't want to waste IO time if the camera is not connected or not in manual focus mode
     if (prev_can_run != can_run) {
         fenc_val = 0;
-        fencoder.read(true);
+        fencoder.read(true); // this call here checks if the knob is reconnected
         if (can_run) {
             pwr_tick(true);
             dbg_ser.println("focus knob can run");
@@ -29,9 +29,12 @@ void fenc_task()
     static uint32_t prev_move_time = 0;
     static uint32_t wait_time = 0;
 
+    // multiplier can't be 0
     if (config_settings.fenc_multi == 0) {
         config_settings.fenc_multi = 1;
     }
+
+    // absolute value of multiplier is used to calculate speed
     int32_t absmulti = config_settings.fenc_multi < 0 ? -config_settings.fenc_multi : config_settings.fenc_multi;
 
     fencoder.task(); // do the I2C IO operations required to read encoder
@@ -51,11 +54,12 @@ void fenc_task()
         else
         #endif
         {
-            fenc_val += additional;
+            fenc_val += additional; // queue up the steps
         }
 
         uint32_t tspan = now - prev_move_time;
         if (absmulti > 1) {
+            // this is guessing the pause time for multiple steps per tick
             wait_time = tspan / (absmulti * 2);
             if (wait_time > config_settings.focus_pause_time_ms) {
                 wait_time = config_settings.focus_pause_time_ms;
@@ -72,11 +76,14 @@ void fenc_task()
         fenc_val = 0;
     }
 
+    // do the wait by simply not doing anything
     if ((now - prev_execute_time) < wait_time && wait_time > 0) {
         return;
     }
 
-    while (fenc_val > 1 || fenc_val < -1)
+    // NOTE: every click of the encoder wheel is actually equal to 2 ticks!
+
+    while (fenc_val > 1 || fenc_val < -1) // while there are steps to do
     {
         int16_t absval = fenc_val < 0 ? -fenc_val : fenc_val;
         int16_t large_step = config_settings.fenc_large * 2;
@@ -86,7 +93,9 @@ void fenc_task()
                                    * (fenc_val < 0 ? -1 : 1) * (config_settings.fenc_multi < 0 ? -1 : 1)                                                // account for direction
                                    );
 
-        fenc_val -= ((absval >= large_step && large_step > 2) ? large_step : 2) * (fenc_val < 0 ? -1 : 1);
+        fenc_val -= ((absval >= large_step && large_step > 2) ? large_step : 2) // take away the appropriate amount from the queue
+                        * (fenc_val < 0 ? -1 : 1) // account for direction
+                        ;
 
         prev_execute_time = now;
         if (wait_time != 0) { // do only one loop if a wait has been specified
@@ -114,11 +123,14 @@ void fenc_calib_sleep(uint32_t x)
     }
 }
 
+// lens manual focus calibration
+// checks how many "medium steps" fit into one "large step"
 bool fenc_calibrate()
 {
     #define FENC_CHECK_CALIB_FAILED() do { if (ptpcam.isOperating() == false) {                      Serial.printf("MF-Calib: FAILED\r\n"); return false; } } while (0)
     #define FENC_CHECK_BTN_QUIT()     do { if (btnPwr_hasPressed())           { btnPwr_clrPressed(); Serial.printf("MF-Calib: QUIT\r\n");   return false; } } while (0)
     #define FENC_DOT_TICK()           do { gui_drawVerticalDots(0, 40, -1, 5, 5, dot_idx++, false, TFT_GREEN, TFT_RED); } while (0)
+
     Serial.println("Manual Focus Calibration Start");
     ptpcam.set_debugflags(0);
     redraw_flag = true;
@@ -127,6 +139,7 @@ bool fenc_calibrate()
     int32_t fdist_now;
     int dot_idx = 0;
 
+    // we must be in MF mode to use manual focus adjustment commands
     bool starting_mf = ptpcam.is_manuallyfocused();
     if (starting_mf == false)
     {
@@ -135,6 +148,7 @@ bool fenc_calibrate()
 
     bool do_one_more = true;
     uint32_t t = millis(), now = t;
+    // move the focus point to minimum focus (nearest), using large steps so it's fast
     while (((now = millis()) - t) < 3000 || do_one_more)
     {
         pwr_tick(true);
@@ -142,6 +156,8 @@ bool fenc_calibrate()
         ptpcam.cmd_ManualFocusStep(SONYALPHA_FOCUSSTEP_CLOSER_LARGE);
         fenc_calib_sleep(config_settings.focus_pause_time_ms);
         FENC_DOT_TICK();
+
+        // check if we've reached the end, and do just one more step to be sure
         fdist_now = ptpcam.get_property(SONYALPHA_PROPCODE_ManualFocusDist);
         if (fdist_now <= 0)
         {
@@ -157,11 +173,13 @@ bool fenc_calibrate()
     int32_t fdist_near = ptpcam.get_property(SONYALPHA_PROPCODE_ManualFocusDist);
     Serial.printf("MF-Calib: done homing, dist 0x%08X == %d\r\n", fdist_near, fdist_near);
 
+    // do exactly just one large step farther away
     ptpcam.cmd_ManualFocusStep(SONYALPHA_FOCUSSTEP_FARTHER_LARGE);
     fenc_calib_sleep(config_settings.focus_pause_time_ms * 8);
     int32_t fdist_lrg = ptpcam.get_property(SONYALPHA_PROPCODE_ManualFocusDist);
     Serial.printf("MF-Calib: one large step, dist 0x%08X == %d\r\n", fdist_lrg);
 
+    // do a few medium steps farther away until the focus distance indicator changes again, this makes the measurement more accurate
     int med_steps = 0, med_extra = 0;
     while (true)
     {
@@ -172,6 +190,8 @@ bool fenc_calibrate()
         ptpcam.cmd_ManualFocusStep(SONYALPHA_FOCUSSTEP_FARTHER_MEDIUM);
         fenc_calib_sleep(config_settings.focus_pause_time_ms * 4);
         FENC_DOT_TICK();
+
+        // see where the distance is now and check if it changed
         fdist_now = ptpcam.get_property(SONYALPHA_PROPCODE_ManualFocusDist);
         if (fdist_now > fdist_lrg) {
             break;
@@ -182,6 +202,7 @@ bool fenc_calibrate()
 
     do_one_more = true;
     t = millis();
+    // go back to minimum focus distance quickly
     while (((now = millis()) - t) < 3000 || do_one_more)
     {
         pwr_tick(true);
@@ -189,6 +210,8 @@ bool fenc_calibrate()
         ptpcam.cmd_ManualFocusStep(SONYALPHA_FOCUSSTEP_CLOSER_LARGE);
         fenc_calib_sleep(config_settings.focus_pause_time_ms);
         FENC_DOT_TICK();
+
+        // check if we've reached the end, and do just one more step to be sure
         fdist_now = ptpcam.get_property(SONYALPHA_PROPCODE_ManualFocusDist);
         if (fdist_now <= 0)
         {
@@ -203,6 +226,7 @@ bool fenc_calibrate()
 
     Serial.printf("MF-Calib: home again\r\n");
 
+    // do medium steps until we've reached the same distance as the large-steps-plus-extra-medium-steps
     while (true)
     {
         pwr_tick(true);
@@ -212,6 +236,8 @@ bool fenc_calibrate()
         ptpcam.cmd_ManualFocusStep(SONYALPHA_FOCUSSTEP_FARTHER_MEDIUM);
         fenc_calib_sleep(config_settings.focus_pause_time_ms * 4);
         FENC_DOT_TICK();
+
+        // check if we've reached the target
         fdist_now = ptpcam.get_property(SONYALPHA_PROPCODE_ManualFocusDist);
         if (fdist_now > fdist_lrg) {
             break;
@@ -256,9 +282,9 @@ class AppFocusCalib : public FairyMenuItem
                 return false;
             }
 
-            M5Lcd.drawPngFile(SPIFFS, "/focus_calib.png", 0, 0); // lazy clearing of screen
+            M5Lcd.drawPngFile(SPIFFS, "/focus_calib.png", 0, 0); // clear screen, removes text
             bool success = fenc_calibrate();
-            M5Lcd.drawPngFile(SPIFFS, "/focus_calib.png", 0, 0); // lazy clearing of screen
+            M5Lcd.drawPngFile(SPIFFS, "/focus_calib.png", 0, 0); // clear screen, removes the progress dots
 
             focus_calib_write(success ? TFT_BLACK : TFT_RED);
             return false;

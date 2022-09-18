@@ -31,6 +31,8 @@ void qikrmt_task(bool freeze_row)
 
     uint32_t now = millis();
     static uint32_t btn_down_time = 0;
+
+    // lock or unlock the IMU selection, via side button
     if (btnSide_hasPressed())
     {
         btn_down_time = millis();
@@ -42,6 +44,7 @@ void qikrmt_task(bool freeze_row)
             qikrmt_imuState = QIKRMTIMU_LOCKED;
         }
     }
+    // holding down the side button means the unlock is only temporary
     else if (btnSide_isPressed() && btn_down_time > 0 && (qikrmt_imuState == QIKRMTIMU_FREE_TEMP || qikrmt_imuState == QIKRMTIMU_FREE))
     {
         if ((now - btn_down_time) > 1000)
@@ -51,6 +54,7 @@ void qikrmt_task(bool freeze_row)
     }
     else if (btnSide_isPressed() == false)
     {
+        // end the temporary unlock if needed
         if (qikrmt_imuState == QIKRMTIMU_FREE_TEMP) {
             qikrmt_imuState = QIKRMTIMU_LOCKED;
         }
@@ -61,7 +65,7 @@ void qikrmt_task(bool freeze_row)
         if (freeze_row == false)
         {
             ang = imu.rolli;
-            ang = ang > 90 ? 90 : (ang < -90 ?  -90 : ang);
+            ang = ang > 90 ? 90 : (ang < -90 ?  -90 : ang); // limit
 
             if (ang > qikrmt_roll_center + (QIKRMT_ROLL_SPAN / 2)) { // exceeded boundary, shift the center point
                 qikrmt_roll_center = ang - (QIKRMT_ROLL_SPAN / 2);
@@ -71,6 +75,7 @@ void qikrmt_task(bool freeze_row)
                 qikrmt_roll_center = ang + (QIKRMT_ROLL_SPAN / 2);
                 qikrmt_row = 0;
             }
+            // pick a row based on the angle, centered over a particular angle representing the center
             else if (qikrmt_row == 0 && ang >= qikrmt_roll_center - (QIKRMT_ROLL_SPAN / (3 * 2)) + QIKRMT_HYSTER)
             {
                 qikrmt_row = 1;
@@ -90,8 +95,9 @@ void qikrmt_task(bool freeze_row)
         }
 
         ang = imu.pitchi;
-        ang = ang > 90 ? 90 : (ang < -90 ?  -90 : ang);
+        ang = ang > 90 ? 90 : (ang < -90 ?  -90 : ang); // limit
 
+        // pick the column based on angle, since this is the pitch angle, always use 0 as center
         if (qikrmt_col == 0 && ang >= QIKRMT_HYSTER) {
             qikrmt_col = 1;
         }
@@ -100,17 +106,26 @@ void qikrmt_task(bool freeze_row)
         }
     }
 
+    // draw the box if needed
     if (qikrmt_col != qikrmt_col_prev || qikrmt_row != qikrmt_row_prev || qikrmt_imuState != qikrmt_imustate_prev || redraw_flag)
     {
         pwr_tick(true); // movement means don't turn off
+
+        // first draw a white box over the previous coordinate to remove the box
         if (qikrmt_row_prev >= 0 && qikrmt_col_prev >= 0) {
             qikrmt_drawBox(qikrmt_row_prev, qikrmt_col_prev, TFT_WHITE);
         }
+
+        // draw the new box
         qikrmt_drawBox(qikrmt_row, qikrmt_col, qikrmt_imuState == QIKRMTIMU_LOCKED ? TFT_BLACK : TFT_ORANGE);
+
+        // blank out the arrows for focus pull when not in focus mode
         if (qikrmt_row != 2) {
-            M5Lcd.fillRect(0, QIKRMT_FPULL_Y, M5Lcd.width(), 26, TFT_WHITE); // blank out the arrows for focus pull
+            M5Lcd.fillRect(0, QIKRMT_FPULL_Y, M5Lcd.width(), 26, TFT_WHITE);
         }
     }
+
+    // when in focus pull mode, indicate step size of focus change
     if (qikrmt_row == 2) {
         gui_drawFocusPullState(QIKRMT_FPULL_Y);
     }
@@ -130,7 +145,7 @@ void qikrmt_drawBox(uint8_t row, uint8_t col, uint16_t colour)
     uint16_t boxheight = 50;
     uint16_t ystart = 44 + (boxheight * row);
     M5Lcd.drawRect(xstart    , ystart    , (row == 2 ? linewidth : (linewidth / 2)) - 2, boxheight    , colour);
-    M5Lcd.drawRect(xstart + 1, ystart + 1, (row == 2 ? linewidth : (linewidth / 2)) - 4, boxheight - 2, colour);
+    M5Lcd.drawRect(xstart + 1, ystart + 1, (row == 2 ? linewidth : (linewidth / 2)) - 4, boxheight - 2, colour); // thicker
 }
 
 #include "FairyMenu.h"
@@ -138,7 +153,8 @@ void qikrmt_drawBox(uint8_t row, uint8_t col, uint16_t colour)
 class AppQuickRemote : public FairyMenuItem
 {
     public:
-        AppQuickRemote() : FairyMenuItem("/qikrmt_faded.png") {
+        AppQuickRemote() : FairyMenuItem("/qikrmt_faded.png") // main image is the faded version, the loop will draw the active version when required
+        {
             reset();
         };
 
@@ -167,7 +183,7 @@ class AppQuickRemote : public FairyMenuItem
                     M5Lcd.drawPngFile(SPIFFS, "/qikrmt_active.png", 0, 0);
                 }
 
-                qikrmt_task(false);
+                qikrmt_task(false);       // draw the table, with the indicator position set by IMU polling
                 gui_drawStatusBar(false);
                 pwr_sleepCheck();
 
@@ -190,6 +206,7 @@ class AppQuickRemote : public FairyMenuItem
                         if (must_be_connected() == false) {
                             can_do = false;
                         }
+
                         if (can_do)
                         {
                             bool do_one = true;
@@ -197,20 +214,22 @@ class AppQuickRemote : public FairyMenuItem
                             {
                                 do_one = false;
                                 app_poll();
-                                int8_t n = qikrmt_col == 0 ? -1 : +1;
+                                int8_t dir = qikrmt_col == 0 ? -1 : +1; // pick direction of zoom based on which table column is selected
                                 if (ptpcam.isOperating())
                                 {
-                                    if (n != 0) {
-                                        ptpcam.cmd_ZoomStep((n > 0) ? -1 : ((n < 0) ? +1 : 0)); // I am soooo sorry for this
+                                    if (dir != 0) {
+                                        ptpcam.cmd_ZoomStep((dir > 0) ? -1 : ((dir < 0) ? +1 : 0)); // I am soooo sorry for this
                                         ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
                                     }
                                 }
                                 if (httpcam.isOperating())
                                 {
-                                    httpcam.cmd_ZoomStart(n);
+                                    httpcam.cmd_ZoomStart(dir);
                                     httpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
                                 }
                             }
+
+                            // button is released, stop the zooming
                             if (ptpcam.isOperating()) {
                                 ptpcam.cmd_ZoomStep(0);
                             }
@@ -225,8 +244,7 @@ class AppQuickRemote : public FairyMenuItem
                             can_do = false;
                         }
 
-                        if (can_do)
-                        {
+                        if (can_do) {
                             focus_pull(true, QIKRMT_FPULL_Y);
                         }
                     }
@@ -239,7 +257,8 @@ class AppQuickRemote : public FairyMenuItem
                     break;
                 }
             } // end of while loop
-            draw_mainImage();
+
+            draw_mainImage(); // draws the faded image
             return false;
         };
 };
