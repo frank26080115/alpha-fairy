@@ -1,251 +1,8 @@
 #include "AlphaFairy.h"
 #include <M5DisplayExt.h>
+#include "FairyMenu.h"
 
-const configitem_t intval_config_generic[] = {
-  // item pointer                           ,  max , min , step , text           , flags
-  { (int32_t*)&(config_settings.intv_bulb  ), 10000,    0,     1, "Bulb Time"    , TXTFMT_TIME | TXTFMT_BULB },
-  { (int32_t*)&(config_settings.intv_intval), 10000,    0,     1, "Interval"     , TXTFMT_TIME               },
-  { (int32_t*)&(config_settings.intv_delay ), 10000,    0,     1, "Start Delay"  , TXTFMT_TIME               },
-  { (int32_t*)&(config_settings.intv_limit ), 10000,    1,     1, "Num of Shots" , TXTFMT_BYTENS             },
-  { NULL, 0, 0, 0, "" }, // end of table
-};
-
-const configitem_t intval_config_astro[] = {
-  // item pointer                            ,  max , min , step , text           , flags
-  { (int32_t*)&(config_settings.astro_bulb  ), 10000,    0,     5, "Bulb Time"    , TXTFMT_TIME | TXTFMT_BULB },
-  { (int32_t*)&(config_settings.astro_pause ), 10000,    0,     1, "Pause Gap"    , TXTFMT_TIME               },
-  { (int32_t*)&(config_settings.intv_delay  ), 10000,    0,     1, "Start Delay"  , TXTFMT_TIME               },
-  { (int32_t*)&(config_settings.intv_limit  ), 10000,    1,     1, "Num of Shots" , TXTFMT_BYTENS             },
-  { NULL, 0, 0, 0, "" }, // end of table
-};
-
-void intervalometer_config(void* mip)
-{
-    menuitem_t* menuitm = (menuitem_t*)mip;
-    menustate_t* m = NULL;
-    configitem_t* ctable = NULL;
-    if (menuitm->id == MENUITEM_INTERVAL) {
-        m = &menustate_intval;
-        ctable = (configitem_t*)intval_config_generic;
-    }
-    else if (menuitm->id == MENUITEM_ASTRO) {
-        m = &menustate_astro;
-        ctable = (configitem_t*)intval_config_astro;
-    }
-
-    m->idx = 0;
-    m->last_idx = -1;
-    for (m->cnt = 0; ; m->cnt++) {
-        configitem_t* itm = &(ctable[m->cnt]);
-        if (itm->ptr_val == NULL) {
-            break;
-        }
-    }
-    m->cnt++; // one more for the back option
-
-    gui_startAppPrint();
-    M5Lcd.fillScreen(TFT_BLACK);
-    interval_drawIcon(menuitm->id);
-    app_waitAllRelease(BTN_DEBOUNCE);
-
-    while (true)
-    {
-        app_poll();
-        pwr_sleepCheck();
-
-        if (redraw_flag) {
-            redraw_flag = false;
-            gui_startAppPrint();
-            M5Lcd.fillScreen(TFT_BLACK);
-            interval_drawIcon(menuitm->id);
-        }
-
-        if (btnSide_hasPressed())
-        {
-            m->idx = (m->idx >= m->cnt) ? 0 : (m->idx + 1);
-            M5Lcd.fillScreen(TFT_BLACK); // item has changed so clear the screen
-            interval_drawIcon(menuitm->id);
-            redraw_flag = false;
-            btnSide_clrPressed();
-        }
-        #if defined(USE_PWR_BTN_AS_BACK) && !defined(USE_PWR_BTN_AS_EXIT)
-        if (btnPwr_hasPressed())
-        {
-            m->idx = (m->idx <= 0) ? m->cnt : (m->idx - 1);
-            M5Lcd.fillScreen(TFT_BLACK); // item has changed so clear the screen
-            interval_drawIcon(menuitm->id);
-            redraw_flag = false;
-            btnPwr_clrPressed();
-        }
-        #endif
-
-        configitem_t* cfgitm = (configitem_t*)&(config_items[m->idx]);
-        if (m->idx == m->cnt) // last item is the exit item
-        {
-            M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);
-            M5Lcd.setTextFont(4);
-            M5Lcd.print("Exit");
-            gui_drawBackIcon();
-            if (btnBig_hasPressed())
-            {
-                settings_save();
-                btnBig_clrPressed();
-                return;
-            }
-        }
-        else if (m->idx == m->cnt - 1) // 2nd to last item is the start/stop item
-        {
-            M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);
-            M5Lcd.setTextFont(4);
-            M5Lcd.print("Start");
-            M5Lcd.println();
-            gui_setCursorNextLine();
-            gui_drawGoIcon();
-            M5Lcd.setTextFont(4);
-
-            if (menuitm->id == MENUITEM_INTERVAL)
-            {
-                if (config_settings.intv_bulb != 0) {
-                    M5Lcd.print("Bulb: ");
-                    gui_showVal(config_settings.intv_bulb, TXTFMT_TIME, (Print*)&M5Lcd);
-                    M5Lcd.println();
-                    gui_setCursorNextLine();
-                    M5Lcd.print("Intv: ");
-                }
-                gui_showVal(config_settings.intv_intval, TXTFMT_TIME, (Print*)&M5Lcd);
-                if (config_settings.intv_limit != 0 && config_settings.intv_limit < 1000) {
-                    M5Lcd.println();
-                    gui_setCursorNextLine();
-                    M5Lcd.print("#: ");
-                    M5Lcd.print(config_settings.intv_limit, DEC);
-                    M5Lcd.print("x");
-                }
-            }
-            else if (menuitm->id == MENUITEM_ASTRO)
-            {
-                if (config_settings.astro_bulb != 0) {
-                    M5Lcd.print(config_settings.astro_bulb, DEC);
-                    M5Lcd.print("s");
-                }
-                if (config_settings.astro_pause > 1) {
-                    M5Lcd.print(" + ");
-                    M5Lcd.print(config_settings.astro_pause, DEC);
-                    M5Lcd.print("s");
-                }
-                else if (config_settings.astro_bulb == 0) {
-                    M5Lcd.print(config_settings.astro_pause, DEC);
-                    M5Lcd.print("s");
-                }
-                if (config_settings.intv_limit != 0 && config_settings.intv_limit < 1000) {
-                    M5Lcd.println();
-                    gui_setCursorNextLine();
-                    M5Lcd.print("#: ");
-                    M5Lcd.print(config_settings.intv_limit, DEC);
-                    M5Lcd.print("x");
-                }
-            }
-            gui_blankRestOfLine();
-
-            uint32_t total_time = interval_calcTotal(menuitm->id);
-
-            M5Lcd.println();
-            gui_setCursorNextLine();
-            M5Lcd.setTextFont(2);
-            if (total_time == 0) {
-                gui_blankRestOfLine();
-            }
-            else {
-                M5Lcd.print("T: ");
-                gui_showVal(total_time, TXTFMT_TIMELONG, (Print*)&M5Lcd);
-                gui_blankRestOfLine();
-            }
-
-            if (btnBig_hasPressed())
-            {
-                settings_save();
-                ledblink_setMode(LEDMODE_OFF);
-                btnBig_clrPressed();
-                #ifdef USE_SPRITE_MANAGER
-                sprites->unload_all();
-                #endif
-                intervalometer_run(menuitm->id);
-                #ifdef USE_SPRITE_MANAGER
-                sprites->unload_all();
-                #endif
-                ledblink_setMode(LEDMODE_NORMAL);
-                gui_startAppPrint();
-                M5Lcd.fillScreen(TFT_BLACK);
-                interval_drawIcon(menuitm->id);
-                app_waitAllRelease(BTN_DEBOUNCE);
-                pwr_tick(true);
-            }
-        }
-        else
-        {
-            configitem_t* cfgitm = (configitem_t*)&(ctable[m->idx]);
-            // first line shows name of item, second line shows the value
-            M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);
-            M5Lcd.setTextFont(4);
-            M5Lcd.print(cfgitm->text);
-            M5Lcd.println();
-            gui_setCursorNextLine();
-            gui_valIncDec(cfgitm);
-
-            uint32_t total_time = interval_calcTotal(menuitm->id);
-
-            M5Lcd.println();
-            gui_setCursorNextLine();
-            M5Lcd.setTextFont(4);
-            if (total_time == 0) {
-                gui_blankRestOfLine();
-            }
-            else {
-                M5Lcd.print("Total: ");
-                gui_showVal(total_time, TXTFMT_TIMELONG, (Print*)&M5Lcd);
-                gui_blankRestOfLine();
-            }
-        }
-
-        #ifdef USE_PWR_BTN_AS_EXIT
-        if (btnPwr_hasPressed())
-        {
-            btnPwr_clrPressed();
-            return;
-        }
-        #endif
-
-        interval_drawIcon(menuitm->id);
-    }
-}
-
-void interval_drawIcon(uint8_t id)
-{
-    if (id == MENUITEM_INTERVAL) {
-        #ifdef USE_SPRITE_MANAGER
-        sprites->draw(
-        #else
-        M5Lcd.drawPngFile(SPIFFS,
-        #endif
-            "/intervalometer_icon.png", M5Lcd.width() - 60, M5Lcd.height() - 60
-        #ifdef USE_SPRITE_MANAGER
-            , 60, 60
-        #endif
-            );
-    }
-    else if (id == MENUITEM_ASTRO) {
-        #ifdef USE_SPRITE_MANAGER
-        sprites->draw(
-        #else
-        M5Lcd.drawPngFile(SPIFFS,
-        #endif
-            "/galaxy_icon.png", M5Lcd.width() - 60, M5Lcd.height() - 60
-        #ifdef USE_SPRITE_MANAGER
-            , 60, 60
-        #endif
-            );
-    }
-    gui_drawStatusBar(true);
-}
+static uint32_t intervalometer_start_time;
 
 void interval_drawTimer(int8_t x)
 {
@@ -296,10 +53,125 @@ uint32_t interval_calcTotal(uint8_t menu_id)
     return total_time;
 }
 
-static uint32_t intervalometer_start_time;
-
-void intervalometer_run(uint8_t id)
+class PageInterval : public FairyCfgItem
 {
+    public:
+        PageInterval(const char* disp_name, int32_t* linked_var, int32_t val_min, int32_t val_max, int32_t step_size, uint16_t fmt_flags)
+                    : FairyCfgItem(disp_name, linked_var, val_min, val_max, step_size, fmt_flags)
+                    {
+                        _autosave = true;
+                    };
+
+        PageInterval(const char* disp_name, bool (*cb)(void*), const char* icon = NULL)
+                    : FairyCfgItem(disp_name, cb, icon)
+                    {
+                    };
+
+        virtual void on_readjust(void)
+        {
+            if (is_value() == false) {
+                return;
+            }
+            draw_total();
+        };
+
+        virtual void on_redraw(void)
+        {
+            FairyCfgItem::on_redraw();
+            if (is_func())
+            {
+                draw_start();
+            }
+            else if (is_value())
+            {
+                draw_total();
+            }
+        };
+
+    protected:
+        void draw_total(void)
+        {
+            uint32_t total_time = interval_calcTotal(_parent_id);
+            M5Lcd.setTextFont(4);
+            M5Lcd.setCursor(_margin_x, get_y(2));
+            if (total_time > 0) {
+                M5Lcd.print("Total: ");
+                gui_showVal(total_time, TXTFMT_TIMELONG, (Print*)&M5Lcd);
+            }
+            blank_line();
+        };
+
+        void draw_start(void)
+        {
+            FairyCfgItem::draw_name();
+            M5Lcd.setTextFont(4);
+            int linenum = 1;
+            M5Lcd.setCursor(_margin_x, get_y(linenum));
+            if (_parent_id == MENUITEM_INTERVAL)
+            {
+                gui_showVal(config_settings.intv_intval, TXTFMT_TIME, (Print*)&M5Lcd);
+                if (config_settings.intv_bulb != 0) {
+                    M5Lcd.setTextFont(2);
+                    M5Lcd.print(" (B: ");
+                    gui_showVal(config_settings.intv_bulb, TXTFMT_TIME, (Print*)&M5Lcd);
+                    M5Lcd.print(")");
+                    M5Lcd.setTextFont(4);
+                    blank_line();
+                }
+                if (config_settings.intv_limit != 0 && config_settings.intv_limit < 1000) {
+                    linenum++;
+                    M5Lcd.setCursor(_margin_x, get_y(linenum));
+                    M5Lcd.print("#: ");
+                    M5Lcd.print(config_settings.intv_limit, DEC);
+                    M5Lcd.print("x");
+                }
+            }
+            else if (_parent_id == MENUITEM_ASTRO)
+            {
+                if (config_settings.astro_bulb != 0) {
+                    M5Lcd.print(config_settings.astro_bulb, DEC);
+                    M5Lcd.print("s");
+                }
+                if (config_settings.astro_pause > 1) {
+                    M5Lcd.print(" + ");
+                    M5Lcd.print(config_settings.astro_pause, DEC);
+                    M5Lcd.print("s");
+                }
+                else if (config_settings.astro_bulb == 0) {
+                    M5Lcd.print(config_settings.astro_pause, DEC);
+                    M5Lcd.print("s");
+                }
+                blank_line();
+                if (config_settings.intv_limit != 0 && config_settings.intv_limit < 1000) {
+                    linenum++;
+                    M5Lcd.setCursor(_margin_x, get_y(linenum));
+                    M5Lcd.print("#: ");
+                    M5Lcd.print(config_settings.intv_limit, DEC);
+                    M5Lcd.print("x");
+                }
+            }
+
+            uint32_t total_time = interval_calcTotal(_parent_id);
+
+            if (total_time > 0)
+            {
+                linenum++;
+                M5Lcd.setCursor(_margin_x, get_y(linenum));
+                M5Lcd.setTextFont(2);
+                M5Lcd.print("T: ");
+                gui_showVal(total_time, TXTFMT_TIMELONG, (Print*)&M5Lcd);
+                blank_line();
+            }
+
+            FairyCfgItem::draw_icon();
+        };
+};
+
+bool intervalometer_func(void* ptr)
+{
+    PageInterval* pg = (PageInterval*)ptr;
+    uint16_t caller_id = pg->get_parentId();
+
     uint32_t t = millis(), now = t;
     intervalometer_start_time = t;
 
@@ -308,14 +180,14 @@ void intervalometer_run(uint8_t id)
     int32_t cnt = config_settings.intv_limit;
     cnt = cnt <= 0 ? -1 : cnt; // zero means infinite, indicated by negative
 
-    uint32_t bulb         = (id == MENUITEM_ASTRO) ?  config_settings.astro_bulb                                : config_settings.intv_bulb;
-    int32_t  intv_time    = (id == MENUITEM_ASTRO) ?  config_settings.astro_pause                               : config_settings.intv_intval;
-    int32_t  total_period = (id == MENUITEM_ASTRO) ? (config_settings.astro_bulb + config_settings.astro_pause) : config_settings.intv_intval;
+    uint32_t bulb         = (caller_id == MENUITEM_ASTRO) ?  config_settings.astro_bulb                                : config_settings.intv_bulb;
+    int32_t  intv_time    = (caller_id == MENUITEM_ASTRO) ?  config_settings.astro_pause                               : config_settings.intv_intval;
+    int32_t  total_period = (caller_id == MENUITEM_ASTRO) ? (config_settings.astro_bulb + config_settings.astro_pause) : config_settings.intv_intval;
 
     gui_startAppPrint();
     M5Lcd.fillScreen(TFT_BLACK);
     interval_drawTimer(0); // reset the icon
-    app_waitAllRelease(BTN_DEBOUNCE);
+    app_waitAllRelease();
     M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);
     M5Lcd.setTextFont(4);
 
@@ -324,7 +196,7 @@ void intervalometer_run(uint8_t id)
     }
 
     if (stop_flag) {
-        return;
+        return false;
     }
 
     t = now;
@@ -351,13 +223,17 @@ void intervalometer_run(uint8_t id)
             break;
         }
 
-        #ifdef USE_PWR_BTN_AS_EXIT
         if (btnPwr_hasPressed())
         {
             btnPwr_clrPressed();
             break;
         }
-        #endif
+
+        if (btnBig_hasPressed())
+        {
+            btnBig_clrPressed();
+            // do nothing, clear the press so it doesn't queue up
+        }
 
         interval_drawTimer(-1);
 
@@ -385,7 +261,7 @@ void intervalometer_run(uint8_t id)
         }
         interval_drawTimer(-1);
 
-        if (id == MENUITEM_ASTRO) {
+        if (caller_id == MENUITEM_ASTRO) {
             t = millis();
         }
 
@@ -405,6 +281,10 @@ void intervalometer_run(uint8_t id)
             gui_blankRestOfLine();
         }
     }
+
+    redraw_flag = true;
+    app_waitAllRelease();
+    return false;
 }
 
 extern bool gui_microphoneActive;
@@ -457,7 +337,6 @@ bool intervalometer_wait(int32_t twait, uint32_t tstart, int32_t cnt, const char
             stop_flag = true;
         }
 
-        #ifdef USE_PWR_BTN_AS_EXIT
         if (btnPwr_hasPressed())
         {
             stop_flag = true;
@@ -465,7 +344,6 @@ bool intervalometer_wait(int32_t twait, uint32_t tstart, int32_t cnt, const char
             btnPwr_clrPressed();
             break;
         }
-        #endif
 
         M5Lcd.setCursor(SUBMENU_X_OFFSET, gui_microphoneActive == false ? SUBMENU_Y_OFFSET : MICTRIG_LEVEL_MARGIN);
         if (stop_request == false) {
@@ -528,4 +406,38 @@ bool intervalometer_wait(int32_t twait, uint32_t tstart, int32_t cnt, const char
     }
 
     return stop_flag;
+}
+
+class AppIntervalometer : public FairyCfgApp
+{
+    public:
+        AppIntervalometer(uint16_t id) :
+            FairyCfgApp(id == MENUITEM_INTERVAL ? "/main_interval.png" : "/main_astro.png",
+                        id == MENUITEM_INTERVAL ? "/intervalometer_icon.png" : "/galaxy_icon.png",
+                        id
+                        )
+            {
+                if (id == MENUITEM_INTERVAL)
+                {
+                    install(new PageInterval("Bulb Time", (int32_t*)&(config_settings.intv_bulb)  , 0, 10000, 1, TXTFMT_TIME | TXTFMT_BULB));
+                    install(new PageInterval("Interval" , (int32_t*)&(config_settings.intv_intval), 0, 10000, 1, TXTFMT_TIME));
+                }
+                else if (id == MENUITEM_ASTRO)
+                {
+                    install(new PageInterval("Bulb Time", (int32_t*)&(config_settings.astro_bulb) , 0, 10000, 1, TXTFMT_TIME | TXTFMT_BULB));
+                    install(new PageInterval("Pause Gap", (int32_t*)&(config_settings.astro_pause), 0, 10000, 1, TXTFMT_TIME));
+                }
+                install(new PageInterval("Start Delay" , (int32_t*)&(config_settings.intv_delay), 0, 10000, 1, TXTFMT_TIME));
+                install(new PageInterval("Num of Shots", (int32_t*)&(config_settings.intv_limit), 0, 10000, 1, TXTFMT_BYTENS));
+                install(new PageInterval("Start", intervalometer_func, "/go_icon.png"));
+            };
+};
+
+extern FairySubmenu main_menu;
+void setup_intervalometer()
+{
+    static AppIntervalometer app_interval(MENUITEM_INTERVAL);
+    static AppIntervalometer app_astro   (MENUITEM_ASTRO);
+    main_menu.install(&app_interval);
+    main_menu.install(&app_astro);
 }
