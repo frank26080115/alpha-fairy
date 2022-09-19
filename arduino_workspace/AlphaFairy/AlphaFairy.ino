@@ -75,7 +75,7 @@ void setup()
     dbg_ser.printf("finished setup() at %u ms\r\n", millis());
 
     // clear the button flags
-    btnAll_clrPressed();
+    btnAny_clrPressed();
 
     imu.poll();
     fencoder.begin();
@@ -87,7 +87,9 @@ void setup()
     ptpcam.set_debugflags(0);
     #endif
 
-    btnAll_clrPressed();
+    btnAny_clrPressed();
+
+    srand(lroundf(imu.accX) + lroundf(imu.accY) + lroundf(imu.accZ));\
 }
 
 void loop()

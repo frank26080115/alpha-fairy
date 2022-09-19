@@ -53,7 +53,7 @@ extern bool btnSide_hasPressed(void);
 extern bool btnBig_hasPressed(void);
 extern bool btnPwr_hasPressed(void);
 extern bool btnBoth_hasPressed(void);
-extern bool btnAll_hasPressed(void);
+extern bool btnAny_hasPressed(void);
 extern bool btnSide_isPressed(void);
 extern bool btnBig_isPressed(void);
 extern bool btnPwr_isPressed(void);
@@ -63,6 +63,6 @@ extern void btnSide_clrPressed(void);
 extern void btnBig_clrPressed(void);
 extern void btnPwr_clrPressed(void);
 extern void btnBoth_clrPressed(void);
-extern void btnAll_clrPressed(void);
+extern void btnAny_clrPressed(void);
 
 #endif

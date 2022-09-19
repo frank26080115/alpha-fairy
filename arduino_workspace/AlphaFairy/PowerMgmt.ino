@@ -209,6 +209,7 @@ void pwr_sleepCheck()
     {
         if ((now - lcddim_last_tick) > (config_settings.lcd_dim_secs * 1000))
         {
+            // time to dim the LCD backlight
             if (lcd_backlight_dim == false) {
                 M5.Axp.ScreenBreath(7);
                 lcd_backlight_dim = true;
@@ -226,26 +227,22 @@ void pwr_sleepCheck()
     #ifdef DISABLE_POWER_SAVE
     return;
     #else
+
+    // do not sleep if HTTP client is connected
     if (http_is_active) {
         pwr_tick(true);
         return;
     }
 
     // enforce a minimum
-    if (config_settings.pwr_save_secs < 30) {
-        config_settings.pwr_save_secs = 30;
+    int32_t sleep_secs = config_settings.pwr_save_secs;
+    if (sleep_secs < 30) {
+        sleep_secs = 30;
         dbg_ser.printf("pwr_save_secs too low, reset to 30 seconds\r\n");
     }
 
-    if ((now - pwr_last_tick) > (config_settings.pwr_save_secs * 1000))
+    if ((now - pwr_last_tick) > (sleep_secs * 1000) && config_settings.pwr_save_secs > 0) // time to shutdown (and feature is enabled)
     {
-        if (config_settings.pwr_save_secs == 0) {
-            // feature disabled
-            pwr_tick(true);
-            dbg_ser.printf("pwr save disabled by user\r\n");
-            return;
-        }
-
         pwr_shutdown();
     }
     #endif
@@ -289,12 +286,15 @@ void pwr_lightSleepSetup()
     esp_sleep_enable_timer_wakeup(10000);
 }
 
+// shutdown, or pretend to shutdown
 void pwr_shutdown()
 {
+    // disconnect wifi
     esp_wifi_disconnect();
     esp_wifi_stop();
     esp_wifi_deinit();
 
+    // show the animation on screen
     show_poweroff();
 
     // no USB voltage -> power off
@@ -328,6 +328,8 @@ void pwr_shutdown()
     }
 }
 
+// reset the power sleep timer, prevent power saving sleep for a while
+// parameter undim means the LCD backlight should be lit up again
 void pwr_tick(bool undim)
 {
     pwr_last_tick = millis();
@@ -337,19 +339,29 @@ void pwr_tick(bool undim)
     }
 }
 
+// show the shutdown animation and then perform the actual shutdown
 void show_poweroff()
 {
     uint32_t t = millis();
-    prevent_status_bar_thread = true;
-    srand(t + lroundf(imu.accX) + lroundf(imu.accY) + lroundf(imu.accZ));
+
+    prevent_status_bar_thread = true; // just in case this function is called from a non-GUI thread, prevent the status bar from being drawn over the animation
+
+    // prep
     M5Lcd.setRotation(0);
     M5Lcd.fillScreen(TFT_BLACK);
-    if (batt_vbatt > 3.05 || batt_vbatt <= 0 || batt_status == BATTSTAT_CHARGING || batt_status == BATTSTAT_CHARGING_LOW)
+
+    bool batt_good = batt_vbatt > 3.05 || batt_vbatt <= 0 || batt_status == BATTSTAT_CHARGING || batt_status == BATTSTAT_CHARGING_LOW;
+
+    if (batt_good)
     {
         M5Lcd.drawPngFile(SPIFFS, "/sleep.png", 0, 0);
         delay(500);
+
+        // animation is random
+
         if ((rand() % 2) == 0)
         {
+            // fade by horizontal lines
             int y, dly = 10, m = 50;
             for (y = m + 0; y < M5Lcd.height() - m; y += 4) {
                 M5Lcd.drawFastHLine(0, y, M5Lcd.width(), TFT_BLACK);
@@ -370,6 +382,7 @@ void show_poweroff()
         }
         else
         {
+            // fade by snow, with dimming backlight
             int b = config_settings.lcd_brightness - 1;
             while (true)
             {
@@ -388,8 +401,9 @@ void show_poweroff()
             }
         }
     }
-    else
+    else // battery is dead
     {
+        
         M5Lcd.drawPngFile(SPIFFS, "/dead_batt.png", 0, 0);
         delay(500);
         int b = config_settings.lcd_brightness - 1;

@@ -66,4 +66,11 @@ enum
     AUTOCONNSTS_FAILED,
 };
 
+enum
+{
+    WAITGFX_NONE,
+    WAITGFX_CONNECTING,
+    WAITGFX_UNSUPPORTED,
+};
+
 #endif

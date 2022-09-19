@@ -211,7 +211,7 @@ void btnBoth_clrPressed() {
     btnBig_clrPressed();
 }
 
-bool btnAll_hasPressed() {
+bool btnAny_hasPressed() {
     bool x;
     x |= btnSide_hasPressed();
     x |= btnBig_hasPressed();
@@ -220,7 +220,7 @@ bool btnAll_hasPressed() {
     return x;
 }
 
-void btnAll_clrPressed() {
+void btnAny_clrPressed() {
     btnSide_clrPressed();
     btnBig_clrPressed();
     btnPwr_clrPressed();

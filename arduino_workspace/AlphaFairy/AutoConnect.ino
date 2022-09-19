@@ -44,7 +44,7 @@ class AppAutoConnect : public FairyMenuItem
 
             WiFi.disconnect(); // halt wifi activity for now
 
-            btnAll_clrPressed();
+            btnAny_clrPressed();
 
             dbg_ser.println("autoconnect starting");
 

@@ -1,11 +1,20 @@
 #include "AlphaFairy.h"
 
-void app_waitAllRelease()
+void app_waitAllReleaseGfx(uint8_t waitgfx)
 {
-    btnAll_clrPressed();
+    btnAny_clrPressed();
     if (btnSide_isPressed() == false && btnBig_isPressed() == false)
     {
         return;
+    }
+
+    if (waitgfx == WAITGFX_CONNECTING)
+    {
+        gui_drawConnecting(true);
+    }
+    else if (waitgfx == WAITGFX_UNSUPPORTED)
+    {
+        M5Lcd.drawPngFile(SPIFFS, "/unsupported.png", 0, 0);
     }
 
     uint32_t now = millis();
@@ -13,11 +22,24 @@ void app_waitAllRelease()
     do
     {
         app_poll();
+
+        if (waitgfx == WAITGFX_CONNECTING)
+        {
+            gui_drawConnecting(false);
+        }
+
         if (btnSide_isPressed() || btnBig_isPressed()) {
             last_time = millis();
         }
     }
     while ((last_time - (now = millis())) < BTN_DEBOUNCE);
+
+    redraw_flag = true;
+}
+
+void app_waitAllRelease()
+{
+    app_waitAllReleaseGfx(WAITGFX_NONE);
 }
 
 void app_waitAnyPress(bool can_sleep)
@@ -28,62 +50,21 @@ void app_waitAnyPress(bool can_sleep)
         if (can_sleep == false) {
             pwr_tick(true);
         }
-        if (btnAll_hasPressed()) {
+        if (btnAny_hasPressed()) {
             break;
         }
     }
-    btnAll_clrPressed();
+    btnAny_clrPressed();
 }
 
 void app_waitAllReleaseConnecting()
 {
-    btnAll_clrPressed();
-    if (btnSide_isPressed() == false && btnBig_isPressed() == false)
-    {
-        return;
-    }
-
-    gui_drawConnecting(true);
-
-    uint32_t now = millis();
-    uint32_t last_time = now;
-    do
-    {
-        if (app_poll()) {
-            gui_drawConnecting(false);
-        }
-        if (ptpcam.isOperating()) {
-            return;
-        }
-        if (btnSide_isPressed() || btnBig_isPressed()) {
-            last_time = millis();
-            continue;
-        }
-    }
-    while (((now = millis()) - last_time) < BTN_DEBOUNCE);
+    app_waitAllReleaseGfx(WAITGFX_CONNECTING);
 }
 
 void app_waitAllReleaseUnsupported()
 {
-    btnAll_clrPressed();
-    if (btnSide_isPressed() == false && btnBig_isPressed() == false)
-    {
-        return;
-    }
-
-    M5Lcd.drawPngFile(SPIFFS, "/unsupported.png", 0, 0);
-
-    uint32_t now = millis();
-    uint32_t last_time = now;
-    do
-    {
-        if (btnSide_isPressed() || btnBig_isPressed()) {
-            last_time = millis();
-            continue;
-        }
-    }
-    while (((now = millis()) - last_time) < BTN_DEBOUNCE);
-    redraw_flag = true;
+    app_waitAllReleaseGfx(WAITGFX_UNSUPPORTED);
 }
 
 void app_sleep(uint32_t x, bool forget_btns)
@@ -94,7 +75,7 @@ void app_sleep(uint32_t x, bool forget_btns)
         app_poll();
     }
     if (forget_btns) {
-        btnAll_clrPressed();
+        btnAny_clrPressed();
     }
 }
 
@@ -216,17 +197,60 @@ void gui_formatISO(uint32_t x, char* str)
     return;
 }
 
+int file_readLine(File* f, char* tgt, int charlimit)
+{
+    int i = 0;
+    if (f->available() <= 0) {
+        return -1;
+    }
+
+    while (f->available() > 0) // until end of file
+    {
+        char c = f->read();
+        
+        if (c != '\r' && c != '\n' && c != '\0') // is not terminator
+        {
+            if (i < charlimit - 1) // if there is room in string buffer
+            {
+                // append char to string
+                tgt[i] = c;
+                i += 1;
+                tgt[i] = 0;
+            }
+        }
+        else // is terminator
+        {
+            // end the string
+            tgt[i] = 0;
+            if (i > 0) { // this trims the start of a line
+                i += 1;
+                break;
+            }
+        }
+    }
+    return i;
+}
+
 void dissolve_restart(uint16_t colour)
 {
+    uint32_t t = millis();
     esp_wifi_disconnect();
     esp_wifi_stop();
     esp_wifi_deinit();
-    srand(millis() + lroundf(imu.accX) + lroundf(imu.accY) + lroundf(imu.accZ));
     while (btnBig_isPressed())
     {
         int x = rand() % M5Lcd.width();
         int y = rand() % M5Lcd.height();
-        M5Lcd.fillRect(x, y, 1, 1, colour);
+        if ((millis() - t) < 5000)
+        {
+            M5Lcd.fillRect(x, y, 1, 1, colour);
+        }
+        else
+        {
+            M5Lcd.fillRect(x, y, 1, 1, TFT_BLACK);
+            int32_t b = config_settings.lcd_brightness - (((millis() - t) - 5000) / 1250);
+            M5.Axp.ScreenBreath(b);
+        }
     }
     ESP.restart();
 }

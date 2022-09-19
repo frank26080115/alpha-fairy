@@ -2,6 +2,9 @@
 #define _ALPHAFAIRYCAMERA_H_
 
 // this class exists to make the main application code neater
+// it encapsulates the PtpIpSonyAlphaCamera and SonyHttpCamera class
+// so that common functions can be called upon the AlphaFairyCamera class
+// and the AlphaFairyCamera class decides which protocol to send the command with, depending on how the camera is actually connected
 
 #include <PtpIpSonyAlphaCamera.h>
 #include <SonyHttpCamera.h>

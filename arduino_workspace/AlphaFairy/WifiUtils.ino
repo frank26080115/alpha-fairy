@@ -31,30 +31,6 @@ void wifiprofile_getIdxFname(uint8_t idx, char* tgt)
     sprintf(tgt, "/wifipro_%u.txt", idx);
 }
 
-int wifiprofile_fileReadLine(File* f, char* tgt, int charlimit)
-{
-    int i = 0;
-    if (f->available() <= 0) {
-        return -1;
-    }
-    while (f->available() > 0 && i < charlimit - 1) {
-        char c = f->read();
-        if (c != '\r' && c != '\n' && c != '\0') {
-            tgt[i] = c;
-            i += 1;
-            tgt[i] = 0;
-        }
-        else {
-            tgt[i] = 0;
-            if (i > 0) { // this trims the start of a line
-                i += 1;
-                break;
-            }
-        }
-    }
-    return i;
-}
-
 bool wifiprofile_getProfileRaw(uint8_t idx, char* ssid, char* password, uint8_t* opmode, char* guid)
 {
     if (idx == 0)
@@ -89,7 +65,7 @@ bool wifiprofile_getProfileRaw(uint8_t idx, char* ssid, char* password, uint8_t*
     }
 
     int r;
-    r = wifiprofile_fileReadLine(&f, ssid, 32);
+    r = file_readLine(&f, ssid, 32);
     if (r < 0) {
         ssid[0] = 0;
         password[0] = 0;
@@ -97,12 +73,12 @@ bool wifiprofile_getProfileRaw(uint8_t idx, char* ssid, char* password, uint8_t*
         f.close();
         return false;
     }
-    r = wifiprofile_fileReadLine(&f, password, 32);
+    r = file_readLine(&f, password, 32);
     if (r < 0) {
         f.close();
         return false;
     }
-    r = wifiprofile_fileReadLine(&f, tmp, 32);
+    r = file_readLine(&f, tmp, 32);
     if (r < 0) {
         f.close();
         return false;
@@ -115,7 +91,7 @@ bool wifiprofile_getProfileRaw(uint8_t idx, char* ssid, char* password, uint8_t*
         }
     }
     if (guid != NULL) {
-        r = wifiprofile_fileReadLine(&f, guid, 16 + 1);
+        r = file_readLine(&f, guid, 16 + 1);
         if (r < 0) {
             guid[0] = 0;
         }
@@ -461,11 +437,11 @@ bool wifi_newConnectOrPrompt(uint8_t profile_num, wifiprofile_t* profile, bool n
         {
             gui_drawConnecting(false);
             app_poll();
-            if (btnAll_hasPressed())
+            if (btnAny_hasPressed())
             {
                 // any key press means to not wait for connection
                 // no timeout implemented
-                btnAll_clrPressed();
+                btnAny_clrPressed();
                 user_quit = true;
                 dbg_ser.printf("autoconnect waiting for connection user quit\r\n");
                 return true;

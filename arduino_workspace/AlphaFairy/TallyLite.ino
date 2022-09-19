@@ -38,10 +38,10 @@ void tallylite_show()
         app_poll();     // this is where recursion is not allowed
         fenc_task();    // allow focus pull while red screen
         pwr_tick(true); // prevent screen dimming and sleep
-        if (btnAll_hasPressed())
+        if (btnAny_hasPressed())
         {
             // exit on button press
-            btnAll_clrPressed();
+            btnAny_clrPressed();
             break;
         }
     }

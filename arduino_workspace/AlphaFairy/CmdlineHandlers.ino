@@ -143,7 +143,7 @@ void imushow_func(void* cmd, char* argstr, Stream* stream)
         if (spin != 0) {
             imu.resetSpin();
         }
-        if (btnAll_hasPressed()) {
+        if (btnAny_hasPressed()) {
             stream->printf("user exit\r\n");
             delay(100);
             ESP.restart();
@@ -165,7 +165,7 @@ void mic_func(void* cmd, char* argstr, Stream* stream)
         mictrig_poll();
         stream->printf("mic:    %d   %d\r\n", mictrig_lastMax, mictrig_filteredMax);
         mictrig_drawLevel();
-        if (btnAll_hasPressed()) {
+        if (btnAny_hasPressed()) {
             stream->printf("user exit\r\n");
             delay(100);
             ESP.restart();

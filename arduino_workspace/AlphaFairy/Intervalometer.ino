@@ -14,8 +14,10 @@ void interval_drawTimer(int8_t x)
     else {
         i = x; // otherwise, assign
     }
-    i %= 12;
+    i %= 12; // only 12 animation frames available
     sprintf(fname, "/timer_%u.png", i);
+
+    // note: this is the fastest animation in the entire project, best to use the sprite manager
 
     #if defined(USE_SPRITE_MANAGER)
     if ((sprites->holder_flag & SPRITESHOLDER_FOCUSPULL) == 0) {
@@ -34,9 +36,10 @@ void interval_drawTimer(int8_t x)
     }
 }
 
-uint32_t interval_calcTotal(uint8_t menu_id)
+int32_t interval_calcTotal(uint8_t menu_id)
 {
-    uint32_t total_time = 0, shot_cnt = 0;
+    int32_t total_time = 0;
+    int32_t shot_cnt = 0;
     if (menu_id == MENUITEM_INTERVAL) {
         shot_cnt = config_settings.intv_limit;
         total_time = shot_cnt * config_settings.intv_intval;
@@ -91,7 +94,7 @@ class PageInterval : public FairyCfgItem
     protected:
         void draw_total(void)
         {
-            uint32_t total_time = interval_calcTotal(_parent_id);
+            int32_t total_time = interval_calcTotal(_parent_id);
             M5Lcd.setTextFont(4);
             M5Lcd.setCursor(_margin_x, get_y(2));
             if (total_time > 0) {
@@ -151,7 +154,7 @@ class PageInterval : public FairyCfgItem
                 }
             }
 
-            uint32_t total_time = interval_calcTotal(_parent_id);
+            int32_t total_time = interval_calcTotal(_parent_id);
 
             if (total_time > 0)
             {
@@ -170,7 +173,7 @@ class PageInterval : public FairyCfgItem
 bool intervalometer_func(void* ptr)
 {
     PageInterval* pg = (PageInterval*)ptr;
-    uint16_t caller_id = pg->get_parentId();
+    uint16_t caller_id = pg->get_parentId(); // need to know if this is normal intervalometer or astrophotography intervalometer
 
     uint32_t t = millis(), now = t;
     intervalometer_start_time = t;
@@ -184,6 +187,7 @@ bool intervalometer_func(void* ptr)
     int32_t  intv_time    = (caller_id == MENUITEM_ASTRO) ?  config_settings.astro_pause                               : config_settings.intv_intval;
     int32_t  total_period = (caller_id == MENUITEM_ASTRO) ? (config_settings.astro_bulb + config_settings.astro_pause) : config_settings.intv_intval;
 
+    // prep screen for drawing
     gui_startAppPrint();
     M5Lcd.fillScreen(TFT_BLACK);
     interval_drawTimer(0); // reset the icon
@@ -191,10 +195,12 @@ bool intervalometer_func(void* ptr)
     M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);
     M5Lcd.setTextFont(4);
 
+    // wait the starting countdown if required
     if (config_settings.intv_delay > 0) {
         stop_flag |= intervalometer_wait(config_settings.intv_delay, t, cnt, "Start in...", false, total_period);
     }
 
+    // handle early quit
     if (stop_flag) {
         return false;
     }
@@ -240,6 +246,7 @@ bool intervalometer_func(void* ptr)
         t = millis();
         if (bulb == 0)
         {
+            // shoot photo normally and indicate
             cam_shootQuick();
             if (intv_time <= 0 && bulb <= 0)
             {
@@ -250,6 +257,7 @@ bool intervalometer_func(void* ptr)
         }
         else
         {
+            // bulb mode, open the shutter and wait the specified time before closing
             cam_shootOpen();
             stop_flag |= intervalometer_wait(bulb, t, cnt, "Shutter Open", true, total_period);
             cam_shootClose();
@@ -262,6 +270,7 @@ bool intervalometer_func(void* ptr)
         interval_drawTimer(-1);
 
         if (caller_id == MENUITEM_ASTRO) {
+            // astro mode uses a pause gap instead of fixed intervals, so remember timestamp here
             t = millis();
         }
 
@@ -275,21 +284,30 @@ bool intervalometer_func(void* ptr)
         }
 
         if (intv_time <= 0 && bulb <= 0)
-        { 
+        {
+            // this is a special case when the intervalometer is just spamming the shutter
             M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);
             M5Lcd.print("Timer Active");
             gui_blankRestOfLine();
         }
-    }
 
-    redraw_flag = true;
+    } // end of for-loop
+
+    redraw_flag = true; // force parent to redraw
     app_waitAllRelease();
     return false;
 }
 
 extern bool gui_microphoneActive;
 
-bool intervalometer_wait(int32_t twait, uint32_t tstart, int32_t cnt, const char* msg, bool pausable, int32_t total_period)
+bool intervalometer_wait(
+        int32_t     twait         // number of seconds to wait
+      , uint32_t    tstart        // start time, in milliseconds, of the wait
+      , int32_t     cnt           // number of photos remaining
+      , const char* msg           // message to show in the first line of text
+      , bool        pausable      // if true, then a side button press will cause the pause to happen at the end of bulb
+      , int32_t     total_period  // total time period for each interval, in seconds, for display purposes
+      )
 {
     uint32_t now, telapsed;
     bool stop_flag = false, stop_request = false;
