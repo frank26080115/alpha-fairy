@@ -427,3 +427,66 @@ void show_poweroff()
     M5Lcd.fillScreen(TFT_BLACK);
     M5.Axp.ScreenSwitch(false);
 }
+
+int pmic_fnum = 0;
+
+void pmic_startCoulombCount(void)
+{
+    int  fnum;
+    char fname[32];
+    for (fnum = 1; fnum < 999; ) {
+        sprintf(fname, "/pwrlog_%u.txt", fnum);
+        if (SPIFFS.exists(fname) == false) {
+            pmic_fnum = fnum;
+            break;
+        }
+        else {
+            fnum++;
+            continue;
+        }
+    }
+
+    M5.Axp.EnableCoulombcounter();
+    M5.Axp.ClearCoulombcounter();
+
+    if (pmic_fnum > 0) {
+        dbg_ser.printf("coulomb cnt started, file %s\r\n", fname);
+    }
+    else {
+        dbg_ser.println("unable to start pmic log");
+    }
+}
+
+void pmic_log(void)
+{
+    static uint32_t last_time = 0;
+    uint32_t now = millis();
+
+    if (pmic_fnum <= 0) {
+        return;
+    }
+
+    if ((now - last_time) < 5000) {
+        return;
+    }
+    last_time = now;
+
+    float c    = M5.Axp.GetCoulombData();
+    float vbat = M5.Axp.GetBatVoltage();
+    float ibat = M5.Axp.GetBatCurrent();
+
+    char logstr[256];
+    char fname[32];
+
+    sprintf(fname, "/pwrlog_%u.txt", pmic_fnum);
+
+    sprintf(logstr, "%8u, %0.3f, %0.3f, %0.3f, \r\n", millis(), vbat, ibat, c);
+
+    File f = SPIFFS.open(fname, FILE_APPEND);
+    f.print(logstr);
+    f.close();
+
+    dbg_ser.printf("coulomb cnt: ");
+    dbg_ser.printf(logstr);
+
+}

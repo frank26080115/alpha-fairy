@@ -59,6 +59,10 @@ void setup()
     }
     M5.Axp.ScreenBreath(config_settings.lcd_brightness);
 
+    #ifdef PMIC_LOG_ON_BOOT
+    pmic_startCoulombCount();
+    #endif
+
     setup_menus();
 
     cmdline.print_prompt();
@@ -89,7 +93,7 @@ void setup()
 
     btnAny_clrPressed();
 
-    srand(lroundf(imu.accX) + lroundf(imu.accY) + lroundf(imu.accZ));\
+    srand(lroundf(imu.accX) + lroundf(imu.accY) + lroundf(imu.accZ));
 }
 
 void loop()
@@ -159,6 +163,8 @@ bool app_poll()
             imu.hasMajorMotion = false;
             pwr_tick(true);
         }
+
+        pmic_log();
 
         yield();
 

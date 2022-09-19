@@ -25,6 +25,9 @@ void infrared_func  (void* cmd, char* argstr, Stream* stream);
 void savewifi_func  (void* cmd, char* argstr, Stream* stream);
 void dumpwifi_func  (void* cmd, char* argstr, Stream* stream);
 void wifipwr_func   (void* cmd, char* argstr, Stream* stream);
+void pmiclog_func   (void* cmd, char* argstr, Stream* stream);
+void listlog_func   (void* cmd, char* argstr, Stream* stream);
+void readlog_func   (void* cmd, char* argstr, Stream* stream);
 #endif
 
 const cmd_def_t cmds[] = {
@@ -47,6 +50,9 @@ const cmd_def_t cmds[] = {
   { "savewifi" , savewifi_func },
   { "dumpwifi" , dumpwifi_func },
   { "wifipwr"  , wifipwr_func },
+  { "pmiclog"  , pmiclog_func },
+  { "listlog"  , listlog_func },
+  { "readlog"  , readlog_func },
   #endif
   { "", NULL }, // end of table
 };
@@ -301,6 +307,40 @@ void wifipwr_func(void* cmd, char* argstr, Stream* stream)
         ret = (int)esp_wifi_set_max_tx_power(x);
         stream->printf("WiFi set pwr %d , return code %d\r\n", x, ret);
     }
+}
+
+void listlog_func(void* cmd, char* argstr, Stream* stream)
+{
+    File root = SPIFFS.open("/");
+    File file = root.openNextFile();
+    stream->println("listing log files");
+    while(file)
+    {
+        if (memcmp(file.name(), "pwrlog_", 7) == 0)
+        {
+            stream->print("file: ");
+            stream->println(file.name());
+        }
+        file = root.openNextFile();
+    }
+    stream->println("end of file listing");
+}
+
+void readlog_func(void* cmd, char* argstr, Stream* stream)
+{
+    File f = SPIFFS.open(argstr);
+    stream->println();
+    while (f.available() > 0) {
+        stream->write((uint8_t)(f.read()));
+    }
+    f.close();
+    stream->println();
+}
+
+void pmiclog_func(void* cmd, char* argstr, Stream* stream)
+{
+    pmic_startCoulombCount();
+    stream->println("coulomb count started");
 }
 
 #endif

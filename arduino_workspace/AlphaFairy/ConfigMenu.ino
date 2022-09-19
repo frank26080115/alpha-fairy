@@ -63,10 +63,17 @@ install(new FairyCfgItem("Save + Exit", config_save_exit, "/back_icon.png"));
 
             if (exit)
             {
-                if (has_saved == false) {
-                    memcpy(&config_settings, _backup, sizeof(configsettings_t)); // restore settings to unchanged
+                if (has_saved == false)
+                {
+                    // user quit via pwr button press, so do not save the settings
+                    memcpy(&config_settings, _backup, sizeof(configsettings_t));
                     M5.Axp.ScreenBreath(config_settings.lcd_brightness);
                 }
+                else
+                {
+                    NetMgr_setWifiPower((wifi_power_t)wifipwr_table[config_settings.wifi_pwr]);
+                }
+
                 if (_backup != NULL) {
                     free(_backup);
                     _backup = NULL;
