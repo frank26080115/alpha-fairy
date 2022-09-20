@@ -37,6 +37,12 @@ void IRAM_ATTR btnSide_isr()
         // https://github.com/espressif/esp-idf/commit/d890a516a1097f0a07788e203fdb1a82bb83520e
         return;
     }
+
+    #ifdef ENABLE_LIGHT_SLEEP
+    // if we went to sleep, then the mode is GPIO_INTR_LOW_LEVEL, we need to change it back to GPIO_INTR_NEGEDGE
+    gpio_set_intr_type(GPIO_BTN_SIDE, GPIO_INTR_NEGEDGE);
+    #endif
+
     uint32_t now = millis();
     if ((now - btnSide_downTime) > BTN_DEBOUNCE) {
         btnSide_cnt++;
@@ -52,6 +58,12 @@ void IRAM_ATTR btnBig_isr()
         // https://github.com/espressif/esp-idf/commit/d890a516a1097f0a07788e203fdb1a82bb83520e
         return;
     }
+
+    #ifdef ENABLE_LIGHT_SLEEP
+    // if we went to sleep, then the mode is GPIO_INTR_LOW_LEVEL, we need to change it back to GPIO_INTR_NEGEDGE
+    gpio_set_intr_type(GPIO_BTN_BIG, GPIO_INTR_NEGEDGE);
+    #endif
+
     uint32_t now = millis();
     if ((now - btnBig_downTime) > BTN_DEBOUNCE) {
         btnBig_cnt++;
@@ -65,8 +77,6 @@ void btns_init()
     attachInterrupt(PIN_BTN_SIDE, btnSide_isr, FALLING);
     pinMode(PIN_BTN_BIG, INPUT_PULLUP);
     attachInterrupt(PIN_BTN_BIG, btnBig_isr, FALLING);
-    //gpio_wakeup_enable(GPIO_BTN_SIDE, GPIO_INTR_LOW_LEVEL);
-    //gpio_wakeup_enable(GPIO_BTN_BIG , GPIO_INTR_LOW_LEVEL);
 }
 
 void btns_poll()

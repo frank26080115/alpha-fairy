@@ -250,9 +250,11 @@ void pwr_sleepCheck()
 
 void pwr_lightSleepEnter()
 {
-    #if 0
+    #ifdef ENABLE_LIGHT_SLEEP
     static esp_err_t old_e = ESP_OK;
     pwr_lightSleepSetup();
+    gpio_wakeup_enable(GPIO_BTN_SIDE, GPIO_INTR_LOW_LEVEL);
+    gpio_wakeup_enable(GPIO_BTN_BIG , GPIO_INTR_LOW_LEVEL);
     esp_err_t e = esp_light_sleep_start();
     if (e != ESP_OK)
     {
@@ -266,6 +268,7 @@ void pwr_lightSleepEnter()
 
 void pwr_lightSleepSetup()
 {
+    #ifdef ENABLE_LIGHT_SLEEP
     static bool has_configed = false;
     if (has_configed) {
         return;
@@ -273,7 +276,7 @@ void pwr_lightSleepSetup()
     has_configed = true;
 
     const esp_pm_config_esp32_t cfg = {
-        .max_freq_mhz = 80,
+        .max_freq_mhz = 240,
         .min_freq_mhz = 10,
         .light_sleep_enable = true,
     };
@@ -281,9 +284,10 @@ void pwr_lightSleepSetup()
     // esp_wifi_set_ps called during connection
 
     esp_sleep_enable_gpio_wakeup();
-    // note: gpio_wakeup_enable is called from btns_init
+    // note: gpio_wakeup_enable is called from pwr_lightSleepEnter because the ISR changes the interrupt mode every time it fires
     esp_sleep_enable_wifi_wakeup();
     esp_sleep_enable_timer_wakeup(10000);
+    #endif
 }
 
 // shutdown, or pretend to shutdown
