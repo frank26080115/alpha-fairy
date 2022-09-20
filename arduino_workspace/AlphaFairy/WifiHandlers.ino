@@ -22,12 +22,14 @@ void cam_cb_setup()
 
 void wifi_onConnect()
 {
+    uint32_t newip;
+
     dbg_ser.printf("application wifi event handler called\r\n");
     autoconnect_status = AUTOCONNSTS_CONNECTED;
     pwr_tick(true);
 
-    if (ptpcam.canNewConnect()) {
-        uint32_t newip = NetMgr_getConnectableClient();
+    if (ptpcam.canNewConnect() && config_settings.protocol != ALLOWEDPROTOCOL_HTTP) {
+        newip = NetMgr_getConnectableClient();
         if (newip != 0)
         {
             #if 1
@@ -49,8 +51,8 @@ void wifi_onConnect()
         }
     }
 
-    if (httpcam.canNewConnect()) {
-        uint32_t newip = NetMgr_getConnectableClient();
+    if (httpcam.canNewConnect() && config_settings.protocol != ALLOWEDPROTOCOL_PTP) {
+        newip = NetMgr_getConnectableClient();
         if (newip != 0) {
             httpcam.begin(newip);
         }

@@ -14,6 +14,8 @@ void settings_default() {
 
   // set the default setting values here
 
+  config_settings.protocol = ALLOWEDPROTOCOL_ALL;
+
   config_settings.wifi_profile = 0;
   config_settings.wifi_pwr = 0;
 

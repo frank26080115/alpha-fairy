@@ -45,6 +45,8 @@ typedef struct
 
   int32_t tallylite;
 
+  int32_t protocol;
+
   uint32_t crc32;
 }
 configsettings_t;

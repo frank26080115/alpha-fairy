@@ -140,6 +140,17 @@ void gui_showVal(int32_t x, uint16_t txtfmt, Print* printer)
     else if ((txtfmt & TXTFMT_ISO) != 0) {
         gui_formatISO(x, str);
     }
+    else if ((txtfmt & TXTFMT_PROTOCOL) != 0) {
+        if (x == ALLOWEDPROTOCOL_ALL) {
+            i += sprintf(&(str[i]), "ALL");
+        }
+        else if (x == ALLOWEDPROTOCOL_PTP) {
+            i += sprintf(&(str[i]), "PTP (newer)");
+        }
+        else if (x == ALLOWEDPROTOCOL_HTTP) {
+            i += sprintf(&(str[i]), "HTTP (older)");
+        }
+    }
     else {
         i += sprintf(&(str[i]), "%d", x);
     }

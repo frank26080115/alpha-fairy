@@ -48,6 +48,7 @@ install(new FairyCfgItem("LCD dim time (s)"       , (int32_t*)&(config_settings.
 install(new FairyCfgItem("WiFi power"             , (int32_t*)&(config_settings.wifi_pwr               ),    0,   14,     1, TXTFMT_BYTENS   ));
 install(new FairyCfgItem("IR en"                  , (int32_t*)&(config_settings.infrared_enabled       ),    0,    1,     1, TXTFMT_BOOL     ));
 install(new FairyCfgItem("GPIO en"                , (int32_t*)&(config_settings.gpio_enabled           ),    0,    1,     1, TXTFMT_BOOL     ));
+install(new FairyCfgItem("camera protocol"        , (int32_t*)&(config_settings.protocol               ),    0,    2,     1, TXTFMT_PROTOCOL ));
 install(new FairyCfgItem("Save + Exit", config_save_exit, "/back_icon.png"));
         };
 
