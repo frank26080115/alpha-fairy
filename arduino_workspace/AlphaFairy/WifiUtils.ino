@@ -65,7 +65,7 @@ bool wifiprofile_getProfileRaw(uint8_t idx, char* ssid, char* password, uint8_t*
     }
 
     int r;
-    r = file_readLine(&f, ssid, 32);
+    r = file_readLine(&f, ssid, WIFI_STRING_LEN + 2);
     if (r < 0) {
         ssid[0] = 0;
         password[0] = 0;
@@ -73,12 +73,12 @@ bool wifiprofile_getProfileRaw(uint8_t idx, char* ssid, char* password, uint8_t*
         f.close();
         return false;
     }
-    r = file_readLine(&f, password, 32);
+    r = file_readLine(&f, password, WIFI_STRING_LEN + 2);
     if (r < 0) {
         f.close();
         return false;
     }
-    r = file_readLine(&f, tmp, 32);
+    r = file_readLine(&f, tmp, WIFI_STRING_LEN + 2);
     if (r < 0) {
         f.close();
         return false;

@@ -38,7 +38,7 @@ void IRAM_ATTR btnSide_isr()
         return;
     }
 
-    #ifdef ENABLE_LIGHT_SLEEP
+    #if defined(ENABLE_LIGHT_SLEEP) && defined(ENABLE_LIGHT_SLEEP_GPIOWAKE)
     // if we went to sleep, then the mode is GPIO_INTR_LOW_LEVEL, we need to change it back to GPIO_INTR_NEGEDGE
     gpio_set_intr_type(GPIO_BTN_SIDE, GPIO_INTR_NEGEDGE);
     #endif
@@ -59,7 +59,7 @@ void IRAM_ATTR btnBig_isr()
         return;
     }
 
-    #ifdef ENABLE_LIGHT_SLEEP
+    #if defined(ENABLE_LIGHT_SLEEP) && defined(ENABLE_LIGHT_SLEEP_GPIOWAKE)
     // if we went to sleep, then the mode is GPIO_INTR_LOW_LEVEL, we need to change it back to GPIO_INTR_NEGEDGE
     gpio_set_intr_type(GPIO_BTN_BIG, GPIO_INTR_NEGEDGE);
     #endif

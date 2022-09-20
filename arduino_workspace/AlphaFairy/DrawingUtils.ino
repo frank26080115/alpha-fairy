@@ -155,28 +155,27 @@ void gui_showVal(int32_t x, uint16_t txtfmt, Print* printer)
 
 int8_t gui_drawFocusPullState(int y)
 {
-    int8_t n = imu_getFocusPull();
+    int8_t dir = imu_getFocusPull();
     if (y < -30) {
-        return n;
+        return dir;
     }
-    char s = (n < 0) ? 'n' : 'p';
+    char s = (dir < 0) ? 'n' : 'p';
     static const char* prefix = "/fpull_";
     static const char* suffix = ".png";
     char fname[32];
     int x = 0;
-    sprintf(fname, "%s%c%d%s", prefix, s, n < 0 ? -n : n, suffix);
-    #if defined(USE_SPRITE_MANAGER) && false
+    sprintf(fname, "%s%c%d%s", prefix, s, dir < 0 ? -dir : dir, suffix);
+    #if 0
     // NOTE: using the quicker sprite drawing seems to make the IMU calculation too sensitive and jittery
     // this code is disabled so the animation isn't jittery
     if ((sprites->holder_flag & SPRITESHOLDER_INTERVAL) == 0) {
         sprites->draw(fname, x, y, 135, 24);
         sprites->holder_flag |= SPRITESHOLDER_FOCUSPULL;
     }
-    else {
+    else
+    #endif
+    {
         M5Lcd.drawPngFile(SPIFFS, fname, x, y);
     }
-    #else
-    M5Lcd.drawPngFile(SPIFFS, fname, x, y);
-    #endif
-    return n;
+    return dir;
 }

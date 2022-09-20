@@ -51,9 +51,15 @@ void cpufreq_init(void)
     }
 }
 
+static volatile bool cpufreq_mtx = false;
+
 void cpufreq_change(uint32_t mhz)
 {
     #ifdef ENABLE_CPU_FREQ_SCALING
+    if (cpufreq_mtx) {
+        return;
+    }
+    cpufreq_mtx = true;
     if (cpufreq_cpuFreqLast != mhz) {
         setCpuFrequencyMhz(mhz);
         cpufreq_cpuFreqLast = mhz;
@@ -70,6 +76,7 @@ void cpufreq_change(uint32_t mhz)
 
         dbg_ser.printf("new CPU freq %u MHz\r\n", mhz);
     }
+    cpufreq_mtx = false;
     #endif
 }
 

@@ -127,11 +127,7 @@ void gui_drawStatusBar(bool is_black)
             sprintf(fpath, "%schglow%s%s", txt_prefix, is_black ? txt_black : txt_white, txt_suffix);
         }
 
-        #ifndef USE_SPRITE_MANAGER
-        M5Lcd.drawPngFile(SPIFFS, fpath, x, y);
-        #else
         sprites->draw(fpath, x, y, icon_width, 12);
-        #endif
 
         x += icon_width;
     }
@@ -146,11 +142,7 @@ void gui_drawStatusBar(bool is_black)
         else {
             sprintf(fpath, "%snocam%s%s", txt_prefix, is_black ? txt_black : txt_white, txt_suffix);
 
-            #ifndef USE_SPRITE_MANAGER
-            M5Lcd.drawPngFile(SPIFFS, fpath, x, y);
-            #else
             sprites->draw(fpath, x, y, icon_width, 12);
-            #endif
 
             x += icon_width;
         }
@@ -253,8 +245,10 @@ void pwr_lightSleepEnter()
     #ifdef ENABLE_LIGHT_SLEEP
     static esp_err_t old_e = ESP_OK;
     pwr_lightSleepSetup();
+    #ifdef ENABLE_LIGHT_SLEEP_GPIOWAKE
     gpio_wakeup_enable(GPIO_BTN_SIDE, GPIO_INTR_LOW_LEVEL);
     gpio_wakeup_enable(GPIO_BTN_BIG , GPIO_INTR_LOW_LEVEL);
+    #endif
     esp_err_t e = esp_light_sleep_start();
     if (e != ESP_OK)
     {
@@ -277,14 +271,16 @@ void pwr_lightSleepSetup()
 
     const esp_pm_config_esp32_t cfg = {
         .max_freq_mhz = 240,
-        .min_freq_mhz = 10,
+        .min_freq_mhz = 80,
         .light_sleep_enable = true,
     };
     esp_pm_configure(&cfg);
     // esp_wifi_set_ps called during connection
 
+    #ifdef ENABLE_LIGHT_SLEEP_GPIOWAKE
     esp_sleep_enable_gpio_wakeup();
     // note: gpio_wakeup_enable is called from pwr_lightSleepEnter because the ISR changes the interrupt mode every time it fires
+    #endif
     esp_sleep_enable_wifi_wakeup();
     esp_sleep_enable_timer_wakeup(10000);
     #endif
@@ -456,6 +452,10 @@ void pmic_startCoulombCount(void)
             continue;
         }
     }
+
+    #ifdef PMIC_LOG_DISABLE_RECHARGING
+    M5.Axp.Write1Byte(0x33, 0);
+    #endif
 
     M5.Axp.EnableCoulombcounter();
     M5.Axp.ClearCoulombcounter();

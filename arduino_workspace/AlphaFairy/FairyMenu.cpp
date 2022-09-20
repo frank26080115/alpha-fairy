@@ -178,13 +178,9 @@ bool FairySubmenu::task(void)
     else if (btnBig_hasPressed())
     {
         btnBig_clrPressed();
-        #ifdef USE_SPRITE_MANAGER
         sprites->unload_all();
-        #endif
         bool need_exit = itm->on_execute();
-        #ifdef USE_SPRITE_MANAGER
         sprites->unload_all();
-        #endif
         if (need_exit)
         {
             return true;

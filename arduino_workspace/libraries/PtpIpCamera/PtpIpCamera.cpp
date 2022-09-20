@@ -516,6 +516,9 @@ bool PtpIpCamera::decode_pkt(uint8_t buff[], uint32_t buff_len)
         ptpip_pkt_event_t* pktstruct = (ptpip_pkt_event_t*)buff;
         uint16_t event_code = pktstruct->event_code;
         dbgser_events->printf("PTPIP event 0x%04X\r\n", event_code);
+        if (cb_onEvent != NULL) {
+            cb_onEvent(event_code);
+        }
     }
     else if (pkt_type == PTP_PKTTYPE_PROBEREQ)
     {

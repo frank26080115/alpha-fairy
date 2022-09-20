@@ -32,9 +32,7 @@ extern DebuggingSerial      dbg_ser;
 extern SerialCmdLine        cmdline;
 extern configsettings_t     config_settings;
 extern AlphaFairyImu        imu;
-#ifdef USE_SPRITE_MANAGER
 extern SpriteMgr* sprites;
-#endif
 
 extern bool app_poll(void);
 

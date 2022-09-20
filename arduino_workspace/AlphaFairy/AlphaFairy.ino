@@ -26,9 +26,7 @@ DebuggingSerial      dbg_ser(&Serial);
 uint32_t gpio_time = 0; // keeps track of the GPIO shutter activation time so it doesn't get stuck
 
 bool redraw_flag = false; // forces menu redraw
-#ifdef USE_SPRITE_MANAGER
 SpriteMgr* sprites;
-#endif
 
 AlphaFairyImu imu;
 FairyEncoder  fencoder;
@@ -70,10 +68,8 @@ void setup()
 
     cmdline.print_prompt();
 
-    #ifdef USE_SPRITE_MANAGER
     sprites = new SpriteMgr(&M5Lcd);
     //sprites->cb_needboost = cpufreq_boost;
-    #endif
 
     httpcam.borrowBuffer(ptpcam.donateBuffer(), DATA_BUFFER_SIZE);
 

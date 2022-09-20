@@ -19,7 +19,6 @@ void interval_drawTimer(int8_t x)
 
     // note: this is the fastest animation in the entire project, best to use the sprite manager
 
-    #if defined(USE_SPRITE_MANAGER)
     if ((sprites->holder_flag & SPRITESHOLDER_FOCUSPULL) == 0) {
         sprites->draw(fname, M5Lcd.width() - 60, M5Lcd.height() - 60, 60, 60);
         sprites->holder_flag |= SPRITESHOLDER_INTERVAL;
@@ -27,9 +26,6 @@ void interval_drawTimer(int8_t x)
     else {
         M5Lcd.drawPngFile(SPIFFS, fname, M5Lcd.width() - 60, M5Lcd.height() - 60);
     }
-    #else
-    M5Lcd.drawPngFile(SPIFFS, fname, M5Lcd.width() - 60, M5Lcd.height() - 60);
-    #endif
 
     if (i == 0) {
         gui_drawStatusBar(true);
