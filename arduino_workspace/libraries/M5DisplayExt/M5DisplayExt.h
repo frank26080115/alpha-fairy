@@ -37,7 +37,11 @@ class M5DisplayExt : public M5Display {
     inline void writePixels(uint16_t * colors, uint32_t len) {
       SPI.writePixels((uint8_t*)colors , len * 2);
     }
+
+  void (*cb_needboost)(void) = NULL;
+
   private:
+    void need_boost(void) { if (cb_needboost != NULL) { cb_needboost(); } };
 };
 
 extern M5DisplayExt M5Lcd;

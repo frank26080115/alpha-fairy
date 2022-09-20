@@ -356,6 +356,7 @@ void wifi_pswdPromptDrawCb()
 int wifi_promptForPassword(char* ssid, char* existingPassword, char* newPassword)
 {
     static FairyKeyboard kbd(&M5Lcd);
+    cpufreq_boost();
 
     M5Lcd.fillScreen(TFT_WHITE);
     kbd.register_redraw_cb(wifi_pswdPromptDrawCb);
@@ -369,6 +370,7 @@ int wifi_promptForPassword(char* ssid, char* existingPassword, char* newPassword
 
     while (true)
     {
+        cpufreq_boost();
         autoconnect_poll();
         kbd.update(imu.roll, imu.pitch);
         if (btnSide_hasPressed())
@@ -408,6 +410,8 @@ bool wifi_newConnectOrPrompt(uint8_t profile_num, wifiprofile_t* profile, bool n
     bool user_quit = false;
     while (user_quit == false) // this loop will prompt the user for a password until a successful connection is made (or the user cancels)
     {
+        cpufreq_boost();
+
         if (need_ask)
         {
             dbg_ser.printf("autoconnect starting keyboard\r\n");

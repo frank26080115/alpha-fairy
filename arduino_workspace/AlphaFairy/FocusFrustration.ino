@@ -24,6 +24,8 @@ class AppFocusFrustration : public FairyMenuItem
                 return;
             }
 
+            cpufreq_boost();
+
             uint32_t x;
 
             /*
@@ -132,6 +134,8 @@ class AppFocusFrustration : public FairyMenuItem
 
         void execute(void)
         {
+            cpufreq_boost();
+
             // obviously we need to be in manual focus mode in order to change focus
             bool starting_mf = fairycam.is_manuallyfocused();
             if (starting_mf == false && fairycam.isOperating()) {

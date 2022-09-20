@@ -291,8 +291,11 @@ void pwr_shutdown()
 {
     // disconnect wifi
     esp_wifi_disconnect();
+    dbg_ser.println("wifi disconnected");
     esp_wifi_stop();
+    dbg_ser.println("wifi stopped");
     esp_wifi_deinit();
+    dbg_ser.println("wifi deinited");
 
     // show the animation on screen
     show_poweroff();
@@ -345,6 +348,10 @@ void show_poweroff()
     uint32_t t = millis();
 
     prevent_status_bar_thread = true; // just in case this function is called from a non-GUI thread, prevent the status bar from being drawn over the animation
+
+    cpufreq_boost();
+
+    dbg_ser.println("show poweroff");
 
     // prep
     M5Lcd.setRotation(0);

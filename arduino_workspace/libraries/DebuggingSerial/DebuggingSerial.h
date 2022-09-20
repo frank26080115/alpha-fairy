@@ -9,7 +9,7 @@ so that an application can put print statements everywhere without messy conditi
 #include <Arduino.h>
 #include <HardwareSerial.h>
 
-#define SERDBG_DISABLE
+//#define SERDBG_DISABLE
 
 class DebuggingSerial : public HardwareSerial
 {

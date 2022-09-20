@@ -12,6 +12,8 @@ void cam_cb_setup()
     ptpcam.cb_onCriticalError  = ptpcam_onCriticalError;
     ptpcam.cb_onReject         = ptpcam_onReject;
     ptpcam.cb_onConfirmedAvail = ptpcam_onConfirmedAvail;
+    ptpcam.cb_onEvent          = ptpcam_onEvent;
+    ptpcam.cb_onRxAct          = cpufreq_boost;
 
     httpcam.cb_onConnect       = ptpcam_onConnect;
     httpcam.cb_onDisconnect    = httpcam_onDisconnect;
@@ -85,6 +87,7 @@ void wifi_onDisconnect(uint8_t x, int reason)
 
 void ptpcam_onConnect()
 {
+    cpufreq_boost();
     dbg_ser.printf("ptpcam_onConnect\r\n");
     pwr_tick(true);
     if (ptpcam.isOperating()) {
@@ -95,6 +98,7 @@ void ptpcam_onConnect()
 
 void httpcam_onConnect()
 {
+    cpufreq_boost();
     dbg_ser.printf("httpcam_onConnect\r\n");
     pwr_tick(true);
     if (httpcam.isOperating()) {
@@ -144,6 +148,11 @@ void ptpcam_onReject()
 void ptpcam_onConfirmedAvail()
 {
     httpcam.setForbidden();
+}
+
+void ptpcam_onEvent(uint16_t event_code)
+{
+    cpufreq_boost();
 }
 
 void handle_user_reauth()

@@ -169,6 +169,8 @@ void mictrig_pause()
 void mictrig_poll()
 {
     #ifndef MICTRIG_NEW_I2S_LIB
+    cpufreq_boost();
+
     size_t bytesread;
     uint32_t tstart = millis();
     for (uint8_t iter = 0; iter < 100 && (millis() - tstart) < 100; iter++)

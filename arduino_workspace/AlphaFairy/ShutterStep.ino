@@ -56,12 +56,14 @@ class AppShutterStep : public FairyMenuItem
                 while (((now = millis()) - t) < shutter_ms && (now - t) < config_settings.shutter_press_time_ms) {
                     ptpcam.poll();
                     httpcam.poll();
+                    cpufreq_boost();
                 }
                 fairycam.cmd_Shutter(false);
                 // wait the amount of time that the shutter speed says we need to pause for
                 while (((now = millis()) - t) < shutter_ms && fairycam.isOperating() && btnBig_isPressed()) {
                     ptpcam.poll();
                     httpcam.poll();
+                    cpufreq_boost();
                 }
 
                 gui_drawVerticalDots(0, 40, -1, 5, 5, dot_idx, false, TFT_GREEN, TFT_RED);

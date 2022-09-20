@@ -109,6 +109,7 @@ void qikrmt_task(bool freeze_row)
     // draw the box if needed
     if (qikrmt_col != qikrmt_col_prev || qikrmt_row != qikrmt_row_prev || qikrmt_imuState != qikrmt_imustate_prev || redraw_flag)
     {
+        cpufreq_boost();
         pwr_tick(true); // movement means don't turn off
 
         // first draw a white box over the previous coordinate to remove the box
@@ -213,6 +214,7 @@ class AppQuickRemote : public FairyMenuItem
                             while ((btnBig_isPressed() || do_one) && fairycam.isOperating())
                             {
                                 do_one = false;
+                                cpufreq_boost();
                                 app_poll();
                                 int8_t dir = qikrmt_col == 0 ? -1 : +1; // pick direction of zoom based on which table column is selected
                                 if (ptpcam.isOperating())

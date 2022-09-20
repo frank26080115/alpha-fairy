@@ -8,6 +8,8 @@ void app_waitAllReleaseGfx(uint8_t waitgfx)
         return;
     }
 
+    cpufreq_boost();
+
     if (waitgfx == WAITGFX_CONNECTING)
     {
         gui_drawConnecting(true);
@@ -234,6 +236,7 @@ int file_readLine(File* f, char* tgt, int charlimit)
 void dissolve_restart(uint16_t colour)
 {
     uint32_t t = millis();
+    cpufreq_boost();
     esp_wifi_disconnect();
     esp_wifi_stop();
     esp_wifi_deinit();

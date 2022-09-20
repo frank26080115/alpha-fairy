@@ -101,6 +101,8 @@ class PtpIpCamera
         void (*cb_onDisconnect)(void) = NULL;
         void (*cb_onReject)(void) = NULL;
         void (*cb_onConfirmedAvail)(void) = NULL;
+        void (*cb_onEvent)(uint16_t) = NULL;
+        void (*cb_onRxAct)(void) = NULL;
 
         virtual void set_debugflags(uint32_t x);
         uint32_t debug_flags;

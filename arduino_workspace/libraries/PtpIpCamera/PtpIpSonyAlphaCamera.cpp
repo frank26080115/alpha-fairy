@@ -160,6 +160,9 @@ bool PtpIpSonyAlphaCamera::decode_pkt(uint8_t buff[], uint32_t buff_len)
         if (event_code == SONYALPHA_EVENTCODE_PropertyChanged) {
             need_check_properties = true;
         }
+        if (cb_onEvent != NULL) {
+            cb_onEvent(event_code);
+        }
     }
     return PtpIpCamera::decode_pkt(buff, buff_len);
 }

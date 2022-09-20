@@ -29,6 +29,7 @@ FairyMenuItem::FairyMenuItem(const char* img_fname, uint16_t id)
 
 void FairyMenuItem::draw_mainImage(void)
 {
+    cpufreq_boost();
     M5Lcd.setRotation(0);
     M5Lcd.drawPngFile(SPIFFS, _main_img, _main_img_x, _main_img_y);
     // if you need to overlay something else on top of the main image, then override this function, call it first, then do whatever you need to do
@@ -45,6 +46,7 @@ FairySubmenu::FairySubmenu(const char* img_fname, uint16_t id) : FairyMenuItem(i
 
 bool FairySubmenu::on_execute(void)
 {
+    cpufreq_boost();
     rewind();
     imu.resetSpin();
     FairyMenuItem* itm = (FairyMenuItem*)cur_node->item;
@@ -494,6 +496,7 @@ bool FairyCfgApp::task(void)
 
     if (redraw)
     {
+        cpufreq_boost();
         itm->on_redraw();
         redraw_flag = false;
     }
@@ -538,6 +541,7 @@ bool FairyCfgApp::task(void)
 // this function is similar to FairySubmenu::on_execute(void)
 bool FairyCfgApp::on_execute(void)
 {
+    cpufreq_boost();
     rewind();
     FairyCfgItem* itm = (FairyCfgItem*)cur_node->item;
     gui_startAppPrint();

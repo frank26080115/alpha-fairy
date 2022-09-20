@@ -5,6 +5,8 @@ void remote_shutter(uint8_t time_delay, bool use_gui)
     uint32_t tstart, now, tdiff;
     bool quit = false;
 
+    cpufreq_boost();
+
     if (fairycam.isOperating() == false)
     {
         bool can_still_shoot = false;
@@ -86,6 +88,7 @@ void remote_shutter(uint8_t time_delay, bool use_gui)
         // wait the countdown time
         while (((tdiff = ((now = millis()) - tstart)) < (time_delay * 1000)) && fairycam.isOperating()) {
             if (app_poll()) {
+                cpufreq_boost();
                 if (time_delay > 2 && use_gui) {
                     gui_drawVerticalDots(0, 40, -1, 5, time_delay, tdiff / 1000, false, TFT_DARKGREEN, TFT_RED);
                 }
@@ -221,6 +224,7 @@ class AppRemoteShutter : public FairyMenuItem
 
         virtual bool on_execute(void)
         {
+            cpufreq_boost();
             remote_shutter(_delay, true);
             draw_mainImage();
             draw_delay();

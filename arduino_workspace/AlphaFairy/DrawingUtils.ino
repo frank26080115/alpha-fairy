@@ -12,6 +12,8 @@ void gui_drawVerticalDots(int x_offset, int y_margin, int y_offset, int dot_radi
     int y_span = lcd_height - (2 * y_margin);
     int i;
 
+    cpufreq_boost(); // drawing these dots almost always mean we are in a long execution
+
     if (reverse) {
         dot_idx %= dot_cnt;
         dot_idx = dot_cnt - dot_idx - 1;
@@ -68,6 +70,7 @@ void gui_drawConnecting(bool first)
     if (cur_idx != last_idx) {
         last_idx = cur_idx;
         conn_filename[11] = '0' + cur_idx;
+        cpufreq_boost();
         M5Lcd.setRotation(0);
         M5Lcd.drawPngFile(SPIFFS, conn_filename, 0, 0);
     }

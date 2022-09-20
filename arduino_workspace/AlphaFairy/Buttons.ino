@@ -113,6 +113,7 @@ bool btnSide_hasPressed() {
         Serial.printf("btnSide_cnt %u %u\r\n", btnSide_cnt, btnSide_cnt_prev);
         rpt_time = 0;
         #endif
+        cpufreq_boost();
         return true;
     }
     #ifdef BTNS_DEBUG
@@ -154,6 +155,7 @@ bool btnBig_hasPressed() {
         Serial.printf("btnBig_cnt %u %u\r\n", btnBig_cnt, btnBig_cnt_prev);
         rpt_time = 0;
         #endif
+        cpufreq_boost();
         return true;
     }
     #ifdef BTNS_DEBUG
@@ -243,6 +245,7 @@ void btnPwr_quickPoll()
         btnPwr_cnt++;
         dbg_ser.printf("user pressed power button\r\n");
         pwr_tick(true);
+        cpufreq_boost();
     }
 }
 

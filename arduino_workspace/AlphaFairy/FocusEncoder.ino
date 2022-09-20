@@ -43,6 +43,7 @@ void fenc_task()
     if (d != 0)
     {
         pwr_tick(true);
+        cpufreq_boost();
 
         int32_t additional = d * config_settings.fenc_multi;
         #if 1
@@ -104,6 +105,8 @@ void fenc_task()
         if (millis() - now > 200) { // don't hang the thread
             break;
         }
+
+        cpufreq_boost();
     }
 }
 

@@ -305,6 +305,9 @@ void PtpIpCamera::poll_socket(
     (*buff_idx) += did_read;
 
     if (did_read > 0) {
+        if (cb_onRxAct != NULL) {
+            cb_onRxAct();
+        }
         #ifdef PTPIP_DEBUG_RX
         debug_rx((uint8_t*)buff, did_read);
         #endif

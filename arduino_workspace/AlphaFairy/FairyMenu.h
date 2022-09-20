@@ -8,6 +8,7 @@
 #include "AlphaFairy.h"
 
 extern bool redraw_flag;
+extern void cpufreq_boost(void);
 
 // the base class that every type of menu item is derived from
 class FairyItem
@@ -58,7 +59,7 @@ class FairyMenuItem : public FairyItem
         inline  int16_t  get_mainImage_X  (void) { return _main_img_x; };
         inline  int16_t  get_mainImage_Y  (void) { return _main_img_y; };
 
-        inline void      set_redraw       (void) { redraw_flag = true; } // forces a redraw on next loop, useful for when app execution has drawn extra stuff that needs to disappear
+        inline void      set_redraw       (void) { cpufreq_boost(); redraw_flag = true; } // forces a redraw on next loop, useful for when app execution has drawn extra stuff that needs to disappear
 
     protected:
         char* _main_img;

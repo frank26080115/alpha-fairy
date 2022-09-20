@@ -71,7 +71,9 @@ install(new FairyCfgItem("Save + Exit", config_save_exit, "/back_icon.png"));
                 }
                 else
                 {
-                    NetMgr_setWifiPower((wifi_power_t)wifipwr_table[config_settings.wifi_pwr]);
+                    if (_backup->wifi_pwr != config_settings.wifi_pwr) {
+                        NetMgr_setWifiPower((wifi_power_t)wifipwr_table[config_settings.wifi_pwr]);
+                    }
                 }
 
                 if (_backup != NULL) {

@@ -27,11 +27,13 @@ class SpriteMgr
         TFT_eSprite* get(const char* fp);
         void unload_all(void);
         uint8_t holder_flag;
+        void (*cb_needboost)(void) = NULL;
 
     private:
         M5DisplayExt* tft;
         sprmgr_item_t* head_node;
         sprmgr_item_t* last(void);
+        void need_boost(void) { if (cb_needboost != NULL) { cb_needboost(); } };
 };
 
 #endif

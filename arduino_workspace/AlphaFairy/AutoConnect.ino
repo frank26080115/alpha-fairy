@@ -7,6 +7,7 @@ int  autoconnect_status = 0;
 void autoconnect_poll()
 {
     yield();
+    cpufreq_boost();
     imu.poll();
     cmdline.task();
     pwr_sleepCheck(); // this will only dim the screen, because pwr_tick is always being called

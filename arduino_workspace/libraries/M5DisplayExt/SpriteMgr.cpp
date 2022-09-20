@@ -13,6 +13,8 @@ SpriteMgr::SpriteMgr(M5DisplayExt* tft)
 
 bool SpriteMgr::load(const char* fp, int16_t width, int16_t height)
 {
+    need_boost();
+
     if (get(fp) != NULL) {
         return true;
     }
@@ -60,6 +62,8 @@ bool SpriteMgr::load(const char* fp, int16_t width, int16_t height)
 
 void SpriteMgr::draw(const char* fp, int16_t x, int16_t y, int16_t width, int16_t height)
 {
+    need_boost();
+
     TFT_eSprite* sprite = get(fp);
     if (sprite == NULL)
     {
@@ -120,6 +124,8 @@ sprmgr_item_t* SpriteMgr::last(void)
 
 void SpriteMgr::unload_all(void)
 {
+    need_boost();
+
     sprmgr_item_t* node = last();
     sprmgr_item_t* prev_node;
     while (node != NULL)

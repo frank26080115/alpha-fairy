@@ -392,6 +392,7 @@ class AppWifiConfig : public FairySubmenu
         virtual bool task(void)
         {
             httpsrv_poll();
+            cpufreq_boost();
             return FairySubmenu::task();
         };
 

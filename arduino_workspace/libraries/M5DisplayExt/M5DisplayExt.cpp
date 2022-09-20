@@ -26,6 +26,8 @@ void M5DisplayExt::drawBmpFile(fs::FS &fs, const char *path, uint16_t x, uint16_
 
 // Bodmers BMP image rendering function
 void M5DisplayExt::drawBmpFileSprite(TFT_eSPI* sprite, fs::FS &fs, const char *path, uint16_t x, uint16_t y) {
+  need_boost();
+
   if ((x >= width()) || (y >= height())) return;
 
   // Open requested file on SD card
@@ -263,6 +265,9 @@ static bool jpgDecode(jpg_file_decoder_t *jpeg,
 void M5DisplayExt::drawJpgFile(fs::FS &fs, const char *path, uint16_t x, uint16_t y,
                             uint16_t maxWidth, uint16_t maxHeight, uint16_t offX,
                             uint16_t offY, jpeg_div_t scale) {
+
+  need_boost();
+
   if ((x + maxWidth) > width() || (y + maxHeight) > height()) {
     log_e("Bad dimensions given");
     return;
@@ -363,6 +368,8 @@ void M5DisplayExt::drawPngFileSprite(TFT_eSPI* sprite, fs::FS &fs, const char *p
                             uint16_t maxWidth, uint16_t maxHeight, uint16_t offX,
                             uint16_t offY, double scale, uint8_t alphaThreshold)
 {
+  need_boost();
+
   File file = fs.open(path);
   if (!file) {
     log_e("Failed to open file for reading");

@@ -38,12 +38,14 @@ FairySubmenu main_menu(NULL, 0);
 void setup()
 {
     Serial.begin(115200);
+    dbg_ser.enabled = true;
+
+    cpufreq_init();
+    //cpufreq_boost();
 
     settings_init();
     btns_init();
     SonyCamIr_Init();
-
-    dbg_ser.enabled = true;
 
     M5.begin(false); // do not initialize the LCD, we have our own extended M5Lcd class to initialize later
     M5.IMU.Init();
@@ -51,6 +53,7 @@ void setup()
     M5.IMU.SetAccelFsr(M5.IMU.AFS_4G);
     M5.Axp.begin();
     M5.Axp.ScreenSwitch(false); // turn off the LCD backlight while initializing, avoids junk being shown on the screen
+    //M5Lcd.cb_needboost = cpufreq_boost;
     M5Lcd.begin(); // our own extended LCD object
     M5Lcd.fillScreen(TFT_BLACK);
     while (!SPIFFS.begin(true)){
@@ -69,6 +72,7 @@ void setup()
 
     #ifdef USE_SPRITE_MANAGER
     sprites = new SpriteMgr(&M5Lcd);
+    //sprites->cb_needboost = cpufreq_boost;
     #endif
 
     httpcam.borrowBuffer(ptpcam.donateBuffer(), DATA_BUFFER_SIZE);
@@ -99,6 +103,7 @@ void setup()
 void loop()
 {
     main_menu.on_execute(); // this runs an internal loop, the loop calls app_poll, and app_poll will call yield, which resets the watchdog
+    dbg_ser.println("main menu exited");
     // exited
     pwr_shutdown();
 }
@@ -168,7 +173,8 @@ bool app_poll()
 
         yield();
 
-        pwr_lightSleepEnter();
+        cpufreq_task();
+        pwr_lightSleepEnter(); // this doesn't work yet
 
         return true; // can do more low priority tasks
     }
@@ -203,8 +209,9 @@ void critical_error(const char* fp)
 {
     prevent_status_bar_thread = true; // critical error can happen from the WiFi thread, so prevent the GUI thread from drawing a status bar over the error screen
 
+    cpufreq_boost();
     pwr_tick(true);
-    M5.Axp.GetBtnPress();
+    M5.Axp.GetBtnPress(); // clear the button bit
     uint32_t t = millis(), now = t;
 
     // disconnect
