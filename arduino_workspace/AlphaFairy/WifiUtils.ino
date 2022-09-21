@@ -153,11 +153,9 @@ bool wifiprofile_connect(uint8_t idx)
             Serial.println(profile.ssid);
             if (profile.opmode == WIFIOPMODE_STA) {
                 NetMgr_beginSTA((char*)profile.ssid, (char*)profile.password);
-                esp_wifi_set_ps(WIFI_PS_MAX_MODEM);
             }
             else {
                 NetMgr_beginAP((char*)profile.ssid, (char*)profile.password);
-                esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
             }
             return true;
         }

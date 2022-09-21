@@ -36,4 +36,6 @@
 
 #define BTN_DEBOUNCE 50
 
+#define SERIAL_PORT_BAUDRATE   115200
+
 #endif

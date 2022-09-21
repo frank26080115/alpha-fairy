@@ -249,6 +249,10 @@ void pwr_lightSleepEnter()
     gpio_wakeup_enable(GPIO_BTN_SIDE, GPIO_INTR_LOW_LEVEL);
     gpio_wakeup_enable(GPIO_BTN_BIG , GPIO_INTR_LOW_LEVEL);
     #endif
+    if (NetMgr_getOpMode() == WIFIOPMODE_STA) {
+        esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
+    }
+    WiFi.setSleep(true);
     esp_err_t e = esp_light_sleep_start();
     if (e != ESP_OK)
     {
@@ -257,12 +261,17 @@ void pwr_lightSleepEnter()
         }
     }
     old_e = e;
+    #else
+    // attempt modem sleep
+    if (NetMgr_getOpMode() == WIFIOPMODE_STA) {
+        esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
+    }
+    WiFi.setSleep(true);
     #endif
 }
 
 void pwr_lightSleepSetup()
 {
-    #ifdef ENABLE_LIGHT_SLEEP
     static bool has_configed = false;
     if (has_configed) {
         return;
@@ -275,8 +284,8 @@ void pwr_lightSleepSetup()
         .light_sleep_enable = true,
     };
     esp_pm_configure(&cfg);
-    // esp_wifi_set_ps called during connection
 
+    #ifdef ENABLE_LIGHT_SLEEP
     #ifdef ENABLE_LIGHT_SLEEP_GPIOWAKE
     esp_sleep_enable_gpio_wakeup();
     // note: gpio_wakeup_enable is called from pwr_lightSleepEnter because the ISR changes the interrupt mode every time it fires

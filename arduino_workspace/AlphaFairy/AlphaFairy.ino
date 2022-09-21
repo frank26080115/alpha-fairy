@@ -35,7 +35,7 @@ FairySubmenu main_menu(NULL, 0);
 
 void setup()
 {
-    Serial.begin(115200);
+    Serial.begin(SERIAL_PORT_BAUDRATE);
     dbg_ser.enabled = true;
 
     cpufreq_init();
