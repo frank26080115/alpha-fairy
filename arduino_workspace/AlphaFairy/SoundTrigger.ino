@@ -11,6 +11,8 @@ NOTE: the newer I2S code in ESP-IDF has not made it into the Arduino ESP32 core 
 #define MICTRIG_READ_LEN 256
 #define MICTRIG_GAIN 2
 
+#define MICTRIG_I2S_SAMPLERATE 36000
+
 #define MICTRIG_LEVEL_BAR_HEIGHT   8
 #define MICTRIG_LEVEL_TRIG_HEIGHT 12
 
@@ -25,6 +27,12 @@ volatile int32_t mictrig_decay = 0;
 volatile bool mictrig_hasTriggered = false;
 bool gui_microphoneActive = false;
 
+//#define MICTRIG_STATS
+#ifdef MICTRIG_STATS
+volatile uint32_t mictrig_stats_sampleCnt = 0;
+volatile uint32_t mictrig_stats_startTime = 0;
+#endif
+
 #ifdef MICTRIG_NEW_I2S_LIB
 i2s_chan_handle_t mictrig_i2shandle;
 static IRAM_ATTR bool mictrig_rx_cb(i2s_chan_handle_t handle, i2s_event_data_t *event, void *user_ctx);
@@ -36,7 +44,7 @@ void mictrig_init()
     i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_AUTO, I2S_ROLE_MASTER);
     i2s_new_channel(&chan_cfg, NULL, &mictrig_i2shandle);
     i2s_std_config_t std_cfg = {
-        .clk_cfg = I2S_PDM_RX_CLK_DEFAULT_CONFIG(36000),
+        .clk_cfg = I2S_PDM_RX_CLK_DEFAULT_CONFIG(MICTRIG_I2S_SAMPLERATE),
         .slot_cfg = I2S_PDM_RX_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_MONO),
         .gpio_cfg = {
             .mclk = I2S_GPIO_UNUSED,
@@ -67,7 +75,7 @@ void mictrig_init()
     // code adapted from https://github.com/m5stack/M5StickC/blob/master/examples/Basics/Micophone/Micophone.ino
     i2s_config_t i2s_config = {
         .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX | I2S_MODE_PDM), // Set the I2S operating mode
-        .sample_rate     = 38000,                                           // Set the I2S sampling rate
+        .sample_rate     = MICTRIG_I2S_SAMPLERATE,                                           // Set the I2S sampling rate
         .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,                       // Fixed 12-bit stereo MSB
         .channel_format  = I2S_CHANNEL_FMT_ALL_RIGHT,                       // Set the channel format
 #if ESP_IDF_VERSION > ESP_IDF_VERSION_VAL(4, 1, 0)
@@ -93,7 +101,7 @@ void mictrig_init()
 
     i2s_driver_install(I2S_NUM_0, &i2s_config, 0, NULL);
     i2s_set_pin(I2S_NUM_0, &pin_config);
-    i2s_set_clk(I2S_NUM_0, 38000, I2S_BITS_PER_SAMPLE_16BIT, I2S_CHANNEL_MONO);
+    i2s_set_clk(I2S_NUM_0, MICTRIG_I2S_SAMPLERATE, I2S_BITS_PER_SAMPLE_16BIT, I2S_CHANNEL_MONO);
 
     mictrig_buffer16 = (int16_t*)mictrig_buffer8;
 
@@ -105,6 +113,11 @@ static IRAM_ATTR bool mictrig_rx_cb(i2s_chan_handle_t handle, i2s_event_data_t *
 {
     mictrig_buffer16 = (int16_t*)(event->data);
     uint32_t sz      = (uint32_t)(event->size);
+
+    #ifdef MICTRIG_STATS
+    if (sz > 0) mictrig_stats_task(sz, millis());
+    #endif
+
     uint32_t i;
     int32_t m = 0;
     for (i = 0; i < sz / 2; i++) {
@@ -191,6 +204,10 @@ void mictrig_poll()
             break;
         }
 
+        #ifdef MICTRIG_STATS
+        mictrig_stats_task(bytesread, tstart);
+        #endif
+
         m *= MICTRIG_GAIN;           // apply gain
         m = m > 0x7FFF ? 0x7FFF : m; // limit after gain
 
@@ -213,6 +230,23 @@ void mictrig_poll()
 
     #endif
 }
+
+#ifdef MICTRIG_STATS
+void mictrig_stats_task(uint32_t add_bytes, uint32_t now_time)
+{
+    if (mictrig_stats_sampleCnt <= 0) {
+        mictrig_stats_startTime = now_time;
+    }
+    mictrig_stats_sampleCnt += add_bytes / 2;
+    if (mictrig_stats_sampleCnt >= (MICTRIG_I2S_SAMPLERATE * 10)) {
+        uint32_t t = millis();
+        uint32_t dt = t - mictrig_stats_startTime;
+        uint32_t samps = mictrig_stats_sampleCnt * 1000;
+        dbg_ser.printf("mic sample rate %u\r\n", (samps / dt));
+        mictrig_stats_sampleCnt = 0;
+    }
+}
+#endif
 
 void mictrig_decayTask()
 {

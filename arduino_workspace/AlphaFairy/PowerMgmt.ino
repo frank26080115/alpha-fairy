@@ -20,6 +20,8 @@ uint32_t lcddim_last_tick = 0;
 bool lcd_backlight_dim = false;
 bool prevent_status_bar_thread = false;
 
+extern bool gui_microphoneActive;
+
 void gui_drawStatusBar(bool is_black)
 {
     #ifdef DISABLE_STATUS_BAR
@@ -242,6 +244,10 @@ void pwr_sleepCheck()
 
 void pwr_lightSleepEnter()
 {
+    if (gui_microphoneActive) {
+        return;
+    }
+
     #ifdef ENABLE_LIGHT_SLEEP
     static esp_err_t old_e = ESP_OK;
     pwr_lightSleepSetup();
@@ -261,12 +267,14 @@ void pwr_lightSleepEnter()
         }
     }
     old_e = e;
+    esp_wifi_start();
     #else
     // attempt modem sleep
     if (NetMgr_getOpMode() == WIFIOPMODE_STA) {
         esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
     }
     WiFi.setSleep(true);
+    vTaskDelay(10 / portTICK_PERIOD_MS);
     #endif
 }
 
@@ -491,6 +499,8 @@ void pmic_log(void)
     }
     last_time = now;
 
+    static float prev_c = 0;
+
     float c    = M5.Axp.GetCoulombData();
     float vbat = M5.Axp.GetBatVoltage();
     float ibat = M5.Axp.GetBatCurrent();
@@ -500,7 +510,8 @@ void pmic_log(void)
 
     sprintf(fname, "/pwrlog_%u.txt", pmic_fnum);
 
-    sprintf(logstr, "%8u, %0.3f, %0.3f, %0.3f, \r\n", millis(), vbat, ibat, c);
+    sprintf(logstr, "%8u, %0.3f, %0.3f, %0.3f, %0.3f, \r\n", millis(), vbat, ibat, c, (c - prev_c) / 5);
+    prev_c = c;
 
     File f = SPIFFS.open(fname, FILE_APPEND);
     f.print(logstr);

@@ -19,9 +19,10 @@
 //#define PMIC_LOG_ON_BOOT
 //#define PMIC_LOG_DISABLE_RECHARGING
 
-//#define ENABLE_CPU_FREQ_SCALING
-//#define ENABLE_LIGHT_SLEEP
+//#define ENABLE_CPU_FREQ_SCALING      // doesn't work, will crash
+//#define ENABLE_LIGHT_SLEEP           // doesn't work, no WiFi connectivity
 //#define ENABLE_LIGHT_SLEEP_GPIOWAKE
+// note: even with these features disabled, automatic light sleep should be enabled
 
 #define WIFIPROFILE_LIMIT 20
 #define WIFI_STRING_LEN 30
