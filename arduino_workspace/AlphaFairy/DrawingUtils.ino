@@ -190,3 +190,24 @@ int8_t gui_drawFocusPullState(int y)
     }
     return dir;
 }
+
+void gui_drawLevelBar(int32_t lvl, int32_t thresh)
+{
+    static TFT_eSprite* level_canvas = NULL;
+    if (level_canvas == NULL) {
+        level_canvas = new TFT_eSprite(&M5Lcd);
+        level_canvas->createSprite(M5Lcd.width() - 60, MICTRIG_LEVEL_MARGIN);
+    }
+
+    #define MICTRIG_LEVEL_BAR_HEIGHT   8
+    #define MICTRIG_LEVEL_TRIG_HEIGHT 12
+
+    level_canvas->fillSprite(TFT_BLACK);
+    if (lvl >= 0) {
+        level_canvas->fillRect(0     , 0, lvl, MICTRIG_LEVEL_BAR_HEIGHT , TFT_RED  );
+    }
+    if (thresh >= 0) {
+        level_canvas->fillRect(thresh, 0, 3  , MICTRIG_LEVEL_TRIG_HEIGHT, TFT_GREEN);
+    }
+    level_canvas->pushSprite(0, 0);
+}

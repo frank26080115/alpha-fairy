@@ -13,9 +13,6 @@ NOTE: the newer I2S code in ESP-IDF has not made it into the Arduino ESP32 core 
 
 #define MICTRIG_I2S_SAMPLERATE 36000
 
-#define MICTRIG_LEVEL_BAR_HEIGHT   8
-#define MICTRIG_LEVEL_TRIG_HEIGHT 12
-
 static bool mictrig_hasInit = false;
 
 uint8_t mictrig_buffer8[MICTRIG_READ_LEN * 2] = {0};
@@ -137,7 +134,7 @@ static IRAM_ATTR bool mictrig_rx_cb(i2s_chan_handle_t handle, i2s_event_data_t *
 
     if (m > mictrig_filteredMax)
     {
-        mictrig_decay = 64 * 4;     // slow down the decay
+        mictrig_decay = 16;      // slow down the decay
         mictrig_filteredMax = m; // set the new displayed peak
     }
 
@@ -217,7 +214,7 @@ void mictrig_poll()
 
         if (m > mictrig_filteredMax)
         {
-            mictrig_decay = 64 * 4;  // slow down the decay
+            mictrig_decay = 16;      // slow down the decay
             mictrig_filteredMax = m; // set the new displayed peak
         }
 
@@ -256,7 +253,7 @@ void mictrig_decayTask()
     }
     // accelerate the decay
     if (mictrig_decay <= 0xFFF) {
-        mictrig_decay += 32 * 3;
+        mictrig_decay += 8;
     }
 }
 
@@ -292,15 +289,8 @@ bool mictrig_shoot()
     return false;
 }
 
-TFT_eSprite* miclevel_canvas = NULL;
-
 void mictrig_drawLevel()
 {
-    if (miclevel_canvas == NULL) {
-        miclevel_canvas = new TFT_eSprite(&M5Lcd);
-        miclevel_canvas->createSprite(M5Lcd.width() - 60, MICTRIG_LEVEL_MARGIN);
-    }
-
     // calculate the length of the red bar representing the current sound level peak
     uint32_t lvl = (mictrig_filteredMax + 90) / 182;
     lvl = (lvl < MICTRIG_LEVEL_BAR_HEIGHT) ? MICTRIG_LEVEL_BAR_HEIGHT : lvl;
@@ -312,10 +302,7 @@ void mictrig_drawLevel()
     thresh /= 180;
     thresh = (thresh < MICTRIG_LEVEL_BAR_HEIGHT) ? MICTRIG_LEVEL_BAR_HEIGHT : thresh;
 
-    miclevel_canvas->fillSprite(TFT_BLACK);
-    miclevel_canvas->fillRect(0     , 0, lvl, MICTRIG_LEVEL_BAR_HEIGHT , TFT_RED  );
-    miclevel_canvas->fillRect(thresh, 0, 3  , MICTRIG_LEVEL_TRIG_HEIGHT, TFT_GREEN);
-    miclevel_canvas->pushSprite(0, 0);
+    gui_drawLevelBar(lvl, thresh);
 }
 
 // parent class that handles checking the mic samples and drawing the level bar
