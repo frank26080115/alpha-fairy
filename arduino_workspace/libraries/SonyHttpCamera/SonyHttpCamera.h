@@ -11,7 +11,7 @@
 #include <DebuggingSerial.h>
 
 //#include "AsyncHTTPRequest_Generic.hpp"
-#include <WiFiUDP.h>
+#include <WiFiUdp.h>
 #include <HTTPClient.h>
 
 #define SHCAM_RXBUFF_UNIT     64
