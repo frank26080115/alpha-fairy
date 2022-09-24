@@ -25,7 +25,7 @@ void remote_shutter(uint8_t time_delay, bool use_gui)
             can_still_shoot = true;
         }
 
-        if (config_settings.gpio_enabled)
+        if (config_settings.pin_shutter != PINCFG_NONE)
         {
             dbg_ser.print("GPIO rmt ");
             if (time_delay > 0)

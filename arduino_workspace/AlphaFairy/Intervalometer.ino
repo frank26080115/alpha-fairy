@@ -168,7 +168,7 @@ class PageInterval : public FairyCfgItem
 
 bool intervalometer_func(void* ptr)
 {
-    PageInterval* pg = (PageInterval*)ptr;
+    FairyItem* pg = (FairyItem*)ptr;
     uint16_t caller_id = pg->get_parentId(); // need to know if this is normal intervalometer or astrophotography intervalometer
 
     uint32_t t = millis(), now = t;
@@ -192,8 +192,11 @@ bool intervalometer_func(void* ptr)
     M5Lcd.setTextFont(4);
 
     // wait the starting countdown if required
-    if (config_settings.intv_delay > 0) {
-        stop_flag |= intervalometer_wait(config_settings.intv_delay, t, cnt, "Start in...", false, total_period);
+    if (caller_id != MENUITEM_TRIGGER)
+    {
+        if (config_settings.intv_delay > 0) {
+            stop_flag |= intervalometer_wait(config_settings.intv_delay, t, cnt, "Start in...", false, total_period);
+        }
     }
 
     // handle early quit

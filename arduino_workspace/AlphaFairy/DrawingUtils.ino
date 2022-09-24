@@ -98,9 +98,9 @@ void gui_drawTopThickLine(uint16_t thickness, uint16_t colour)
     M5Lcd.fillRect(0, 0, M5Lcd.width(), thickness, colour);
 }
 
-void gui_showVal(int32_t x, uint16_t txtfmt, Print* printer)
+void gui_showVal(int32_t x, uint32_t txtfmt, Print* printer)
 {
-    char str[16]; int i = 0;
+    char str[64]; int i = 0;
     if ((txtfmt & TXTFMT_BOOL) != 0) {
         if (x == 0) {
             i += sprintf(&(str[i]), "NO");
@@ -151,8 +151,120 @@ void gui_showVal(int32_t x, uint16_t txtfmt, Print* printer)
             i += sprintf(&(str[i]), "HTTP (older)");
         }
     }
+    else if ((txtfmt & TXTFMT_TRIGSRC) != 0) {
+        if ((txtfmt & TXTFMT_SMALL) == 0)
+        {
+            if (x == TRIGSRC_ALL) {
+                i += sprintf(&(str[i]), "all");
+            }
+            else if (x == TRIGSRC_MIC) {
+                i += sprintf(&(str[i]), "mic");
+            }
+            else if (x == TRIGSRC_EXINPUT) {
+                i += sprintf(&(str[i]), "ext-input");
+            }
+            else if (x == TRIGSRC_IMU) {
+                i += sprintf(&(str[i]), "IMU");
+            }
+        }
+        else
+        {
+            if (x == TRIGSRC_ALL) {
+                i += sprintf(&(str[i]), "ALL");
+            }
+            else if (x == TRIGSRC_MIC) {
+                i += sprintf(&(str[i]), "MIC");
+            }
+            else if (x == TRIGSRC_EXINPUT) {
+                i += sprintf(&(str[i]), "EXT");
+            }
+            else if (x == TRIGSRC_IMU) {
+                i += sprintf(&(str[i]), "IMU");
+            }
+        }
+    }
+    else if ((txtfmt & TXTFMT_TRIGACT) != 0) {
+        if ((txtfmt & TXTFMT_SMALL) == 0)
+        {
+            if (x == TRIGACT_PHOTO) {
+                i += sprintf(&(str[i]), "photo");
+            }
+            else if (x == TRIGACT_VIDEO) {
+                i += sprintf(&(str[i]), "video");
+            }
+            else if (x == TRIGACT_INTERVAL) {
+                i += sprintf(&(str[i]), "interval");
+            }
+        }
+        else
+        {
+            if (x == TRIGACT_PHOTO) {
+                i += sprintf(&(str[i]), "PIC");
+            }
+            else if (x == TRIGACT_VIDEO) {
+                i += sprintf(&(str[i]), "VID");
+            }
+            else if (x == TRIGACT_INTERVAL) {
+                i += sprintf(&(str[i]), "INTV");
+            }
+        }
+    }
+    else if ((txtfmt & TXTFMT_PINCFG) != 0) {
+        if (x == PINCFG_NONE) {
+            i += sprintf(&(str[i]), "none");
+        }
+        else if (x == PINCFG_G0) {
+            i += sprintf(&(str[i]), "G0");
+        }
+        else if (x == PINCFG_G25) {
+            i += sprintf(&(str[i]), "G25");
+        }
+        else if (x == PINCFG_G26) {
+            i += sprintf(&(str[i]), "G26");
+        }
+        else if (x == PINCFG_G36) {
+            i += sprintf(&(str[i]), "G36");
+        }
+    }
+    else if ((txtfmt & TXTFMT_DIVHUNDRED) != 0) {
+        float xx = x;
+        xx /= 100.0;
+        i += sprintf(&(str[i]), "%0.2f", xx);
+    }
     else {
         i += sprintf(&(str[i]), "%d", x);
+    }
+
+    if (((txtfmt & TXTFMT_ZEROOFF) != 0 && x == 0) || ((txtfmt & TXTFMT_NEGOFF) != 0 && x < 0)) {
+        i = sprintf(&(str[0]), "OFF");
+    }
+    else if (((txtfmt & TXTFMT_ZEROINF) != 0 && x == 0) || ((txtfmt & TXTFMT_NEGINF) != 0 && x < 0)) {
+        i = sprintf(&(str[0]), "inf.");
+    }
+
+    if (i > 0 && ((txtfmt & TXTFMT_ALLCAPS) != 0) || ((txtfmt & TXTFMT_ALLLOWER) != 0))
+    {
+        uint8_t j;
+        for (j = 0; j < i; j++)
+        {
+            char c = str[j];
+            if (c == 0) {
+                break;
+            }
+            if ((txtfmt & TXTFMT_ALLCAPS) != 0)
+            {
+                if (c >= 'a' && c <= 'z') {
+                    str[j] -= 'a';
+                    str[j] += 'A';
+                }
+            }
+            else if ((txtfmt & TXTFMT_ALLLOWER) != 0)
+            {
+                if (c >= 'A' && c <= 'A') {
+                    str[j] += 'a' - 'A';
+                }
+            }
+        }
     }
 
     if ((txtfmt & TXTFMT_LCDBRITE) != 0) {
@@ -191,7 +303,7 @@ int8_t gui_drawFocusPullState(int y)
     return dir;
 }
 
-void gui_drawLevelBar(int32_t lvl, int32_t thresh)
+void gui_drawLevelBar(int32_t lvl1, int32_t lvl2, int32_t thresh1, int32_t thresh2)
 {
     static TFT_eSprite* level_canvas = NULL;
     if (level_canvas == NULL) {
@@ -202,12 +314,28 @@ void gui_drawLevelBar(int32_t lvl, int32_t thresh)
     #define MICTRIG_LEVEL_BAR_HEIGHT   8
     #define MICTRIG_LEVEL_TRIG_HEIGHT 12
 
+    int16_t ysplit = MICTRIG_LEVEL_TRIG_HEIGHT / 2;
+
     level_canvas->fillSprite(TFT_BLACK);
-    if (lvl >= 0) {
-        level_canvas->fillRect(0     , 0, lvl, MICTRIG_LEVEL_BAR_HEIGHT , TFT_RED  );
+    if (lvl1 >= 0 && lvl2 < 0) {
+        level_canvas->fillRect(0      , 0, lvl1, MICTRIG_LEVEL_BAR_HEIGHT    , TFT_RED  );
     }
-    if (thresh >= 0) {
-        level_canvas->fillRect(thresh, 0, 3  , MICTRIG_LEVEL_TRIG_HEIGHT, TFT_GREEN);
+    else if (lvl1 < 0 && lvl2 >= 0) {
+        level_canvas->fillRect(0      , 0, lvl2, MICTRIG_LEVEL_BAR_HEIGHT    , TFT_RED  );
+    }
+    else if (lvl1 >= 0 && lvl2 >= 0) {
+        level_canvas->fillRect(0      , 0     , lvl1, ysplit, TFT_RED  );
+        level_canvas->fillRect(0      , ysplit, lvl2, ysplit, TFT_RED  );
+    }
+    if (thresh1 >= 0 && thresh2 < 0) {
+        level_canvas->fillRect(thresh1, 0, 3   , MICTRIG_LEVEL_TRIG_HEIGHT, lvl2 > lvl1 ? TFT_DARKGREEN : TFT_GREEN);
+    }
+    else if (thresh2 >= 0 && thresh1 < 0) {
+        level_canvas->fillRect(thresh2, 0, 3   , MICTRIG_LEVEL_TRIG_HEIGHT, lvl2 > lvl1 ? TFT_GREEN : TFT_DARKGREEN);
+    }
+    else if (thresh1 >= 0 && thresh2 >= 0) {
+        level_canvas->fillRect(thresh1, 0     , 3   , ysplit, TFT_GREEN);
+        level_canvas->fillRect(thresh2, ysplit, 3   , ysplit, TFT_GREEN);
     }
     level_canvas->pushSprite(0, 0);
 }
