@@ -236,7 +236,7 @@ void FairyCfgItem::set_icon(const char* x)
 {
     _icon_fpath = (char*)malloc(strlen(x) + 2);
     strcpy(_icon_fpath, x);
-    _icon_width = 60;
+    _icon_width = GENERAL_ICON_WIDTH;
 }
 
 void FairyCfgItem::set_font(int fn)
@@ -289,9 +289,9 @@ void FairyCfgItem::draw_statusBar(void)
 
 void FairyCfgItem::blank_text(void)
 {
-    M5Lcd.fillRect(M5Lcd.width() - 60, 0, 60, 60 + _margin_y, TFT_BLACK);
-    M5Lcd.fillRect(0, _margin_y, M5Lcd.width() - _icon_width, 60, TFT_BLACK);
-    M5Lcd.fillRect(0, 60, M5Lcd.width() - 60, 55, TFT_BLACK);
+    M5Lcd.fillRect(M5Lcd.width() - GENERAL_ICON_WIDTH, 0                    , GENERAL_ICON_WIDTH                , GENERAL_ICON_WIDTH + _margin_y    , TFT_BLACK);
+    M5Lcd.fillRect(0                                 , _margin_y            , M5Lcd.width() - _icon_width       , GENERAL_ICON_WIDTH                , TFT_BLACK);
+    M5Lcd.fillRect(0                                 , GENERAL_ICON_WIDTH   , M5Lcd.width() - GENERAL_ICON_WIDTH, GENERAL_ICON_WIDTH - 5            , TFT_BLACK);
 }
 
 void FairyCfgItem::on_navTo(void)
@@ -303,7 +303,7 @@ void FairyCfgItem::on_redraw(void)
 {
     blank_text();
     draw_name();
-    draw_value(0);
+    draw_value(imu.getTilt());
 }
 
 void FairyCfgItem::draw_value(int8_t tilt)
@@ -455,7 +455,7 @@ FairyCfgApp::FairyCfgApp(const char* img_fname, const char* icon_fname, uint16_t
     if (icon_fname != NULL) {
         _icon_fname = (char*)malloc(strlen(icon_fname) + 2);
         strcpy(_icon_fname, icon_fname);
-        _icon_width = 60;
+        _icon_width = GENERAL_ICON_WIDTH;
     }
 }
 

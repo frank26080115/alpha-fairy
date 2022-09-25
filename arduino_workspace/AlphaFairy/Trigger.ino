@@ -117,7 +117,7 @@ bool trigger_all_poll()
 
 void trigger_drawActionIcon(int16_t y)
 {
-    int16_t w = 60;
+    int16_t w = GENERAL_ICON_WIDTH;
     int16_t x = M5Lcd.width() - w;
     if (trigger_action == TRIGACT_PHOTO)
     {
@@ -179,7 +179,7 @@ class PageTriggerSource : public PageTrigger
         #if 0
         void draw_val_icon(void)
         {
-            int16_t w = 60;
+            int16_t w = GENERAL_ICON_WIDTH;
             int16_t x = M5Lcd.width() - w, y = 0;
             if (trigger_source == TRIGSRC_MIC)
             {
@@ -714,7 +714,7 @@ class AppShutterTrigger : public FairyCfgApp
 
         virtual void draw_icon(void)
         {
-            int16_t w = 60;
+            int16_t w = GENERAL_ICON_WIDTH;
             int16_t x = M5Lcd.width() - w, y = M5Lcd.height() - w;
             if (trigger_source == TRIGSRC_MIC)
             {

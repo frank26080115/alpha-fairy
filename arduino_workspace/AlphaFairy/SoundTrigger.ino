@@ -260,7 +260,7 @@ void mictrig_decayTask()
 bool mictrig_shoot()
 {
     M5Lcd.setCursor(SUBMENU_X_OFFSET, MICTRIG_LEVEL_MARGIN);
-    M5Lcd.fillRect(0, MICTRIG_LEVEL_MARGIN, M5Lcd.width() - 60, M5Lcd.height() - MICTRIG_LEVEL_MARGIN - 12, TFT_BLACK);
+    M5Lcd.fillRect(0, MICTRIG_LEVEL_MARGIN, M5Lcd.width() - GENERAL_ICON_WIDTH, M5Lcd.height() - MICTRIG_LEVEL_MARGIN - 12, TFT_BLACK);
     mictrig_drawLevel();
     if (config_settings.mictrig_delay > 0)
     {

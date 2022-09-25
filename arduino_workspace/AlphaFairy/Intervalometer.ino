@@ -20,11 +20,11 @@ void interval_drawTimer(int8_t x)
     // note: this is the fastest animation in the entire project, best to use the sprite manager
 
     if ((sprites->holder_flag & SPRITESHOLDER_FOCUSPULL) == 0) {
-        sprites->draw(fname, M5Lcd.width() - 60, M5Lcd.height() - 60, 60, 60);
+        sprites->draw(fname, M5Lcd.width() - GENERAL_ICON_WIDTH, M5Lcd.height() - GENERAL_ICON_WIDTH, GENERAL_ICON_WIDTH, GENERAL_ICON_WIDTH);
         sprites->holder_flag |= SPRITESHOLDER_INTERVAL;
     }
     else {
-        M5Lcd.drawPngFile(SPIFFS, fname, M5Lcd.width() - 60, M5Lcd.height() - 60);
+        M5Lcd.drawPngFile(SPIFFS, fname, M5Lcd.width() - GENERAL_ICON_WIDTH, M5Lcd.height() - GENERAL_ICON_WIDTH);
     }
 
     if (i == 0) {
@@ -405,7 +405,7 @@ bool intervalometer_wait(
             need_blank = false; // do only once
         }
         if (stop_request && need_icon) {
-            M5Lcd.drawPngFile(SPIFFS, "/back_icon.png", M5Lcd.width() - 60, 0);
+            M5Lcd.drawPngFile(SPIFFS, "/back_icon.png", M5Lcd.width() - GENERAL_ICON_WIDTH, 0);
             need_icon = false; // do only once, SPI flash file read and file decoding is extremely slow
         }
         interval_drawTimer(-1);

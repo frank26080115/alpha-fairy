@@ -308,7 +308,7 @@ void gui_drawLevelBar(int32_t lvl1, int32_t lvl2, int32_t thresh1, int32_t thres
     static TFT_eSprite* level_canvas = NULL;
     if (level_canvas == NULL) {
         level_canvas = new TFT_eSprite(&M5Lcd);
-        level_canvas->createSprite(M5Lcd.width() - 60, MICTRIG_LEVEL_MARGIN);
+        level_canvas->createSprite(M5Lcd.width() - GENERAL_ICON_WIDTH, MICTRIG_LEVEL_MARGIN);
     }
 
     #define MICTRIG_LEVEL_BAR_HEIGHT   8
