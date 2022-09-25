@@ -14,11 +14,6 @@
 #include <SerialCmdLine.h>
 #include <SonyCameraInfraredRemote.h>
 
-// A file that should exist which we can use to quickly test that the files are present.
-// The main case here is that the user only flashed the firmware, and not the FS, so a
-// single file is a sufficient check.
-#define TEST_FILE "/about.png"
-
 PtpIpSonyAlphaCamera ptpcam((char*)"ALPHA-FAIRY", NULL);
 SonyHttpCamera       httpcam;
 AlphaFairyCamera     fairycam(&ptpcam, &httpcam);
@@ -44,7 +39,6 @@ void setup()
     dbg_ser.enabled = true;
 
     cpufreq_init();
-    //cpufreq_boost();
 
     settings_init();
     btns_init();
@@ -56,44 +50,11 @@ void setup()
     M5.IMU.SetAccelFsr(M5.IMU.AFS_4G);
     M5.Axp.begin();
     M5.Axp.ScreenSwitch(false); // turn off the LCD backlight while initializing, avoids junk being shown on the screen
-    //M5Lcd.cb_needboost = cpufreq_boost;
     M5Lcd.begin(); // our own extended LCD object
     M5Lcd.fillScreen(TFT_BLACK);
     M5.Axp.ScreenBreath(config_settings.lcd_brightness);
 
-    bool imagesPresent = true;
-    if (!SPIFFS.begin(false)){
-        Serial.println("SPIFFS Mount Failed");
-        imagesPresent = false;
-    }
-    else if (!SPIFFS.exists(TEST_FILE)) {
-        Serial.println("Image files are missing");
-        imagesPresent = false;
-    }
-
-    // If there was any issue finding the images, give the user a helpful message
-    if (!imagesPresent) {
-        M5Lcd.setRotation(3);
-        M5Lcd.fillScreen(TFT_BLACK);
-        M5Lcd.setTextFont(2);
-        M5Lcd.highlight(true);
-        M5Lcd.setTextWrap(true);
-        M5Lcd.setHighlightColor(TFT_BLACK);
-        M5Lcd.setTextColor(TFT_RED, TFT_BLACK);
-        M5Lcd.setCursor(5, M5Lcd.height() - 130);
-        M5Lcd.printf("Image files missing");
-        M5Lcd.setCursor(5, M5Lcd.height() - 100);
-        M5Lcd.printf("Upload them from: ");
-        M5Lcd.setCursor(5, M5Lcd.height() - 80);
-        M5Lcd.printf("Tools -> ESP32 Sketch Data Upload");
-
-        // We should still let the user power off... No sense killing the battery.
-        while(true) {
-            if (M5.Axp.GetBtnPress() != 0) {
-                M5.Axp.PowerOff();
-            }
-        }
-    }
+    spiffs_init();
 
     #ifdef PMIC_LOG_ON_BOOT
     pmic_startCoulombCount();
@@ -104,7 +65,6 @@ void setup()
     cmdline.print_prompt();
 
     sprites = new SpriteMgr(&M5Lcd);
-    //sprites->cb_needboost = cpufreq_boost;
 
     httpcam.borrowBuffer(ptpcam.donateBuffer(), DATA_BUFFER_SIZE);
 
@@ -300,4 +260,54 @@ void setup_aboutme(void)
 {
     static AppAboutMe app;
     menu_utils.install(&app);
+}
+
+void spiffs_init(void)
+{
+    uint8_t fail = 0;
+    if (!SPIFFS.begin(false))
+    {
+        Serial.println("SPIFFS Mount Failed");
+        fail = 1;
+    }
+    else if (!SPIFFS.exists("/about.png"))
+    {
+        // A file that should exist which we can use to quickly test that the files are present.
+        // The main case here is that the user only flashed the firmware, and not the FS, so a
+        // single file is a sufficient check.
+        fail = 2;
+    }
+
+    // If there was any issue finding the images, give the user a helpful message
+    if (fail != 0)
+    {
+        gui_startAppPrint();
+        M5Lcd.setTextColor(TFT_RED, TFT_BLACK);
+        M5Lcd.setTextFont(4);
+        M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);
+        M5Lcd.printf("ERROR!!!");
+        M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET + 25);
+        M5Lcd.printf("Image Files Missing");
+        M5Lcd.setTextFont(2);
+        M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET + 50);
+        M5Lcd.printf("Please use the Arduino IDE");
+        M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET + 68);
+        M5Lcd.printf("to upload the missing files");
+
+        // We should still let the user power off... No sense killing the battery.
+        while (true)
+        {
+            yield();
+            if (fail == 1) {
+                Serial.println("SPIFFS Mount Failed");
+            }
+            else if (fail == 2) {
+                Serial.println("Image files are missing");
+            }
+            if (M5.Axp.GetBtnPress() != 0) {
+                pwr_shutdown();
+            }
+            delay(100);
+        }
+    }
 }
