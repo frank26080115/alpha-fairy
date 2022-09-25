@@ -14,6 +14,11 @@
 #include <SerialCmdLine.h>
 #include <SonyCameraInfraredRemote.h>
 
+// A file that should exist which we can use to quickly test that the files are present.
+// The main case here is that the user only flashed the firmware, and not the FS, so a
+// single file is a sufficient check.
+#define TEST_FILE "/about.png"
+
 PtpIpSonyAlphaCamera ptpcam((char*)"ALPHA-FAIRY", NULL);
 SonyHttpCamera       httpcam;
 AlphaFairyCamera     fairycam(&ptpcam, &httpcam);
@@ -54,11 +59,41 @@ void setup()
     //M5Lcd.cb_needboost = cpufreq_boost;
     M5Lcd.begin(); // our own extended LCD object
     M5Lcd.fillScreen(TFT_BLACK);
-    while (!SPIFFS.begin(true)){
-        Serial.println("SPIFFS Mount Failed");
-        delay(500);
-    }
     M5.Axp.ScreenBreath(config_settings.lcd_brightness);
+
+    bool imagesPresent = true;
+    if (!SPIFFS.begin(false)){
+        Serial.println("SPIFFS Mount Failed");
+        imagesPresent = false;
+    }
+    else if (!SPIFFS.exists(TEST_FILE)) {
+        Serial.println("Image files are missing");
+        imagesPresent = false;
+    }
+
+    // If there was any issue finding the images, give the user a helpful message
+    if (!imagesPresent) {
+        M5Lcd.setRotation(3);
+        M5Lcd.fillScreen(TFT_BLACK);
+        M5Lcd.setTextFont(2);
+        M5Lcd.highlight(true);
+        M5Lcd.setTextWrap(true);
+        M5Lcd.setHighlightColor(TFT_BLACK);
+        M5Lcd.setTextColor(TFT_RED, TFT_BLACK);
+        M5Lcd.setCursor(5, M5Lcd.height() - 130);
+        M5Lcd.printf("Image files missing");
+        M5Lcd.setCursor(5, M5Lcd.height() - 100);
+        M5Lcd.printf("Upload them from: ");
+        M5Lcd.setCursor(5, M5Lcd.height() - 80);
+        M5Lcd.printf("Tools -> ESP32 Sketch Data Upload");
+
+        // We should still let the user power off... No sense killing the battery.
+        while(true) {
+            if (M5.Axp.GetBtnPress() != 0) {
+                M5.Axp.PowerOff();
+            }
+        }
+    }
 
     #ifdef PMIC_LOG_ON_BOOT
     pmic_startCoulombCount();
