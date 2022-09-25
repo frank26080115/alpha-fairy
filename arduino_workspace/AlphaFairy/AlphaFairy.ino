@@ -162,7 +162,7 @@ void setup_menus()
 
     setup_qikrmt();
     setup_remoteshutter();
-    setup_soundshutter();
+    setup_shuttertrigger();
     setup_dualshutter();
 
     setup_focusstack();
@@ -224,10 +224,7 @@ void shutterrelease_task()
         tlimit *= 1000; // previous units were in seconds, next unit is in milliseconds
         tlimit = (tlimit <= 0) ? config_settings.shutter_press_time_ms : tlimit;
         if (tlimit > 0 && (telapsed >= tlimit)) {
-            #ifdef SHUTTER_GPIO_ACTIVE_HIGH
-            digitalWrite(SHUTTER_GPIO, LOW);
-            #endif
-            pinMode(SHUTTER_GPIO, INPUT);
+            safe_all_pins();
             gpio_time = 0;
         }
     }

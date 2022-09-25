@@ -33,8 +33,11 @@ The fun part about this project for me is to create a usable user interface on a
  * Focus Pull
    * with optional focus knob (for **linear** focus pull)
  * Talley Light
- * Sound Triggered Shutter
-   * with adjustable sound level threshold and adjustable delay
+ * Sensored Trigger Shutter
+   * trigger sources: microphone, voltage input, and/or IMU motion trigger
+   * trigger action: take photo, take video (adjustable duration), start intervalometer
+   * adjustable delays before arming and after trigger
+   * good for security camera applications
  * Dual Shutter
    * takes two consecutive photos, with different shutter speeds, for compositing photos with both sharp subjects and blurred features
  * Intervalometer

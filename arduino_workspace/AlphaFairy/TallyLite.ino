@@ -2,11 +2,12 @@
 
 extern bool redraw_flag;
 bool tallylite_nopoll = false; // used to prevent recursion in app_poll()
+bool tallylite_enable = true;
 
 void tallylite_task()
 {
     // prevent recursion
-    if (tallylite_nopoll) {
+    if (tallylite_nopoll || tallylite_enable == false) {
         return;
     }
 

@@ -26,23 +26,29 @@ Uses a countdown before sending the remote shutter command.
 
 Rotate the remote to change the time delay amount.
 
-## Sound Shutter
+## Shutter Trigger
 
-![](screens_240/soundshutter.png)
-
-When armed, the remote will send the shutter command when the microphone detects a loud sound.
-
-The triggering sound level can be adjusted. The sound level and triggering threshold are displayed as a bar at the top of the screen.
+![](screens_240/shuttertrigger.png)
 
 ![](doc/img/soundtrigger.jpg)
 
-The side-button navigates through items. The big-button will edit the current item. The tilt angle of the remote determines if the big-button will add or subtract from the value. When the item says "ARMED", it means the trigger is armed, the trigger is not armed when you are editing the settings.
+The trigger source is configurable between: ALL (any), microphone, external input, IMU
 
-Optionally, a time delay can be set. When the trigger sound is detected, the remote will wait for a while before sending the shutter command.
+The trigger action is configurable between: photo, video, intervalometer
 
-NOTE: this was super fun to implement, and annoying because the button clicks usually trigger the mic, and I had to put in code to prevent that
+The option "Arm Delay" is a delay after pressing the Arm button before triggering is allowed. This gives you a chance to run away from the boobytrap you just set.
 
-NOTE: it is a very basic peak detector, it cannot detect words like "cheese", which is what inspired this feature
+The option "Start Delay" is the delay between triggering and taking the action.
+
+The option "Re-arm" means automatically arm again after taking the action. This is used for unsupervised security camera style tasks. This can be disabled.
+
+There will be a display of the relevant sensor value on the top of the screen. The triggering threshold is indicated with a tick, and can be adjusted.
+
+The microphone uses a very simple peak detector algorithm, it cannot recognize words.
+
+The external-input mode uses a voltage threshold (represented in 0-100%, 100% maps to 3.3V), it uses the ADC of the ESP32, the pin number is configurable through the main configuration menu. The signal can be inverted. Use this mode with PIR sensors, laser beam-break sensors, weight sensors, etc.
+
+The IMU motion mode uses acceleration (in G units, between 0 and 4 G) and gyro spin (in DPS, between 0 and 500 DPS).
 
 ## Talley Light
 

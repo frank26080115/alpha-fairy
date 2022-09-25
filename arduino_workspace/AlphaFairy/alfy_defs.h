@@ -11,22 +11,34 @@ enum
     // if a unique identifier is needed for a menu item, add it here
     MENUITEM_INTERVAL,
     MENUITEM_ASTRO,
+    MENUITEM_TRIGGER,
 };
 
 enum
 {
-  TXTFMT_NONE     =      0,
-  TXTFMT_BOOL     = 0x0001,
-  TXTFMT_TIME     = 0x0002,
-  TXTFMT_BULB     = 0x0004,
-  TXTFMT_TIMEMS   = 0x0008,
-  TXTFMT_TIMELONG = 0x0010,
-  TXTFMT_SHUTTER  = 0x0020,
-  TXTFMT_ISO      = 0x0040,
-  TXTFMT_LCDBRITE = 0x0080,
-  TXTFMT_BYTENS   = 0x0100,
-  TXTFMT_PROTOCOL = 0x0200,
-  TXTFMT_AUTOCFG  = 0xFFFF,
+  TXTFMT_NONE           =      0,
+  TXTFMT_BOOL           = 0x0001,
+  TXTFMT_TIME           = 0x0002,
+  TXTFMT_BULB           = 0x0004,
+  TXTFMT_TIMEMS         = 0x0008,
+  TXTFMT_TIMELONG       = 0x0010,
+  TXTFMT_SHUTTER        = 0x0020,
+  TXTFMT_ISO            = 0x0040,
+  TXTFMT_LCDBRITE       = 0x0080,
+  TXTFMT_BYTENS         = 0x0100,
+  TXTFMT_PROTOCOL       = 0x0200,
+  TXTFMT_TRIGSRC        = 0x0400,
+  TXTFMT_TRIGACT        = 0x0800,
+  TXTFMT_PINCFG         = 0x1000,
+  TXTFMT_ALLCAPS        = 0x010000,
+  TXTFMT_SMALL          = 0x020000,
+  TXTFMT_ALLLOWER       = 0x040000,
+  TXTFMT_ZEROOFF        = 0x080000,
+  TXTFMT_NEGOFF         = 0x100000,
+  TXTFMT_ZEROINF        = 0x200000,
+  TXTFMT_NEGINF         = 0x400000,
+  TXTFMT_DIVHUNDRED     = 0x800000,
+  TXTFMT_AUTOCFG        = 0xFFFF,
 };
 
 enum
@@ -79,6 +91,30 @@ enum
     ALLOWEDPROTOCOL_ALL   = 0,
     ALLOWEDPROTOCOL_PTP   = 1,
     ALLOWEDPROTOCOL_HTTP  = 2,
+};
+
+enum
+{
+    PINCFG_NONE = 0,
+    PINCFG_G0,
+    PINCFG_G25,
+    PINCFG_G26,
+    PINCFG_G36,
+};
+
+enum
+{
+    TRIGSRC_ALL = 0,
+    TRIGSRC_MIC,
+    TRIGSRC_EXINPUT,
+    TRIGSRC_IMU,
+};
+
+enum
+{
+    TRIGACT_PHOTO = 0,
+    TRIGACT_VIDEO,
+    TRIGACT_INTERVAL,
 };
 
 #endif

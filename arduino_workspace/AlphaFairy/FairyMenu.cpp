@@ -6,7 +6,7 @@ extern M5DisplayExt M5Lcd;
 
 extern void gui_startAppPrint(void);
 extern void gui_drawStatusBar(bool);
-extern void gui_showVal(int32_t x, uint16_t txtfmt, Print* printer);
+extern void gui_showVal(int32_t x, uint32_t txtfmt, Print* printer);
 
 extern void tallylite_task(void);
 
@@ -196,7 +196,7 @@ bool FairySubmenu::task(void)
     return false;
 }
 
-FairyCfgItem::FairyCfgItem(const char* disp_name, int32_t* linked_var, int32_t val_min, int32_t val_max, int32_t step_size, uint16_t fmt_flags)
+FairyCfgItem::FairyCfgItem(const char* disp_name, int32_t* linked_var, int32_t val_min, int32_t val_max, int32_t step_size, uint32_t fmt_flags)
 {
     set_name(disp_name);
     _linked_ptr = linked_var;

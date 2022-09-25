@@ -20,7 +20,6 @@ typedef struct
   int32_t shutter_speed_step_cnt;
   int32_t shutter_step_time_ms;
   int32_t infrared_enabled;
-  int32_t gpio_enabled;
 
   int32_t pwr_save_secs;
   int32_t lcd_dim_secs;
@@ -37,8 +36,15 @@ typedef struct
   //int32_t astro_delay;
   //int32_t astro_limit;
 
+  int32_t trigger_armtime;
+  int32_t trigger_delay;
+  int32_t trigger_retrigger;
+  int32_t trigger_vidtime;
   int32_t mictrig_level;
   int32_t mictrig_delay;
+  int32_t trigger_siglevel;
+  int32_t trigger_imuaccel;
+  int32_t trigger_imurot;
 
   int32_t fenc_multi;
   int32_t fenc_large;
@@ -46,6 +52,10 @@ typedef struct
   int32_t tallylite;
 
   int32_t protocol;
+
+  int32_t pin_shutter;
+  int32_t pin_exinput;
+  int32_t trigger_edge;
 
   uint32_t crc32;
 }
