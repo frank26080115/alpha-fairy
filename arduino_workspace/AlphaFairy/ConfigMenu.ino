@@ -42,13 +42,14 @@ install(new FairyCfgItem("9-pt dist"              , (int32_t*)&(config_settings.
 install(new FairyCfgItem("Tv step size"           , (int32_t*)&(config_settings.shutter_speed_step_cnt ),    1,    9,     1, TXTFMT_BYTENS   ));
 install(new FairyCfgItem("Tv step delay"          , (int32_t*)&(config_settings.shutter_step_time_ms   ),    0, 5000,    10, TXTFMT_BYTENS   ));
 install(new FairyCfgItem("Tally Light en"         , (int32_t*)&(config_settings.tallylite              ),    0,    1,     1, TXTFMT_BOOL     ));
-install(new FairyCfgItem("power save time (s)"    , (int32_t*)&(config_settings.pwr_save_secs          ),    0, 1000,    10, TXTFMT_BYTENS   ));
+install(new FairyCfgItem("power save time (s)"    , (int32_t*)&(config_settings.pwr_save_secs          ),    0, 1000,    10, TXTFMT_BYTENS | TXTFMT_ZEROINF));
 install(new PageLcdBrightness("LCD bright"        , (int32_t*)&(config_settings.lcd_brightness         ),    7,   12,     1, TXTFMT_LCDBRITE ));
-install(new FairyCfgItem("LCD dim time (s)"       , (int32_t*)&(config_settings.lcd_dim_secs           ),    0, 1000,     1, TXTFMT_BYTENS   ));
+install(new FairyCfgItem("LCD dim time (s)"       , (int32_t*)&(config_settings.lcd_dim_secs           ),    0, 1000,     1, TXTFMT_BYTENS | TXTFMT_ZEROINF));
 install(new FairyCfgItem("WiFi power"             , (int32_t*)&(config_settings.wifi_pwr               ),    0,   14,     1, TXTFMT_BYTENS   ));
 install(new FairyCfgItem("IR en"                  , (int32_t*)&(config_settings.infrared_enabled       ),    0,    1,     1, TXTFMT_BOOL     ));
-install(new FairyCfgItem("GPIO en"                , (int32_t*)&(config_settings.gpio_enabled           ),    0,    1,     1, TXTFMT_BOOL     ));
 install(new FairyCfgItem("camera protocol"        , (int32_t*)&(config_settings.protocol               ),    0,    2,     1, TXTFMT_PROTOCOL ));
+install(new FairyCfgItem("pin - shutter rel."     , (int32_t*)&(config_settings.pin_shutter            ),    0,    4,     1, TXTFMT_PINCFG   ));
+install(new FairyCfgItem("pin - ext input"        , (int32_t*)&(config_settings.pin_exinput            ),    0,    4,     1, TXTFMT_PINCFG   ));
 install(new FairyCfgItem("Save + Exit", config_save_exit, "/back_icon.png"));
         };
 

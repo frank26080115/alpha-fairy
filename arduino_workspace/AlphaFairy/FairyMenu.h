@@ -26,6 +26,9 @@ class FairyItem
         virtual void     on_navTo         (void) { };              // usually used to draw an item
         virtual void     on_navOut        (void) { };              // usually used to stop something
         virtual void     on_eachFrame     (void) { };              // usually used to poll something specific and/or to update text
+
+        inline void      set_redraw       (void) { cpufreq_boost(); redraw_flag = true; } // forces a redraw on next loop, useful for when app execution has drawn extra stuff that needs to disappear
+
     protected:
         void* _parent = NULL;
         uint16_t _id, _parent_id = 0;
@@ -58,8 +61,6 @@ class FairyMenuItem : public FairyItem
         inline  char*    get_mainImage    (void) { return _main_img; };
         inline  int16_t  get_mainImage_X  (void) { return _main_img_x; };
         inline  int16_t  get_mainImage_Y  (void) { return _main_img_y; };
-
-        inline void      set_redraw       (void) { cpufreq_boost(); redraw_flag = true; } // forces a redraw on next loop, useful for when app execution has drawn extra stuff that needs to disappear
 
     protected:
         char* _main_img;
@@ -98,7 +99,7 @@ class FairyCfgItem : public FairyItem
     // this class is a page within the "configurable app" style of apps, the apps usually consist of many pages of settings and one page for execution
     public:
         // initialize as a page representing a setting item
-        FairyCfgItem(const char* disp_name, int32_t* linked_var, int32_t val_min, int32_t val_max, int32_t step_size, uint16_t fmt_flags);
+        FairyCfgItem(const char* disp_name, int32_t* linked_var, int32_t val_min, int32_t val_max, int32_t step_size, uint32_t fmt_flags);
 
         // initialize as a page representing a way to execute action
         FairyCfgItem(const char* disp_name, bool (*cb)(void*), const char* icon = NULL);
@@ -137,7 +138,7 @@ class FairyCfgItem : public FairyItem
         int32_t* _linked_ptr = NULL;
         bool (*_cb)(void*) = NULL;
         int32_t _val_min, _val_max, _step_size;
-        uint16_t _fmt_flags;
+        uint32_t _fmt_flags;
         bool _autosave = false;
         static bool dirty;
 

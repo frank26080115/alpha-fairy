@@ -26,7 +26,6 @@ void settings_default() {
   config_settings.shutter_speed_step_cnt = 3;
   config_settings.shutter_step_time_ms   = 2000;
   config_settings.infrared_enabled       = 1;
-  config_settings.gpio_enabled           = 0;
 
   config_settings.lcd_brightness         = 10;
   config_settings.pwr_save_secs          = 60;
@@ -45,10 +44,22 @@ void settings_default() {
   config_settings.mictrig_level = 75;
   config_settings.mictrig_delay = 0;
 
+  config_settings.trigger_armtime    = 3;
+  config_settings.trigger_delay      = 0;
+  config_settings.trigger_retrigger  = -1;
+  config_settings.trigger_vidtime    = 0;
+  config_settings.trigger_siglevel   = 25;
+  config_settings.trigger_imuaccel   = 300;
+  config_settings.trigger_imurot     = 400;
+
   config_settings.fenc_multi = 1;
   config_settings.fenc_large = 10;
 
   config_settings.tallylite = 1;
+
+  config_settings.pin_shutter = PINCFG_G26;
+  config_settings.pin_exinput = PINCFG_G36;
+  config_settings.trigger_edge = 0;
 }
 
 bool settings_load() {

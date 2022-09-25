@@ -257,3 +257,23 @@ void dissolve_restart(uint16_t colour)
     }
     ESP.restart();
 }
+
+int32_t get_pinCfgGpio(int32_t x)
+{
+    switch (x)
+    {
+        case PINCFG_G0 : return 0;
+        case PINCFG_G25: return 25;
+        case PINCFG_G26: return 26;
+        case PINCFG_G36: return 36;
+    }
+    return -1;
+}
+
+void safe_all_pins()
+{
+    pinMode(0, INPUT);
+    pinMode(25, INPUT);
+    pinMode(26, INPUT);
+    pinMode(36, INPUT);
+}
