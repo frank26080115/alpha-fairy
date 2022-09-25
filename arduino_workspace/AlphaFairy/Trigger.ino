@@ -463,7 +463,7 @@ class PageTriggerArm : public PageTrigger
                     // we have some shots already, show the counter
                     M5Lcd.setCursor(_margin_x, get_y(_linenum));
                     M5Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
-                    M5Lcd.print("CNT = %u", shot_cnt);
+                    M5Lcd.printf("CNT = %u", shot_cnt);
                 }
 
                 // draw some icons so the screen doesn't look boring
@@ -613,7 +613,7 @@ class PageTriggerArm : public PageTrigger
                 // show the number of triggers only if it can be more than 1
                 M5Lcd.setCursor(_margin_x, get_y(_linenum));
                 M5Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
-                M5Lcd.print("CNT = %u", shot_cnt);
+                M5Lcd.printf("CNT = %u", shot_cnt);
             }
             draw_parent_icon();
 
