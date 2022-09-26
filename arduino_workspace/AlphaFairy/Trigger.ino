@@ -1,7 +1,7 @@
 #include "AlphaFairy.h"
 #include "FairyMenu.h"
 
-int32_t trigger_source = TRIGSRC_ALL;
+int32_t trigger_source = TRIGSRC_MIC;
 int32_t trigger_action = TRIGACT_PHOTO;
 
 extern volatile bool mictrig_hasTriggered;
@@ -28,7 +28,7 @@ bool extinput_poll()
         return false;
     }
     int x = analogRead(gpio);
-    if (config_settings.trigger_edge != 0) {
+    if (config_settings.trigger_edge != 0) { // invert the sensor input
         x = 4095 - x;
     }
 
@@ -44,15 +44,23 @@ bool imutrig_poll()
     float dAY = imu.accY - imutrig_prev_accelY;
     float dAZ = imu.accZ - imutrig_prev_accelZ;
 
+    // check for motion via accelerometer
+    // remember that 1G is always present due to gravity, we compare against 1G later
+    // the code will also compare the previous vector and the current vector, to determine lateral movement perpendicular to gravity
+
     int accelMag  = lround(sqrt((imu.accX * imu.accX) + (imu.accY * imu.accY) + (imu.accZ * imu.accZ)) * 100);
     int accelDMag = lround(sqrt((dAX * dAX) + (dAY * dAY) + (dAZ * dAZ)) * 100);
-    int accelGMag = accelMag > 100 ? (accelMag - 100) : (100 - accelMag);
+    int accelGMag = accelMag > 100 ? (accelMag - 100) : (100 - accelMag); // absolute magnitude will always be around 1G while not in motion, due to gravity
     int accelMaxMag = accelGMag;
     accelMaxMag = max(accelDMag, accelGMag);
 
     imutrig_prev_accelX = imu.accX;
     imutrig_prev_accelY = imu.accY;
     imutrig_prev_accelZ = imu.accZ;
+
+    // check for motion via gyroscope spin
+    // simply find the axis with highest spin
+    // note: AHRS algorithm cannot be used for this as the values don't seem to be continuous
 
     int absGyroX = abs(lround(imu.gyroX));
     int absGyroY = abs(lround(imu.gyroY));
@@ -61,6 +69,8 @@ bool imutrig_poll()
     gyroMax = max(gyroMax, absGyroX);
     gyroMax = max(gyroMax, absGyroY);
     gyroMax = max(gyroMax, absGyroZ);
+
+    // note: the accel range is 0G to 4G and gyro range is 0DPS to 500DPS, but we add a bit of overhead just so the user can disable a particular option
 
     imutrig_accelBar    = map(accelGMag                       , 0, 500, 10, 170);
     imutrig_accelThresh = map(config_settings.trigger_imuaccel, 0, 500, 10, 170);
@@ -162,43 +172,6 @@ class PageTriggerSource : public PageTrigger
         {
             this->_autosave = false;
         };
-
-        virtual void on_readjust(void)
-        {
-            FairyCfgItem::draw_icon();
-            //draw_val_icon();
-        };
-
-        virtual void draw_icon(void)
-        {
-            FairyCfgItem::draw_icon();
-            //draw_val_icon();
-        };
-
-    protected:
-        #if 0
-        void draw_val_icon(void)
-        {
-            int16_t w = GENERAL_ICON_WIDTH;
-            int16_t x = M5Lcd.width() - w, y = 0;
-            if (trigger_source == TRIGSRC_MIC)
-            {
-                M5Lcd.drawPngFile(SPIFFS, "/mic_icon.png", x, y);
-            }
-            else if (trigger_source == TRIGSRC_EXINPUT)
-            {
-                M5Lcd.drawPngFile(SPIFFS, "/extinput_icon.png", x, y);
-            }
-            else if (trigger_source == TRIGSRC_IMU)
-            {
-                M5Lcd.drawPngFile(SPIFFS, "/imu_icon.png", x, y);
-            }
-            else
-            {
-                M5Lcd.fillRect(x, y, w, w, TFT_BLACK);
-            }
-        };
-        #endif
 };
 
 class PageTriggerAction : public PageTrigger
@@ -283,7 +256,7 @@ class PageTriggerSigLevel : public PageTrigger
 class PageTriggerImuAccel : public PageTrigger
 {
     public:
-        PageTriggerImuAccel() : PageTrigger("IMU Accel Level", (int32_t*)&(config_settings.trigger_imuaccel), 0, 500, 1, TXTFMT_BYTENS | TXTFMT_DIVHUNDRED)
+        PageTriggerImuAccel() : PageTrigger("IMU Accel Level", (int32_t*)&(config_settings.trigger_imuaccel), 0, 500, 1, TXTFMT_BYTENS | TXTFMT_DIVHUNDRED) // note: the accel range is 0G to 4G and gyro range is 0DPS to 500DPS, but we add a bit of overhead just so the user can disable a particular option
         {
         };
 
@@ -301,7 +274,7 @@ class PageTriggerImuAccel : public PageTrigger
 class PageTriggerImuRot : public PageTrigger
 {
     public:
-        PageTriggerImuRot() : PageTrigger("IMU Rot Level", (int32_t*)&(config_settings.trigger_imurot), 0, 600, 1, TXTFMT_BYTENS)
+        PageTriggerImuRot() : PageTrigger("IMU Rot Level", (int32_t*)&(config_settings.trigger_imurot), 0, 600, 1, TXTFMT_BYTENS) // note: the accel range is 0G to 4G and gyro range is 0DPS to 500DPS, but we add a bit of overhead just so the user can disable a particular option
         {
         };
 
@@ -427,13 +400,14 @@ class PageTriggerArm : public PageTrigger
             gui_microphoneActive = true;
 
             int shot_cnt = 0;
+            uint32_t t = 0;
 
             M5Lcd.fillScreen(TFT_BLACK);
 
             // enforce minimum arming delay, gives the user a chance to run away, also the button seems to trigger the mic when pressed
             config_settings.trigger_armtime = (config_settings.trigger_armtime < 3) ? 3 : config_settings.trigger_armtime;
 
-            if (intervalometer_wait(config_settings.trigger_armtime, millis(), 0, "Arming...", false, 0))
+            if (intervalometer_wait(config_settings.trigger_armtime, millis(), 0, "Arming Dly...", false, 0))
             {
                 return; // user quit
             }
@@ -503,7 +477,13 @@ class PageTriggerArm : public PageTrigger
                     // just so the screen doesn't look boring
                     trigger_drawLevel();
                     gui_drawStatusBar(true);
-                    gui_drawVerticalDots(0, 40, 0, 5, 3, dot_idx, false, TFT_GREEN, TFT_RED);
+
+                    // animate dots just to show we haven't frozen
+                    if ((millis() - t) >= 200 || t == 0)
+                    {
+                        gui_drawVerticalDots(50, 40, 5, 5, 5, dot_idx++, true, TFT_GREEN, TFT_DARKGREEN);
+                        t = millis();
+                    }
                 }
 
                 // triggered == true here
@@ -514,14 +494,14 @@ class PageTriggerArm : public PageTrigger
                 if (config_settings.trigger_delay > 0)
                 {
                     // wait if needed
-                    if (intervalometer_wait(config_settings.trigger_armtime, millis(), 0, "Trig'd wait...", false, 0))
+                    if (intervalometer_wait(config_settings.trigger_armtime, millis(), 0, "Trig'd Wait...", false, 0))
                     {
                         return; // user quit
                     }
                     pwr_tick(true);
                 }
 
-                uint32_t t = millis();
+                t = millis();
 
                 M5Lcd.fillScreen(TFT_BLACK);
                 M5Lcd.setTextColor(TFT_RED, TFT_BLACK);
@@ -568,6 +548,8 @@ class PageTriggerArm : public PageTrigger
                         return;
                     }
                     t = millis();
+                    shot_cnt++;
+                    break; // if this ends without exiting, it means the intervalometer ended due to finishing all of the shots
                 }
 
                 _linenum++;
@@ -608,7 +590,7 @@ class PageTriggerArm : public PageTrigger
             M5Lcd.setCursor(_margin_x, get_y(_linenum));
             M5Lcd.print("DONE");
             _linenum++;
-            if (config_settings.trigger_retrigger >= 0)
+            if (config_settings.trigger_retrigger >= 0 && trigger_action != TRIGACT_INTERVAL)
             {
                 // show the number of triggers only if it can be more than 1
                 M5Lcd.setCursor(_margin_x, get_y(_linenum));
@@ -648,7 +630,7 @@ class PageTriggerArm : public PageTrigger
             M5Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
             M5Lcd.setCursor(_margin_x, get_y(_linenum));
             if (trigger_action != TRIGACT_PHOTO) {
-                gui_showVal(trigger_action, TXTFMT_TRIGACT | TXTFMT_ALLCAPS | TXTFMT_SMALL, (Print*)&M5Lcd);
+                gui_showVal(trigger_action, TXTFMT_TRIGACT, (Print*)&M5Lcd);
                 blank_line();
                 _linenum++;
             }
