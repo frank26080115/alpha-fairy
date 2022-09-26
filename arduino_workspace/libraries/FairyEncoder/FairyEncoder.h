@@ -23,6 +23,9 @@ class FairyEncoder
         bool    getButtonStatus(void);
         void    setLEDColor(uint8_t index, uint32_t color);
 
+        void    writeBytes(uint8_t reg, uint8_t* buffer, uint8_t length);
+        bool    readBytes(uint8_t reg, uint8_t* buffer, uint8_t length);
+
     protected:
         TwoWire* _wire;
         uint8_t _i2c_addr;
@@ -32,8 +35,6 @@ class FairyEncoder
         uint32_t _last_check_time, _last_move_time;
         uint32_t _check_interval;
         uint32_t _chkintv_fast, _chkintv_slow, _chkintv_sleep;
-        void writeBytes(uint8_t reg, uint8_t* buffer, uint8_t length);
-        bool readBytes(uint8_t reg, uint8_t* buffer, uint8_t length);
 };
 
 #endif

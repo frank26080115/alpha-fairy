@@ -39,4 +39,6 @@
 
 #define SERIAL_PORT_BAUDRATE   115200
 
+#define ENABLE_BUILD_LEPTON
+
 #endif

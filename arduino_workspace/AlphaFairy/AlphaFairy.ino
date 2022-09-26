@@ -14,6 +14,10 @@
 #include <SerialCmdLine.h>
 #include <SonyCameraInfraredRemote.h>
 
+#ifdef ENABLE_BUILD_LEPTON
+#include <Lepton.h>
+#endif
+
 PtpIpSonyAlphaCamera ptpcam((char*)"ALPHA-FAIRY", NULL);
 SonyHttpCamera       httpcam;
 AlphaFairyCamera     fairycam(&ptpcam, &httpcam);

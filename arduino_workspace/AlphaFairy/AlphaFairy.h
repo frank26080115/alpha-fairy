@@ -25,6 +25,10 @@
 #include <SonyCameraInfraredRemote.h>
 #include <DebuggingSerial.h>
 
+#ifdef ENABLE_BUILD_LEPTON
+#include <Lepton.h>
+#endif
+
 extern PtpIpSonyAlphaCamera ptpcam;
 extern SonyHttpCamera       httpcam;
 extern AlphaFairyCamera     fairycam;
