@@ -46,7 +46,9 @@ From the camera menu, connect to the SSID that the AlphaFairy is broadcasting ("
 
 On the M5StickC's screen, the "no signal" icon should disappear. On the camera's screen, the Wi-Fi symbol should be fully white and the PC icon should be fully white.
 
-## For HTTP JSON-RPC protocol cameras (older models)
+NOTE: models theoretically supported: A1, A7SM3, A9M2, A7M4A, A7RM4, A7C, A7M4
+
+## For HTTP JSON-RPC protocol cameras (older/all models)
 
 Turn on the camera, and activate the "Control from Smartphone" function. This may be implemented differently on different cameras:
 
@@ -62,6 +64,8 @@ On the Alpha-Fairy, use the Auto Connect function. A search for the camera will 
 ![](doc/img/autoconnect_ani.webp)
 
 Completing the connection will add the camera to the next available Wi-Fi profile slot.
+
+NOTE: this mode has less available features, but supports nearly all Sony cameras with Wi-Fi
 
 ## Managing Multiple Cameras
 
