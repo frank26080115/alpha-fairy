@@ -112,10 +112,6 @@ bool wifiprofile_writeProfileRaw(uint8_t idx, char* ssid, char* password, uint8_
     char* tmp = (char*)fname;
     wifiprofile_getIdxFname(idx, fname);
 
-    if (SPIFFS.exists(fname) == false) {
-        return false;
-    }
-
     File f = SPIFFS.open(fname, FILE_WRITE);
     if (!f) {
         return false;
