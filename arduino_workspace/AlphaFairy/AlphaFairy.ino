@@ -42,12 +42,10 @@ void setup()
     Serial.begin(SERIAL_PORT_BAUDRATE);
     dbg_ser.enabled = true;
 
-    cpufreq_init();
+    Wire1.begin(21, 22);
+    Wire1.setClock(400000);
 
-    #ifdef ENABLE_BUILD_LEPTON
-    pinMode(LEPTON_RESET_PIN, OUTPUT);
-    digitalWrite(LEPTON_RESET_PIN, HIGH);
-    #endif
+    cpufreq_init();
 
     settings_init();
     btns_init();
@@ -58,10 +56,6 @@ void setup()
     M5.IMU.SetGyroFsr(M5.IMU.GFS_500DPS);
     M5.IMU.SetAccelFsr(M5.IMU.AFS_4G);
 
-    #ifdef ENABLE_BUILD_LEPTON
-    digitalWrite(LEPTON_RESET_PIN, LOW);
-    #endif
-
     M5.Axp.begin();
     M5.Axp.ScreenSwitch(false); // turn off the LCD backlight while initializing, avoids junk being shown on the screen
     M5Lcd.begin(); // our own extended LCD object
@@ -69,10 +63,6 @@ void setup()
     M5.Axp.ScreenBreath(config_settings.lcd_brightness);
 
     spiffs_init();
-
-    #ifdef ENABLE_BUILD_LEPTON
-    digitalWrite(LEPTON_RESET_PIN, HIGH);
-    #endif
 
     #ifdef PMIC_LOG_ON_BOOT
     pmic_startCoulombCount();
@@ -183,6 +173,10 @@ bool app_poll()
 
         pmic_log();
 
+        #ifdef ENABLE_BUILD_LEPTON
+        lepton_poll();
+        #endif
+
         yield();
 
         cpufreq_task();
@@ -190,7 +184,6 @@ bool app_poll()
 
         return true; // can do more low priority tasks
     }
-
     return false; // should not do more low priority tasks
 }
 

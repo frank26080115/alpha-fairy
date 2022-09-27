@@ -81,6 +81,9 @@ class FairySubmenu : public FairyMenuItem
         virtual bool task(void);                                  // usually used to do stuff inside the menu loop, return true means "exit submenu"
         inline  void rewind(void) { cur_node = head_node; };      // reset to showing the first item in the linked list
         FairyItem* nav_next(void);                                // navigate to the next item that is not hidden
+        #ifdef ENABLE_BUILD_LEPTON
+        FairyItem* nav_prev(void);                                // navigate to the prev item that is not hidden
+        #endif
 
         // linked list getters
         inline FairyItemNode_t* get_headNode(void) { return head_node; };

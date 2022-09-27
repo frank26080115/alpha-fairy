@@ -60,7 +60,46 @@ bool img_buffer_Lock = false;
 lepton_encoder_t lepton_enc_data = {0};
 const float kEncoderTempStep = 0.05f;
 uint16_t lepton_histoBuff[64] = {0};
-//extern bool fenc_enabled;
+
+/** @brief  Read the encoder wheel
+  */
+void lepton_encRead(bool* sw, int16_t* inc)
+{
+    const uint8_t lepenc_addr = 0x30;
+    (*sw) = false;
+    (*inc) = 0;
+    uint8_t err;
+    Wire1.beginTransmission(lepenc_addr); Wire1.write(0x10); err = Wire1.endTransmission();
+    if (err != 0) {
+        return;
+    }
+    Wire1.requestFrom(lepenc_addr, 1);
+    while (Wire1.available() < 1) {
+        app_poll();
+    }
+    (*sw) = Wire1.read() != 0;
+    if ((*sw))
+    {
+        pwr_tick(true);
+        Wire1.beginTransmission(lepenc_addr); Wire1.write(0x20); Wire1.write(0xFF); Wire1.endTransmission();
+    }
+    else
+    {
+        Wire1.beginTransmission(lepenc_addr); Wire1.write(0x00); Wire1.endTransmission();
+        Wire1.requestFrom(lepenc_addr, 2);
+        while (Wire1.available() < 2) {
+            app_poll();
+        }
+        uint8_t* ptr = (uint8_t*)inc;
+        ptr[1] = Wire1.read();
+        ptr[0] = Wire1.read();
+        if ((*inc) != 0)
+        {
+            pwr_tick(true);
+            Wire1.beginTransmission(lepenc_addr); Wire1.write(0x20); Wire1.write(0xFF); Wire1.endTransmission();
+        }
+    }
+}
 
 /** @brief  Draws temperature focus cursor
   * @param  coordinates
@@ -182,25 +221,10 @@ void lepton_dispBatt(uint16_t x, uint16_t y, float vol)
 }
 
 /** @brief  Update encoder data
-  * @param  pointer to lepton_encoder_t
   */
 void lepton_updateEncoder()
 {
-    int16_t d;
-    bool b = false;
-
-    if (fencoder.avail())
-    {
-        fencoder.task();
-        d = fencoder.read(true);
-        lepton_enc_data.sw = fencoder.getButtonStatus();
-    }
-    else
-    {
-        // checks for reconnection
-        fencoder.read(true);
-        return;
-    }
+    lepton_encRead(&lepton_enc_data.sw, &lepton_enc_data.increment);
 
     if (lepton_enc_data.sw) // button press resets the data
     {
@@ -208,8 +232,6 @@ void lepton_updateEncoder()
     }
     else
     {
-        lepton_enc_data.increment = d;
-
         if (lepton_enc_data.increment != 0)
         {
             lepton_enc_data.data += ((lepton_enc_data.increment) * kEncoderTempStep);
@@ -226,6 +248,7 @@ void lepton_updateFlir(bool gui)
     pwr_tick(true);
     lepton.getRawValues();
     lepton_updateEncoder();
+
     uint16_t i = 0, raw_cursor = raw_max;
     int32_t x, y;
     uint8_t index;
@@ -484,7 +507,11 @@ void lepton_updateFlir(bool gui)
 
 enum
 {
-    LEPINIT_BEGIN = 0,
+    LEPINIT_RST_1,
+    LEPINIT_RST_2,
+    LEPINIT_RST_3,
+    LEPINIT_RST_4,
+    LEPINIT_BEGIN,
     LEPINIT_SYNC,
     LEPINIT_CMD,
     LEPINIT_DONE,
@@ -496,24 +523,69 @@ uint8_t lepton_initStage = 0;
 uint32_t lepton_initMidTime = 0;
 bool lepton_init()
 {
-    if (lepton_initStage == LEPINIT_BEGIN)
+    if (lepton_initStage == LEPINIT_RST_1)
+    {
+        pinMode(LEPTON_RESET_PIN, OUTPUT);
+        digitalWrite(LEPTON_RESET_PIN, HIGH);
+        lepton_initMidTime = millis();
+        lepton_initStage = LEPINIT_RST_2;
+    }
+    else if (lepton_initStage == LEPINIT_RST_2)
+    {
+        if ((millis() - lepton_initMidTime) >= 100)
+        {
+            digitalWrite(LEPTON_RESET_PIN, LOW);
+            lepton_initMidTime = millis();
+            lepton_initStage = LEPINIT_RST_3;
+        }
+    }
+    else if (lepton_initStage == LEPINIT_RST_3)
+    {
+        if ((millis() - lepton_initMidTime) >= 300)
+        {
+            digitalWrite(LEPTON_RESET_PIN, HIGH);
+            lepton_initMidTime = millis();
+            lepton_initStage = LEPINIT_RST_4;
+        }
+    }
+    else if (lepton_initStage == LEPINIT_RST_4)
+    {
+        if ((millis() - lepton_initMidTime) >= 50)
+        {
+            lepton_initStage = LEPINIT_BEGIN;
+        }
+    }
+    else if (lepton_initStage == LEPINIT_BEGIN)
     {
         if (lepton.begin())
         {
+            dbg_ser.println("lepton begin");
             lepton_success = true;
             lepton_initStage = LEPINIT_SYNC;
         }
         else
         {
             Serial.println("lepton begin failed");
+            lepton_success = false;
             lepton_initStage = LEPINIT_FAIL;
         }
     }
     else if (lepton_initStage == LEPINIT_SYNC)
     {
         lepton.syncFrame();
+        dbg_ser.println("lepton syncFrame");
+        #if 0
         lepton_initMidTime = millis();
         lepton_initStage = LEPINIT_CMD;
+        #else
+        delay(1000); // using millis() and scheduling doesn't seem to work as well as using delay()
+        uint16_t SYNC = 5, DELAY = 3;
+        lepton.doSetCommand(0x4854, &SYNC, 1);
+        lepton.doSetCommand(0x4858, &DELAY, 1);
+        lepton.end();
+        lepton_initStage = LEPINIT_DONE;
+        dbg_ser.println("lepton done");
+        #endif
     }
     else if (lepton_initStage == LEPINIT_CMD)
     {
@@ -523,10 +595,32 @@ bool lepton_init()
             lepton.doSetCommand(0x4854, &SYNC, 1);
             lepton.doSetCommand(0x4858, &DELAY, 1);
             lepton.end();
-            lepton_initStage = LEPINIT_DONE;
+            uint32_t t = millis();
+            if ((t - lepton_initMidTime) > 1500)
+            {
+                lepton_initStage = LEPINIT_RST_1;
+                dbg_ser.println("lepton reattempt init");
+            }
+            else
+            {
+                lepton_initStage = LEPINIT_DONE;
+                dbg_ser.println("lepton doSetCommand");
+            }
         }
     }
+    else if (lepton_initStage == LEPINIT_DONE)
+    {
+        lepton_poll();
+    }
     return lepton_success;
+}
+
+void lepton_poll()
+{
+    if (lepton_initStage != LEPINIT_DONE) {
+        return;
+    }
+    lepton.getRawValues();
 }
 
 bool lepton_nullFunc(void* x)
@@ -547,7 +641,7 @@ class PageLeptonImage : public FairyCfgItem
                 int16_t w = M5Lcd.width(), h = M5Lcd.height();
                 lepton_imgBuff = new TFT_eSprite(&M5Lcd);
                 lepton_imgBuff->createSprite(w > h ? w : h, w > h ? h : w);
-                lepton_imgBuff->setTextFont(2);
+                lepton_imgBuff->setTextFont(0);
                 lepton_imgBuff->setTextColor(TFT_WHITE);
             }
             FairyCfgItem::on_navTo();
@@ -705,28 +799,17 @@ class AppLepton : public FairyCfgApp
             install(new PageLeptonExit());
         };
 
-        virtual bool can_navTo(void)
-        {
-            if (lepton_initStage == 0) {
-                lepton_init();
-            }
-            return lepton_success;
-        };
-
-        virtual void on_eachFrame(void)
-        {
-            lepton_init();
-        };
-
         virtual bool on_execute(void)
         {
+            M5Lcd.fillScreen(TFT_DARKGREY);
             while (lepton_initStage < LEPINIT_DONE)
             {
                 lepton_init();
                 app_poll();
             }
             if (lepton_initStage == LEPINIT_DONE) {
-                return FairyCfgApp::on_execute();
+                bool r = FairyCfgApp::on_execute();
+                return r;
             }
             else {
                 return false;

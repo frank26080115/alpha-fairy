@@ -12,6 +12,10 @@ extern void tallylite_task(void);
 
 extern void handle_user_reauth(void); // shows the wifi error screen and offers the user a way of changing wifi password
 
+#ifdef ENABLE_BUILD_LEPTON
+extern void lepton_encRead(bool* sw, int16_t* inc);
+#endif
+
 int8_t FairyCfgApp::prev_tilt = 0;
 bool FairyCfgItem::dirty = false;
 
@@ -116,12 +120,39 @@ FairyItem* FairySubmenu::nav_next(void)
     return NULL;
 }
 
+#ifdef ENABLE_BUILD_LEPTON
+FairyItem* FairySubmenu::nav_prev(void)
+{
+    FairyItemNode_t* n = cur_node;
+    uint8_t i;
+    if (cur_node == NULL) {
+        return NULL;
+    }
+    for (i = 0; i < 10; i++) // this is a for loop just to prevent infinite loops
+    {
+        n = (FairyItemNode_t*)(n->prev_node);
+        // find the next node that isn't hidden
+        if (n->item->can_navTo())
+        {
+            cur_node = n;
+            return cur_node->item;
+        }
+    }
+    return NULL;
+}
+#endif
+
 bool FairySubmenu::task(void)
 {
     handle_user_reauth();
 
     FairyMenuItem* itm;
     bool redraw = redraw_flag;
+
+    #ifdef ENABLE_BUILD_LEPTON
+    bool enc_center_btn;
+    int16_t enc_nav;
+    #endif
 
     itm = (FairyMenuItem*)cur_node->item;
 
@@ -142,6 +173,23 @@ bool FairySubmenu::task(void)
             to_nav = true;
         }
     }
+    #ifdef ENABLE_BUILD_LEPTON
+    {
+        lepton_encRead(&enc_center_btn, &enc_nav);
+        if (enc_nav > 0)
+        {
+            to_nav = true;
+        }
+        else if (enc_nav < 0)
+        {
+            to_nav = false;
+            itm->on_navOut();
+            itm = (FairyMenuItem*)nav_prev();
+            itm->on_navTo();
+            imu.resetSpin();
+        }
+    }
+    #endif
 
     if (to_nav) // next button pressed
     {
@@ -170,6 +218,27 @@ bool FairySubmenu::task(void)
 
     itm->on_eachFrame();
     itm->draw_statusBar(); // the status bar function has its own frame rate control
+
+    #ifdef ENABLE_BUILD_LEPTON
+    // waits until encoder stops
+    while (enc_nav != 0) {
+        lepton_encRead(&enc_center_btn, &enc_nav);
+        app_poll();
+    }
+
+    if (enc_center_btn)
+    {
+        // encoder center button will act as big button
+        sprites->unload_all();
+        bool need_exit = itm->on_execute();
+        sprites->unload_all();
+        if (need_exit)
+        {
+            return true;
+        }
+    }
+    else
+    #endif
 
     if (_bigbtn_nav)
     {
@@ -345,6 +414,12 @@ void FairyCfgItem::on_checkAdjust(int8_t tilt)
 
     int32_t next_step = 0; // this will latch the direction of change during button-hold
 
+    #ifdef ENABLE_BUILD_LEPTON
+    bool enc_btn = false;
+    int16_t enc_inc = 0;
+    int16_t enc_inc_prev = 0;
+    #endif
+
     if (btnBig_hasPressed())
     {
         if (tilt > 0)
@@ -382,15 +457,64 @@ void FairyCfgItem::on_checkAdjust(int8_t tilt)
         on_readjust();
         btnBig_clrPressed();
     }
+    #ifdef ENABLE_BUILD_LEPTON
+    else
+    {
+        lepton_encRead(&enc_btn, &enc_inc);
+        if (enc_inc > 0)
+        {
+            (*_linked_ptr) += _step_size;
+            if ((*_linked_ptr) >= _val_max) { // limit the range
+                (*_linked_ptr) = _val_max;
+            }
+            else {
+                next_step = _step_size; // indicate that change has been made
+            }
+            dirty = true;
+        }
+        else if (enc_inc < 0)
+        {
+            (*_linked_ptr) -= _step_size;
+            if ((*_linked_ptr) <= _val_min) { // limit the range
+                (*_linked_ptr) = _val_min;
+            }
+            else {
+                next_step = -_step_size; // indicate that change has been made
+            }
+            dirty = true;
+        }
+        if (enc_inc != 0)
+        {
+            on_drawLive();
+            on_readjust();
+        }
+        enc_inc_prev = enc_inc;
+    }
+    #endif
 
     if (next_step != 0 && (_fmt_flags & TXTFMT_BOOL) == 0) // has pressed
     {
         uint32_t press_time = millis();
-        uint32_t dly = 500; // press-and-hold repeating delay
+        uint32_t dly = enc_inc_prev == 0 ? 500 : 1000; // press-and-hold repeating delay
         int step_cnt = 0; // used to make sure at least some steps are done at minimum step size
         int tens = 10 * next_step * ((next_step < 0) ? (-1) : (1)); // if the step size starts at 1 or 10, these cases are handled
-        while (btnBig_isPressed()) // is press-and-hold
+        while (true) // is press-and-hold
         {
+            if (btnBig_isPressed() == false)
+            {
+                #ifdef ENABLE_BUILD_LEPTON
+                lepton_encRead(&enc_btn, &enc_inc);
+                if (enc_inc != 0)
+                {
+                    if (enc_inc != enc_inc_prev)
+                    {
+                        break;
+                    }
+                }
+                else
+                #endif
+                break;
+            }
             app_poll();
             on_extraPoll();
             on_drawLive();
@@ -431,6 +555,17 @@ void FairyCfgItem::on_checkAdjust(int8_t tilt)
         on_drawLive();
         on_readjust();
     }
+
+    #ifdef ENABLE_BUILD_LEPTON
+    if (enc_inc_prev != 0)
+    {
+        enc_inc = enc_inc_prev;
+        while (enc_inc != 0) {
+            lepton_encRead(&enc_btn, &enc_inc);
+            app_poll();
+        }
+    }
+    #endif
 }
 
 bool FairyCfgItem::on_execute(void)
@@ -475,6 +610,8 @@ bool FairyCfgApp::task(void)
     FairyCfgItem* itm;
     bool redraw = redraw_flag;
 
+    bool enc_btn; int16_t enc_inc;
+
     itm = (FairyCfgItem*)cur_node->item;
 
     if (btnSide_hasPressed())
@@ -507,6 +644,19 @@ bool FairyCfgApp::task(void)
                 return ret;
             }
         }
+        #ifdef ENABLE_BUILD_LEPTON
+        else
+        {
+            lepton_encRead(&enc_btn, &enc_inc);
+            if (enc_btn)
+            {
+                bool ret = itm->on_execute();
+                if (ret) {
+                    return ret;
+                }
+            }
+        }
+        #endif
     }
     else if (itm->is_value())
     {

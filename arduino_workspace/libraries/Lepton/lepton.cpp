@@ -73,9 +73,9 @@ bool Lepton::begin()
   lepton_spi->begin(2, 25, 34, 35);
 
   // do a quick I2C bus check, the error will show up with _i2cAvail
-  uint16_t dummy;
-  doGetCommand(CMD_SYS_STATUS, &dummy);
+  waitIdle();
   return i2cAvail();
+  //return true;
 }
 
 uint16_t Lepton::readRegister(uint16_t reg) {
@@ -115,8 +115,8 @@ uint16_t Lepton::doRunCommand(uint16_t commandIdBase, uint16_t *data, uint16_t d
 /* Get one line package from the Lepton */
 int Lepton::getPackage(byte line, byte seg)
 {
-  lepton_spi->transferBytes(NULL,leptonFrame,164); 
-   
+  lepton_spi->transferBytes(NULL,leptonFrame,164);
+
   if((leptonFrame[0] & 0x0F) == 0x0F)
     return 1;
 
@@ -173,7 +173,7 @@ bool Lepton::savePackage(byte line, byte segment)
     }
 
   }
-  
+
   //Everything worked
   return 1;
 }
@@ -217,18 +217,18 @@ void Lepton::getRawValues()
             reset(); //Reset Lepton lepton_spi
             break; //Restart at line 0
           }
-          
+
           int retVal = getPackage(line, segment); //Get a package from the lepton
-      
+
           //If everythin worked, continue
           if (retVal == 0)
           {
             if (savePackage(line, segment)) continue;
           }
-      
+
           //Raise lepton error
           error++;
-      
+
           ESP_DelayUS(900);
           /*
           unsigned long T = micros();
@@ -244,6 +244,7 @@ void Lepton::getRawValues()
     }
     else
     {
+      Serial.println("Lepton Vsync Failed");
       //Raise lepton error
       error++;
       if (error >= 3) //Maximum error count
@@ -293,7 +294,7 @@ int Lepton::readFrame(uint16_t* data)
       for (int col = 0; col < 80; col++) {
         data[(segment - 1) * 4800 + row * 80 + col] = readFrameWord();
       }
-    
+
       if ((row == 20)){
       //byte seg = (id >> 12);
       //if (seg == 0)
@@ -302,7 +303,7 @@ int Lepton::readFrame(uint16_t* data)
        // return 2;
       }
       //Serial.printf("row = %d, segment = %d,  id = %d,id_row = %d\n", row, segment, id >> 12, id & 0xfff);
-      row++;  
+      row++;
       if (row < 60) {
         id = readFrameWord();
       } else {
@@ -361,7 +362,7 @@ void Lepton::endTransmission() {
   uint8_t error = Wire1.endTransmission();
   if (error != 0) {
     _i2cAvail = false;
-  }    
+  }
 }
 
 uint16_t Lepton::readWord() {
@@ -381,7 +382,7 @@ bool Lepton::waitIdle() {
   while (((r = readRegister(REG_STATUS)) & STATUS_BIT_BUSY) != 0 && (millis() - t) < LEPTON_WAIT_TIMEOUT) {
     yield();
   }
-  return (r & STATUS_BIT_BUSY) != 0;
+  return (r & STATUS_BIT_BUSY) == 0;
 }
 
 uint16_t Lepton::readData(uint16_t* data) {
