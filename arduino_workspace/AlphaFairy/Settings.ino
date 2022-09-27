@@ -60,6 +60,11 @@ void settings_default() {
   config_settings.pin_shutter = PINCFG_G26;
   config_settings.pin_exinput = PINCFG_G36;
   config_settings.trigger_edge = 0;
+
+  #ifdef ENABLE_BUILD_LEPTON
+  config_settings.lepton_dispmode = 0;
+  config_settings.lepton_measmode = 0;
+  #endif
 }
 
 bool settings_load() {

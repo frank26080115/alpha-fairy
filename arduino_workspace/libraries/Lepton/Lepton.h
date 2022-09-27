@@ -9,7 +9,7 @@
 #define FLIR_X 160
 #define FLIR_Y 120
 
-#define RESET_PIN 26
+#define LEPTON_RESET_PIN 26
 
 #define ESP_GetUS() ((uint64_t)(esp_timer_get_time()))
 
@@ -91,7 +91,7 @@ public:
   void end();
  
  // (Re-)synchronize the frame stream
-  uint16_t syncFrame();
+  void syncFrame();
   void getRawValues();
 
   // Read a frame into a 80 * 60 uint16_t buffer

@@ -44,6 +44,11 @@ void setup()
 
     cpufreq_init();
 
+    #ifdef ENABLE_BUILD_LEPTON
+    pinMode(LEPTON_RESET_PIN, OUTPUT);
+    digitalWrite(LEPTON_RESET_PIN, HIGH);
+    #endif
+
     settings_init();
     btns_init();
     SonyCamIr_Init();
@@ -52,6 +57,11 @@ void setup()
     M5.IMU.Init();
     M5.IMU.SetGyroFsr(M5.IMU.GFS_500DPS);
     M5.IMU.SetAccelFsr(M5.IMU.AFS_4G);
+
+    #ifdef ENABLE_BUILD_LEPTON
+    digitalWrite(LEPTON_RESET_PIN, LOW);
+    #endif
+
     M5.Axp.begin();
     M5.Axp.ScreenSwitch(false); // turn off the LCD backlight while initializing, avoids junk being shown on the screen
     M5Lcd.begin(); // our own extended LCD object
@@ -59,6 +69,10 @@ void setup()
     M5.Axp.ScreenBreath(config_settings.lcd_brightness);
 
     spiffs_init();
+
+    #ifdef ENABLE_BUILD_LEPTON
+    digitalWrite(LEPTON_RESET_PIN, HIGH);
+    #endif
 
     #ifdef PMIC_LOG_ON_BOOT
     pmic_startCoulombCount();
@@ -123,6 +137,9 @@ void setup_menus()
     setup_intervalometer();
     main_menu.install(&menu_utils   );
     setup_autoconnect();
+    #ifdef ENABLE_BUILD_LEPTON
+    setup_leptonflir();
+    #endif
 
     setup_qikrmt();
     setup_remoteshutter();

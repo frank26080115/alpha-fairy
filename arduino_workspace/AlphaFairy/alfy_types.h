@@ -57,6 +57,14 @@ typedef struct
   int32_t pin_exinput;
   int32_t trigger_edge;
 
+#ifdef ENABLE_BUILD_LEPTON
+  int32_t lepton_dispmode;
+  int32_t lepton_measmode;
+  int32_t lepton_thresh;
+  int32_t lepton_size;
+  int32_t lepton_cold;
+#endif
+
   uint32_t crc32;
 }
 configsettings_t;

@@ -28,13 +28,15 @@ static void ESP_DelayUS(uint64_t us)
       vTaskDelay((us - (2000 * portTICK_PERIOD_MS)) / (portTICK_PERIOD_MS * 1000));
       m = ESP_GetUS();
     }
+
     if (m > e)
     { //overflow
-      while (ESP_GetUS() > e)
-        ;
+      while (ESP_GetUS() > e) {
+      }
     }
-    while (ESP_GetUS() < e)
-      ;
+
+    while (ESP_GetUS() < e) {
+    }
   }
 }
 
@@ -50,16 +52,17 @@ static void IRAM_ATTR onVsyncISR()
 Lepton::Lepton(int sdaPin, int sclPin, int ssPin, int syncPin) : _sdaPin(sdaPin), _sclPin(sclPin), _ssPin(ssPin), _syncPin(syncPin) {
 }
 
-bool Lepton::begin() {
-  pinMode(RESET_PIN, OUTPUT);
-  digitalWrite(RESET_PIN, HIGH);
-  delay(100);
-  digitalWrite(RESET_PIN, LOW);
-  delay(300);
-  digitalWrite(RESET_PIN, HIGH);
-  delay(50);
+bool Lepton::begin()
+{
+  // reset pin toggling now done in main app
 
-  //Wire.begin(_sdaPin, _sclPin);
+  //pinMode(LEPTON_RESET_PIN, OUTPUT);
+  //digitalWrite(LEPTON_RESET_PIN, HIGH);
+  //delay(100);
+  //digitalWrite(LEPTON_RESET_PIN, LOW);
+  //delay(300);
+  //digitalWrite(LEPTON_RESET_PIN, HIGH);
+  //delay(50);
 
   pinMode(_syncPin, INPUT); //vsync
   attachInterrupt(_syncPin, onVsyncISR, RISING);
@@ -67,10 +70,9 @@ bool Lepton::begin() {
   pinMode(_ssPin, OUTPUT);
   digitalWrite(_ssPin, HIGH);
 
-  lepton_spi->begin(2, 25, 34, 35); 
+  lepton_spi->begin(2, 25, 34, 35);
 
   // do a quick I2C bus check, the error will show up with _i2cAvail
-  delay(300);
   uint16_t dummy;
   doGetCommand(CMD_SYS_STATUS, &dummy);
   return i2cAvail();
@@ -256,7 +258,7 @@ void Lepton::getRawValues()
 
   doGetCommand(CMD_SYS_FPA_TEMPERATURE_KELVIN, &fpa_temp);
   doGetCommand(CMD_SYS_AUX_TEMPERATURE_KELVIN, &aux_temp);
-  
+
   //End lepton_spi Transmission
   end();
 }
@@ -267,81 +269,53 @@ void Lepton::reset()
   delay(186);
   syncFrame();
 }
-uint16_t Lepton::syncFrame() {
-  
-   lepton_spi->beginTransaction(SPISettings(20000000, MSBFIRST, SPI_MODE3));
-   digitalWrite(_ssPin, LOW);
-   //delay(0.02);
-   ESP_DelayUS(20);
-   
-    static int count;
-    if (count < 1) delay(1000);
-    count++;
-    if(count>=5)
-    count = 5;
-    
+
+void Lepton::syncFrame()
+{
+  lepton_spi->beginTransaction(SPISettings(20000000, MSBFIRST, SPI_MODE3));
+  digitalWrite(_ssPin, LOW);
+  ESP_DelayUS(20);
 }
 
-void Lepton::end() {
+void Lepton::end()
+{
   digitalWrite(_ssPin, HIGH);
   lepton_spi->endTransaction();
 }
 
-int Lepton::readFrame(uint16_t* data) {
+int Lepton::readFrame(uint16_t* data)
+{
   for (byte segment = 1; segment <= 4; segment++){
-  uint16_t row = 0;
-  uint16_t id = waitNextFrame();
-  while ((id & 0xfff) == row) {
-    uint16_t crc = readFrameWord();
-    for (int col = 0; col < 80; col++) {
-      data[(segment - 1) * 4800 + row * 80 + col] = readFrameWord();
+    uint16_t row = 0;
+    uint16_t id = waitNextFrame();
+    while ((id & 0xfff) == row) {
+      uint16_t crc = readFrameWord();
+      for (int col = 0; col < 80; col++) {
+        data[(segment - 1) * 4800 + row * 80 + col] = readFrameWord();
+      }
+    
+      if ((row == 20)){
+      //byte seg = (id >> 12);
+      //if (seg == 0)
+       // return 1;
+      ///if (segment != seg)
+       // return 2;
+      }
+      //Serial.printf("row = %d, segment = %d,  id = %d,id_row = %d\n", row, segment, id >> 12, id & 0xfff);
+      row++;  
+      if (row < 60) {
+        id = readFrameWord();
+      } else {
+        //return 1;
+        break;
+      }
+      //Serial.printf("................readFrame ended with row %4x != id %4x\n", row, id);
     }
 
-    if ((row == 20)){
-    //byte seg = (id >> 12);
-    //if (seg == 0)
-     // return 1;
-    ///if (segment != seg)
-     // return 2;
-    }
-    //Serial.printf("row = %d, segment = %d,  id = %d,id_row = %d\n", row, segment, id >> 12, id & 0xfff);
-    row++;  
-    if (row < 60) {
-      id = readFrameWord();
-    } else {
-      //return 1;
-      break;
-    }
-    //Serial.printf("................readFrame ended with row %4x != id %4x\n", row, id);
-  }
-
-  
-   //for(;row<60;row++)
-  //for (int col = 0; col < 80; col++) {
-    //  data[(segment - 1) * 4800 + row * 80 + col] = 0x1f40;
-    //}
-  //Serial.printf("readFrame ended with row %4x != id %4x\n", row, id);
   }
   return 0;
 }
 
-/*
-uint16_t Lepton::wait_160x120_Seg(void)
-{
-  //uint16_t Lepton::wait_160X120_NextFrame() {
-  uint16_t id = readFrameWord();
-  Serial.printf("id =  %d\n", id);
-  while ((id & 0x0f00) == 0x0f00) {
-    for (int i = 0; i < 161; i++) {
-      readFrameWord();
-    }
-    id = readFrameWord();
-    //Serial.printf("id =  %d\n", id);
-  }
-  return id;    
-}
-}
-*/
 int Lepton::read_160x120_Frame(uint16_t* data) {
   uint16_t row = 0;
   uint16_t id = waitNextFrame();
@@ -379,8 +353,8 @@ void Lepton::startTransmission(uint16_t reg) {
 }
 
 void Lepton::transmitWord(uint16_t value) {
-  Wire1.write(value >> 8 & 0xff);
-  Wire1.write(value & 0xff);    
+  Wire1.write((value >> 8) & 0xff);
+  Wire1.write(value & 0xff);
 }
 
 void Lepton::endTransmission() {
@@ -403,9 +377,11 @@ void Lepton::setRegister(uint16_t reg) {
 
 bool Lepton::waitIdle() {
   uint32_t t = millis();
-  while ((readRegister(REG_STATUS) & STATUS_BIT_BUSY) != 0 && (millis() - t) < LEPTON_WAIT_TIMEOUT) {
+  uint16_t r;
+  while (((r = readRegister(REG_STATUS)) & STATUS_BIT_BUSY) != 0 && (millis() - t) < LEPTON_WAIT_TIMEOUT) {
     yield();
   }
+  return (r & STATUS_BIT_BUSY) != 0;
 }
 
 uint16_t Lepton::readData(uint16_t* data) {
@@ -436,39 +412,24 @@ uint16_t Lepton::readFrameWord() {
 
 uint16_t Lepton::waitNextFrame() {
   uint16_t id = readFrameWord();
-  //Serial.printf("id =  %d\n", id);
   while ((id & 0x0f00) == 0x0f00) {
     for (int i = 0; i < 81; i++) {
       readFrameWord();
     }
     id = readFrameWord();
-    //Serial.printf(" %d %d %d\n",  id,(id & 0xfff) , (id & 0x0f00));
-     //Serial.printf("ID =  %X \n",  id);
   }
-  //Serial.printf("idwhile =  %d\n", id);
-  return id;    
+  return id;
 }
+
 uint16_t Lepton::wait_160X120_NextFrame() {
-  /*
-  uint16_t seg = readFrameWord();
-  Serial.printf("seg =  %d\n", seg);
-  //while ((id & 0x0e00) == 0x0e00) {
-    
-    for (int i = 0; i < 81; i++) {
-    id =  readFrameWord();
-    }
-    id = readFrameWord();
-    //Serial.printf("id =  %d\n", id);
-  */
   uint16_t seg = 0;
   for(int i = 0; i < 82 * 60; i++)
   {
        seg = readFrameWord();
-       Serial.printf("seg =  %d ", (seg & 0x7000)>>12);Serial.printf("id =  %d\n", seg & 0x0fff);
+       //Serial.printf("seg =  %d ", (seg & 0x7000)>>12);Serial.printf("id =  %d\n", seg & 0x0fff);
   }
-  //return id;    
+  return 0;
 }
-
 
 void Lepton::dumpHex(uint16_t *data, int dataLen) {
   for (int i = 0; i < dataLen; i++) {
