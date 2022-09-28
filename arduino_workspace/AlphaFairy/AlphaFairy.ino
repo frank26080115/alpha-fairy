@@ -122,8 +122,10 @@ void setup_menus()
     // taking advantage of Arduino's automatic function prototype generation
     // each *.ino file can have its own setup_xxx function
 
-    main_menu.install(&menu_remote  );
-    main_menu.install(&menu_focus   );
+    main_menu.install(&menu_remote);
+    menu_remote.set_enc_nav(false);
+    main_menu.install(&menu_focus);
+    menu_focus.set_enc_nav(false);
     setup_intervalometer();
     main_menu.install(&menu_utils   );
     setup_autoconnect();
@@ -174,7 +176,7 @@ bool app_poll()
         pmic_log();
 
         #ifdef ENABLE_BUILD_LEPTON
-        lepton_poll();
+        lepton_poll(false);
         #endif
 
         yield();

@@ -166,6 +166,11 @@ void gui_showVal(int32_t x, uint32_t txtfmt, Print* printer)
             else if (x == TRIGSRC_IMU) {
                 i += sprintf(&(str[i]), "IMU");
             }
+            #ifdef ENABLE_BUILD_LEPTON
+            else if (x == TRIGSRC_THERMAL) {
+                i += sprintf(&(str[i]), "FLIR");
+            }
+            #endif
         }
         else
         {
@@ -181,6 +186,11 @@ void gui_showVal(int32_t x, uint32_t txtfmt, Print* printer)
             else if (x == TRIGSRC_IMU) {
                 i += sprintf(&(str[i]), "IMU");
             }
+            #ifdef ENABLE_BUILD_LEPTON
+            else if (x == TRIGSRC_THERMAL) {
+                i += sprintf(&(str[i]), "FLIR");
+            }
+            #endif
         }
     }
     else if ((txtfmt & TXTFMT_TRIGACT) != 0) {
@@ -338,4 +348,13 @@ void gui_drawLevelBar(int32_t lvl1, int32_t lvl2, int32_t thresh1, int32_t thres
         level_canvas->fillRect(thresh2, ysplit, 3   , ysplit, TFT_GREEN);
     }
     level_canvas->pushSprite(0, 0);
+}
+
+void draw_borderRect(int16_t thickness, uint16_t colour)
+{
+    int16_t i;
+    for (i = 0; i < thickness; i++)
+    {
+        M5Lcd.drawRect(0 + i, 0 + i, M5Lcd.width() - 1 - i, M5Lcd.height() - 1 - i, TFT_RED);
+    }
 }

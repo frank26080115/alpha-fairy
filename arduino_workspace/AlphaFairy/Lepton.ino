@@ -6,18 +6,6 @@
 #include <Lepton.h>
 #include <FairyEncoder.h>
 
-enum
-{
-    MES_AUTO_MAX = 0,
-    MES_AUTO_MIN,
-    MES_CENTER,
-    DISP_MODE_CAM = 0,
-    DISP_MODE_GRAY,
-    DISP_MODE_GOLDEN,
-    DISP_MODE_RAINBOW,
-    DISP_MODE_IRONBLACK,
-};
-
 typedef struct
 {
     float data;
@@ -25,6 +13,10 @@ typedef struct
     bool sw;
 }
 lepton_encoder_t;
+
+//#define ENABLE_LEPTON_HISTOGRAM
+//#define ENABLE_LEPTON_SCALING
+//#define ENABLE_LEPTON_COLOURS
 
 #define MAX_FLIR_RAW_BUFFER (FLIR_X * FLIR_Y - 1)
 
@@ -48,6 +40,7 @@ lepton_encoder_t;
 #define DISP_MODE_Y 25
 
 Lepton lepton(21, 22, 0, 38);
+const uint8_t lepenc_addr = 0x30;
 extern uint16_t fpa_temp, aux_temp;
 extern const uint16_t camColors[];
 extern const uint16_t GrayLevel[];
@@ -59,21 +52,28 @@ bool smallBuffer_Lock = false;
 bool img_buffer_Lock = false;
 lepton_encoder_t lepton_enc_data = {0};
 const float kEncoderTempStep = 0.05f;
+#ifdef ENABLE_LEPTON_HISTOGRAM
 uint16_t lepton_histoBuff[64] = {0};
+#endif
+uint8_t lepenc_errCnt = 0;
+extern int32_t trigger_source;
 
 /** @brief  Read the encoder wheel
   */
-void lepton_encRead(bool* sw, int16_t* inc)
+void lepton_encRead(bool* sw, int16_t* inc, int16_t* rem)
 {
-    const uint8_t lepenc_addr = 0x30;
     (*sw) = false;
     (*inc) = 0;
+    if (lepenc_errCnt > 3) {
+        return;
+    }
     uint8_t err;
     Wire1.beginTransmission(lepenc_addr); Wire1.write(0x10); err = Wire1.endTransmission();
     if (err != 0) {
+        lepenc_errCnt++;
         return;
     }
-    Wire1.requestFrom(lepenc_addr, 1);
+    Wire1.requestFrom(lepenc_addr, (uint8_t)1);
     while (Wire1.available() < 1) {
         app_poll();
     }
@@ -81,12 +81,12 @@ void lepton_encRead(bool* sw, int16_t* inc)
     if ((*sw))
     {
         pwr_tick(true);
-        Wire1.beginTransmission(lepenc_addr); Wire1.write(0x20); Wire1.write(0xFF); Wire1.endTransmission();
+        lepton_encClear();
     }
     else
     {
         Wire1.beginTransmission(lepenc_addr); Wire1.write(0x00); Wire1.endTransmission();
-        Wire1.requestFrom(lepenc_addr, 2);
+        Wire1.requestFrom(lepenc_addr, (uint8_t)2);
         while (Wire1.available() < 2) {
             app_poll();
         }
@@ -96,9 +96,26 @@ void lepton_encRead(bool* sw, int16_t* inc)
         if ((*inc) != 0)
         {
             pwr_tick(true);
-            Wire1.beginTransmission(lepenc_addr); Wire1.write(0x20); Wire1.write(0xFF); Wire1.endTransmission();
+
+            int16_t x = (*inc);
+            int16_t absx = x < 0 ? -x : x;
+
+            if ((absx % 2) == 0) {
+                lepton_encClear();
+            }
+            else {
+                (*inc) = 0;
+            }
+            if (rem != NULL) {
+                (*rem) = x < 0 ? (-absx % 2) : (absx % 2);
+            }
         }
     }
+}
+
+void lepton_encClear()
+{
+    Wire1.beginTransmission(lepenc_addr); Wire1.write(0x20); Wire1.write(0xFF); Wire1.endTransmission();
 }
 
 /** @brief  Draws temperature focus cursor
@@ -137,9 +154,12 @@ void lepton_dispImg(float raw_diff, uint16_t raw_cursor, const uint16_t *palette
                 {
                     index = (b - raw_cursor) * raw_diff;
                 }
-                if (index > 255)
+                if (index > 255) {
                     index = 255;
+                }
+                #ifdef ENABLE_LEPTON_HISTOGRAM
                 lepton_histoBuff[(index >> 2)]++;
+                #endif
                 //if (palette != NULL)
                 {
                     lepton_imgBuff->drawPixel(x, y, *(palette + index));
@@ -163,9 +183,12 @@ void lepton_dispImg(float raw_diff, uint16_t raw_cursor, const uint16_t *palette
                 {
                     index = (b - raw_min) * raw_diff;
                 }
-                if (index > 255)
+                if (index > 255) {
                     index = 255;
+                }
+                #ifdef ENABLE_LEPTON_HISTOGRAM
                 lepton_histoBuff[(index >> 2)]++;
+                #endif
                 //if (palette != NULL)
                 {
                     lepton_imgBuff->drawPixel(x, y, *(palette + index));
@@ -184,47 +207,56 @@ void lepton_dispBatt(uint16_t x, uint16_t y, float vol)
 {
     const uint8_t w = 18;
     const uint8_t h = 7;
-    lepton_imgBuff->drawLine(x + 1, y, x + w, y, TFT_WHITE);                 // -
-    lepton_imgBuff->drawLine(x, y + 1, x, y + h, TFT_WHITE);                 // |
-    lepton_imgBuff->drawLine(x + 1, y + h + 1, x + w, y + h + 1, TFT_WHITE); // _
-    lepton_imgBuff->drawLine(x + w + 1, y + 1, x + w + 1, y + h, TFT_WHITE); // |
-    lepton_imgBuff->drawLine(x + w + 3, y + 4, x + w + 3, y + h - 3, TFT_WHITE);
-    lepton_imgBuff->drawPixel(x + w + 2, y + 3, TFT_WHITE);
-    lepton_imgBuff->drawPixel(x + w + 2, y + h - 2, TFT_WHITE);
+
+    #ifdef ENABLE_LEPTON_HISTOGRAM
+    TFT_eSprite* ib = lepton_imgBuff;
+    #else
+    M5DisplayExt* ib = &M5Lcd;
+    #endif
+
+    ib->drawLine(x + 1, y, x + w, y, TFT_WHITE);                 // -
+    ib->drawLine(x, y + 1, x, y + h, TFT_WHITE);                 // |
+    ib->drawLine(x + 1, y + h + 1, x + w, y + h + 1, TFT_WHITE); // _
+    ib->drawLine(x + w + 1, y + 1, x + w + 1, y + h, TFT_WHITE); // |
+    ib->drawLine(x + w + 3, y + 4, x + w + 3, y + h - 3, TFT_WHITE);
+    ib->drawPixel(x + w + 2, y + 3, TFT_WHITE);
+    ib->drawPixel(x + w + 2, y + h - 2, TFT_WHITE);
 
     float rate = (vol - 3.4) / (4.1 - 3.4);
     if (rate > 1.0)
     {
-        lepton_imgBuff->fillRect(x + 2, y + 2, w - 2, h - 2, TFT_GREEN);
+        ib->fillRect(x + 2, y + 2, w - 2, h - 2, TFT_GREEN);
     }
     else if (rate <= 0.05)
     {
-        lepton_imgBuff->drawLine(x + 2, y + 2, x + 2, y + h - 1, TFT_GREEN);
+        ib->drawLine(x + 2, y + 2, x + 2, y + h - 1, TFT_GREEN);
     }
     else
     {
-        lepton_imgBuff->fillRect(x + 2, y + 2, uint16_t(rate * (w - 2)), h - 2, TFT_GREEN);
+        uint16_t bw = uint16_t(rate * (w - 2));
+        ib->fillRect(x + 2, y + 2, bw, h - 2, TFT_GREEN);
+        ib->fillRect(x + 2 + bw, y + 2, w - 2 - bw, h - 2, TFT_BLACK);
     }
 
     // draw the connection status too
     int16_t x2 = FLIR_X + 10;
     int16_t w2 = 12, w3 = 10, spc = 5;
-    if (fairycam.isOperating() == false) {
-        lepton_imgBuff->drawLine(x2         , y, x2 + w2    , y         , TFT_RED);
-        lepton_imgBuff->drawLine(x2 + (w2/2), y, x2 + (w2/2), y + w3    , TFT_RED);
-        lepton_imgBuff->drawLine(x2         , y, x2 + (w2/2), y + (w2/2), TFT_RED);
-        lepton_imgBuff->drawLine(x2 + w2    , y, x2 + (w2/2), y + (w2/2), TFT_RED);
+    uint16_t antc = fairycam.isOperating() ? TFT_BLACK : TFT_RED;
+    ib->drawLine(x2         , y, x2 + w2    , y         , antc);
+    ib->drawLine(x2 + (w2/2), y, x2 + (w2/2), y + w3    , antc);
+    ib->drawLine(x2         , y, x2 + (w2/2), y + (w2/2), antc);
+    ib->drawLine(x2 + w2    , y, x2 + (w2/2), y + (w2/2), antc);
 
-        lepton_imgBuff->drawLine(x2 + w2 + spc, y     , x2 + w2 + spc + w3, y + w3, TFT_RED);
-        lepton_imgBuff->drawLine(x2 + w2 + spc, y + w3, x2 + w2 + spc + w3, y + 0 , TFT_RED);
-    }
+    ib->drawLine(x2 + w2 + spc, y     , x2 + w2 + spc + w3, y + w3, antc);
+    ib->drawLine(x2 + w2 + spc, y + w3, x2 + w2 + spc + w3, y + 0 , antc);
 }
 
 /** @brief  Update encoder data
   */
 void lepton_updateEncoder()
 {
-    lepton_encRead(&lepton_enc_data.sw, &lepton_enc_data.increment);
+    #ifdef ENABLE_LEPTON_SCALING
+    lepton_encRead(&lepton_enc_data.sw, &lepton_enc_data.increment, &NULL);
 
     if (lepton_enc_data.sw) // button press resets the data
     {
@@ -237,9 +269,24 @@ void lepton_updateEncoder()
             lepton_enc_data.data += ((lepton_enc_data.increment) * kEncoderTempStep);
         }
     }
+    #endif
+}
+
+void lepton_makeFrameBuff()
+{
+    #ifdef ENABLE_LEPTON_HISTOGRAM
+    int16_t w = M5Lcd.width(), h = M5Lcd.height();
+    #else
+    int16_t w = FLIR_X, h = FLIR_Y;
+    #endif
+    lepton_imgBuff = new TFT_eSprite(&M5Lcd);
+    lepton_imgBuff->createSprite(w > h ? w : h, w > h ? h : w);
+    lepton_imgBuff->setTextFont(0);
+    lepton_imgBuff->setTextColor(TFT_WHITE);
 }
 
 #define GET_PIXEL_TEMPERATURE(_pixidx)     (0.0217f * smallBuffer[(_pixidx)] + ((fpa_temp / 100.0f) - 273.15f) - 177.77f)
+#define GET_PIXEL_INDEX(_x, _y)            (((_y) * FLIR_X) + (_x))
 
 /** @brief  Update frame
   */
@@ -247,7 +294,9 @@ void lepton_updateFlir(bool gui)
 {
     pwr_tick(true);
     lepton.getRawValues();
+    #ifdef ENABLE_LEPTON_SCALING
     lepton_updateEncoder();
+    #endif
 
     uint16_t i = 0, raw_cursor = raw_max;
     int32_t x, y;
@@ -258,8 +307,12 @@ void lepton_updateFlir(bool gui)
         gui = false;
     }
 
-    if (gui) {
-        lepton_imgBuff->fillRect(0, 0, M5Lcd.width(), M5Lcd.height(), TFT_BLACK);
+    if (gui)
+    {
+        if (lepton_imgBuff == NULL) {
+            lepton_makeFrameBuff();
+        }
+        lepton_imgBuff->fillScreen(TFT_BLACK);
     }
 
     //convert temp
@@ -301,10 +354,11 @@ void lepton_updateFlir(bool gui)
 
     if (gui)
     {
+        #ifdef ENABLE_LEPTON_COLOURS
         //display mode switch
         switch (config_settings.lepton_dispmode)
         {
-            case DISP_MODE_CAM:
+            case DISP_MODE_RGB:
                 lepton_dispImg(raw_diff, raw_cursor, colormap_cam, dir_flag);
                 break;
 
@@ -324,13 +378,10 @@ void lepton_updateFlir(bool gui)
                 lepton_dispImg(raw_diff, raw_cursor, colormap_ironblack, dir_flag);
                 break;
         }
+        #else
+        lepton_dispImg(raw_diff, raw_cursor, colormap_cam, dir_flag);
+        #endif
     }
-    #if 0
-    else
-    {
-        lepton_dispImg(raw_diff, raw_cursor, NULL, dir_flag);
-    }
-    #endif
 
     //measure mode switch
     switch (config_settings.lepton_measmode)
@@ -376,6 +427,7 @@ void lepton_updateFlir(bool gui)
             break;
     }
 
+    #ifdef ENABLE_LEPTON_HISTOGRAM
     //Histogram
     uint16_t max_hist = 0;
     for (i = 0; i < 64; i++)
@@ -391,7 +443,7 @@ void lepton_updateFlir(bool gui)
     i = 0;
     switch (config_settings.lepton_dispmode)
     {
-        case DISP_MODE_CAM:
+        case DISP_MODE_RGB:
             for (x = HIST_WINDOWS_X1; x < HIST_WINDOWS_X2; x++)
             {
                 if (gui) {
@@ -465,39 +517,13 @@ void lepton_updateFlir(bool gui)
         lepton_imgBuff->printf("%.0f", min_temp);
         lepton_imgBuff->setCursor(HIST_WINDOWS_X2 - 12, HIST_WINDOWS_Y2 + 12);
         lepton_imgBuff->printf("%.0f", max_temp);
-
+    }
+    #endif
+    if (gui) {
         //Setting info
         lepton_imgBuff->setTextDatum(TC_DATUM);
         float bat_voltage = M5.Axp.GetBatVoltage();
         lepton_dispBatt(214, 4, bat_voltage);
-    }
-
-    if (gui)
-    {
-        #if 0
-        switch (config_settings.lepton_dispmode)
-        {
-            case DISP_MODE_CAM:
-                lepton_imgBuff->drawString("RGB", HIST_WINDOWS_X1 + 20, 5);
-                break;
-
-            case DISP_MODE_GRAY:
-                lepton_imgBuff->drawString("GRAY", HIST_WINDOWS_X1 + 20, 5);
-                break;
-
-            case DISP_MODE_GOLDEN:
-                lepton_imgBuff->drawString("GOLDEN", HIST_WINDOWS_X1 + 20, 5);
-                break;
-
-            case DISP_MODE_RAINBOW:
-                lepton_imgBuff->drawString("RAINBOW", HIST_WINDOWS_X1 + 20, 5);
-                break;
-
-            case DISP_MODE_IRONBLACK:
-                lepton_imgBuff->drawString("IRON", HIST_WINDOWS_X1 + 20, 5);
-                break;
-        }
-        #endif
     }
 
     if (gui) {
@@ -505,18 +531,54 @@ void lepton_updateFlir(bool gui)
     }
 }
 
-enum
+int lepton_trigBar    = 0;
+int lepton_trigThresh = 0;
+
+bool lepton_checkTrigger()
 {
-    LEPINIT_RST_1,
-    LEPINIT_RST_2,
-    LEPINIT_RST_3,
-    LEPINIT_RST_4,
-    LEPINIT_BEGIN,
-    LEPINIT_SYNC,
-    LEPINIT_CMD,
-    LEPINIT_DONE,
-    LEPINIT_FAIL,
-};
+    if (config_settings.lepton_trigmode == THERMTRIG_OFF) {
+        return false;
+    }
+    int16_t x, y;
+    int16_t cx = FLIR_X / 2;
+    int16_t cy = FLIR_Y / 2;
+    int16_t sx = cx - ((config_settings.lepton_trigzone + 1) / 2);
+    int16_t sy = cy - ((config_settings.lepton_trigzone + 1) / 2);
+    int16_t ex = cx + ((config_settings.lepton_trigzone + 1) / 2);
+    int16_t ey = cy + ((config_settings.lepton_trigzone + 1) / 2);
+    sx = sx < 0 ? 0 : sx;
+    sy = sy < 0 ? 0 : sy;
+    ex = ex >= FLIR_X ? FLIR_X : ex;
+    ey = ey >= FLIR_Y ? FLIR_Y : ey;
+    bool found = false;
+    bool foundlim = false;
+    int limtemp = 0;
+    for (x = sx; x < ex; x++)
+    {
+        for (y = sy; y < ey; y++)
+        {
+            float t = GET_PIXEL_TEMPERATURE(GET_PIXEL_INDEX(x, y));
+            int tt = lround(t);
+            if ((foundlim == false) || (config_settings.lepton_trigmode == THERMTRIG_HOT && t > limtemp) || (config_settings.lepton_trigmode == THERMTRIG_COLD && t < limtemp)) {
+                limtemp = t;
+                foundlim = true;
+            }
+            if ((config_settings.lepton_trigmode == THERMTRIG_HOT && tt >= config_settings.lepton_trigtemp)
+                || (config_settings.lepton_trigmode == THERMTRIG_COLD && tt <= config_settings.lepton_trigtemp)
+            ) {
+                found |= true;
+            }
+        }
+    }
+
+    if (foundlim)
+    {
+        lepton_trigBar    = map(lround(limtemp * 100.0)              , 0,  6000, 10, 170);
+        lepton_trigThresh = map(config_settings.lepton_trigtemp * 100, 0,  6000, 10, 170);
+    }
+
+    return found;
+}
 
 bool lepton_success = false;
 uint8_t lepton_initStage = 0;
@@ -592,8 +654,8 @@ bool lepton_init()
         if ((millis() - lepton_initMidTime) >= 1000)
         {
             uint16_t SYNC = 5, DELAY = 3;
-            lepton.doSetCommand(0x4854, &SYNC, 1);
-            lepton.doSetCommand(0x4858, &DELAY, 1);
+            lepton.doSetCommand(lepton.CMD_OEM_SYNC_SET , &SYNC , 1);
+            lepton.doSetCommand(lepton.CMD_OEM_DELAY_SET, &DELAY, 1);
             lepton.end();
             uint32_t t = millis();
             if ((t - lepton_initMidTime) > 1500)
@@ -610,14 +672,17 @@ bool lepton_init()
     }
     else if (lepton_initStage == LEPINIT_DONE)
     {
-        lepton_poll();
+        lepton_poll(false);
     }
     return lepton_success;
 }
 
-void lepton_poll()
+void lepton_poll(bool init)
 {
     if (lepton_initStage != LEPINIT_DONE) {
+        if (init) {
+            lepton_init();
+        }
         return;
     }
     lepton.getRawValues();
@@ -638,11 +703,7 @@ class PageLeptonImage : public FairyCfgItem
         virtual void on_navTo(void)
         {
             if (lepton_imgBuff == NULL) {
-                int16_t w = M5Lcd.width(), h = M5Lcd.height();
-                lepton_imgBuff = new TFT_eSprite(&M5Lcd);
-                lepton_imgBuff->createSprite(w > h ? w : h, w > h ? h : w);
-                lepton_imgBuff->setTextFont(0);
-                lepton_imgBuff->setTextColor(TFT_WHITE);
+                lepton_makeFrameBuff();
             }
             FairyCfgItem::on_navTo();
         };
@@ -654,15 +715,26 @@ class PageLeptonImage : public FairyCfgItem
                 delete lepton_imgBuff;
                 lepton_imgBuff = NULL;
             }
+            lepton_encClear();
         };
 
         virtual void on_eachFrame(void)
         {
             lepton_updateFlir(true);
+
+            bool trig = lepton_checkTrigger();
+
+            if (trig) {
+                draw_borderRect(3, TFT_RED);
+                pwr_tick(true);
+                cam_shootQuick();
+                app_sleep(200, false);
+            }
         };
 
         virtual void on_redraw(void)
         {
+            M5Lcd.fillScreen(TFT_BLACK);
             lepton_updateFlir(true);
         };
 
@@ -680,7 +752,7 @@ class PageLeptonImage : public FairyCfgItem
 class PageLeptonMesMode : public FairyCfgItem
 {
     public:
-        PageLeptonMesMode() : FairyCfgItem("Meas. Mode", (int32_t*)(&config_settings.lepton_measmode), 0, 2, 1, TXTFMT_NONE)
+        PageLeptonMesMode() : FairyCfgItem("Meas. Mode", (int32_t*)&(config_settings.lepton_measmode), 0, 2, 1, TXTFMT_NONE)
         {
         };
 
@@ -723,10 +795,11 @@ class PageLeptonMesMode : public FairyCfgItem
         };
 };
 
+#ifdef ENABLE_LEPTON_COLOURS
 class PageLeptonDispMode : public FairyCfgItem
 {
     public:
-        PageLeptonDispMode() : FairyCfgItem("Disp. Mode", (int32_t*)(&config_settings.lepton_dispmode), 0, 4, 1, TXTFMT_NONE)
+        PageLeptonDispMode() : FairyCfgItem("Disp. Mode", (int32_t*)&(config_settings.lepton_dispmode), 0, 4, 1, TXTFMT_NONE)
         {
         };
 
@@ -750,7 +823,7 @@ class PageLeptonDispMode : public FairyCfgItem
             M5Lcd.setCursor(_margin_x, get_y(2));
             switch (config_settings.lepton_dispmode)
             {
-                case DISP_MODE_CAM:
+                case DISP_MODE_RGB:
                     M5Lcd.print("RGB");
                     break;
                 case DISP_MODE_GOLDEN:
@@ -774,6 +847,123 @@ class PageLeptonDispMode : public FairyCfgItem
             blank_line();
         };
 };
+#endif
+
+class PageLeptonTriggerMode : public FairyCfgItem
+{
+    public:
+        PageLeptonTriggerMode() : FairyCfgItem("Trigger Mode", (int32_t*)&(config_settings.lepton_trigmode), 0, 2, 1, TXTFMT_NONE)
+        {
+        };
+
+        virtual bool can_navTo(void)
+        {
+            if (this->get_parentId() == MENUITEM_TRIGGER) {
+                if (trigger_source != TRIGSRC_ALL && trigger_source != TRIGSRC_THERMAL) {
+                    return false;
+                }
+            }
+            return true;
+        };
+
+        virtual void on_redraw(void)
+        {
+            M5Lcd.fillScreen(TFT_BLACK);
+            FairyCfgItem::on_redraw();
+            draw_info();
+        };
+
+        virtual void on_readjust(void)
+        {
+            if (config_settings.lepton_trigmode < THERMTRIG_OFF) {
+                config_settings.lepton_trigmode = THERMTRIG_OFF;
+            }
+            FairyCfgItem::on_readjust();
+            draw_info();
+        };
+
+    protected:
+        void draw_info(void)
+        {
+            M5Lcd.setTextFont(4);
+            M5Lcd.setCursor(_margin_x, get_y(2));
+            if (config_settings.lepton_trigmode < THERMTRIG_OFF) {
+                config_settings.lepton_trigmode = THERMTRIG_OFF;
+            }
+            switch (config_settings.lepton_trigmode)
+            {
+                case THERMTRIG_OFF:
+                    M5Lcd.print("Off");
+                    break;
+                case THERMTRIG_HOT:
+                    M5Lcd.print("Hot Obj");
+                    break;
+                case THERMTRIG_COLD:
+                    M5Lcd.print("Cold Obj");
+                    break;
+                default:
+                    M5Lcd.setTextFont(2);
+                    M5Lcd.print("Trig Mode Unknown");
+                    M5Lcd.setTextFont(4);
+                    break;
+            }
+            blank_line();
+        };
+};
+
+class PageLeptonTriggerTemp : public FairyCfgItem
+{
+    public:
+        PageLeptonTriggerTemp() : FairyCfgItem("Trig Temp.", (int32_t*)&(config_settings.lepton_trigtemp), 0, 200, 1, TXTFMT_BYTENS)
+        {
+        };
+
+        virtual bool can_navTo(void)
+        {
+            if (config_settings.lepton_trigmode == THERMTRIG_OFF) {
+                return false;
+            }
+            if (this->get_parentId() == MENUITEM_TRIGGER) {
+                if (trigger_source != TRIGSRC_ALL && trigger_source != TRIGSRC_THERMAL) {
+                    return false;
+                }
+            }
+            return true;
+        };
+
+        virtual void on_redraw(void)
+        {
+            M5Lcd.fillScreen(TFT_BLACK);
+            FairyCfgItem::on_redraw();
+        };
+};
+
+class PageLeptonTriggerZone : public FairyCfgItem
+{
+    public:
+        PageLeptonTriggerZone() : FairyCfgItem("Trig Zone", (int32_t*)&(config_settings.lepton_trigzone), 2, FLIR_X > FLIR_Y ? FLIR_X : FLIR_Y, 1, TXTFMT_BYTENS)
+        {
+        };
+
+        virtual bool can_navTo(void)
+        {
+            if (config_settings.lepton_trigmode == THERMTRIG_OFF) {
+                return false;
+            }
+            if (this->get_parentId() == MENUITEM_TRIGGER) {
+                if (trigger_source != TRIGSRC_ALL && trigger_source != TRIGSRC_THERMAL) {
+                    return false;
+                }
+            }
+            return true;
+        };
+
+        virtual void on_redraw(void)
+        {
+            M5Lcd.fillScreen(TFT_BLACK);
+            FairyCfgItem::on_redraw();
+        };
+};
 
 class PageLeptonExit : public FairyCfgItem
 {
@@ -791,11 +981,16 @@ class PageLeptonExit : public FairyCfgItem
 class AppLepton : public FairyCfgApp
 {
     public:
-        AppLepton() : FairyCfgApp("/main_lepton.png", "/lepton_icon.png", 0)
+        AppLepton() : FairyCfgApp("/main_lepton.png", "/lepton_icon.png", MENUITEM_LEPTON)
         {
             install(new PageLeptonImage());
+            #ifdef ENABLE_LEPTON_COLOURS
             install(new PageLeptonDispMode());
+            #endif
             install(new PageLeptonMesMode());
+            install(new PageLeptonTriggerMode());
+            install(new PageLeptonTriggerTemp());
+            install(new PageLeptonTriggerZone());
             install(new PageLeptonExit());
         };
 
@@ -822,6 +1017,13 @@ void setup_leptonflir()
 {
     static AppLepton app;
     main_menu.install(&app);
+}
+
+void install_lepton_trigger(FairyCfgApp* parent)
+{
+    parent->install(new PageLeptonTriggerMode());
+    parent->install(new PageLeptonTriggerTemp());
+    parent->install(new PageLeptonTriggerZone());
 }
 
 #endif

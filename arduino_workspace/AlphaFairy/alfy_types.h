@@ -60,9 +60,9 @@ typedef struct
 #ifdef ENABLE_BUILD_LEPTON
   int32_t lepton_dispmode;
   int32_t lepton_measmode;
-  int32_t lepton_thresh;
-  int32_t lepton_size;
-  int32_t lepton_cold;
+  int32_t lepton_trigmode;
+  int32_t lepton_trigtemp;
+  int32_t lepton_trigzone;
 #endif
 
   uint32_t crc32;

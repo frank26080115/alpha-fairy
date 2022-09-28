@@ -63,6 +63,7 @@ public:
   //
   static const uint16_t CMD_OEM_SYNC_SET = 0x4854;
   //static const uint16_t CMD_OEM_SYNC_GET = 0x4864;
+  static const uint16_t CMD_OEM_DELAY_SET = 0x4858;
 
   static const uint16_t STATUS_BIT_BUSY = 1;
   static const uint16_t STATUS_BIT_BOOT_MODE = 2;
