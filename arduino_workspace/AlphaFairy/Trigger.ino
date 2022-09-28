@@ -20,6 +20,10 @@ int imutrig_accelThresh = 0;
 int imutrig_gyroBar     = 0;
 int imutrig_gyroThresh  = 0;
 
+#define IMUTRIG_BAR_DIV 15
+int imutrig_accelBarPeak = 0;
+int imutrig_gyroBarPeak  = 0;
+
 bool extinput_poll()
 {
     int gpio = get_pinCfgGpio(config_settings.pin_exinput);
@@ -77,6 +81,21 @@ bool imutrig_poll()
     imutrig_gyroBar     = map(gyroMax                         , 0, 600, 10, 170);
     imutrig_gyroThresh  = map(config_settings.trigger_imurot  , 0, 600, 10, 170);
 
+    // show a decaying peak, because it's hard to read the screen while it is moving
+
+    if (imutrig_accelBar > (imutrig_accelBarPeak / IMUTRIG_BAR_DIV)) {
+        imutrig_accelBarPeak = imutrig_accelBar * IMUTRIG_BAR_DIV;
+    }
+    else {
+        imutrig_accelBarPeak -= 1;
+    }
+    if (imutrig_gyroBar > (imutrig_gyroBarPeak / IMUTRIG_BAR_DIV)) {
+        imutrig_gyroBarPeak = imutrig_gyroBar * IMUTRIG_BAR_DIV;
+    }
+    else {
+        imutrig_gyroBarPeak -= 1;
+    }
+
     return (imutrig_accelBar >= imutrig_accelThresh) || (imutrig_gyroBar >= imutrig_gyroThresh);
 }
 
@@ -87,7 +106,7 @@ void extinput_drawLevel()
 
 void imutrig_drawLevel()
 {
-    gui_drawLevelBar(imutrig_accelBar, imutrig_gyroBar, imutrig_accelThresh, imutrig_gyroThresh);
+    gui_drawLevelBar(imutrig_accelBarPeak / IMUTRIG_BAR_DIV, imutrig_gyroBarPeak / IMUTRIG_BAR_DIV, imutrig_accelThresh, imutrig_gyroThresh);
 }
 
 #ifdef ENABLE_BUILD_LEPTON
@@ -302,6 +321,11 @@ class PageTriggerImuAccel : public PageTrigger
         virtual bool can_navTo(void)
         {
             return trigger_source == TRIGSRC_IMU || trigger_source == TRIGSRC_ALL;
+        };
+
+        virtual void on_navTo(void)
+        {
+            imutrig_accelBarPeak = 0;
         };
 };
 
