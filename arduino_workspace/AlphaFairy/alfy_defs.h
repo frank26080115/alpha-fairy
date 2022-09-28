@@ -12,6 +12,7 @@ enum
     MENUITEM_INTERVAL,
     MENUITEM_ASTRO,
     MENUITEM_TRIGGER,
+    MENUITEM_LEPTON,
 };
 
 enum
@@ -108,6 +109,7 @@ enum
     TRIGSRC_MIC,
     TRIGSRC_EXINPUT,
     TRIGSRC_IMU,
+    TRIGSRC_THERMAL,
 };
 
 enum
@@ -115,6 +117,38 @@ enum
     TRIGACT_PHOTO = 0,
     TRIGACT_VIDEO,
     TRIGACT_INTERVAL,
+};
+
+enum
+{
+    MES_AUTO_MAX = 0,
+    MES_AUTO_MIN,
+    MES_CENTER,
+    DISP_MODE_RGB = 0,
+    DISP_MODE_GRAY,
+    DISP_MODE_GOLDEN,
+    DISP_MODE_RAINBOW,
+    DISP_MODE_IRONBLACK,
+};
+
+enum
+{
+    LEPINIT_RST_1 = 0,
+    LEPINIT_RST_2,
+    LEPINIT_RST_3,
+    LEPINIT_RST_4,
+    LEPINIT_BEGIN,
+    LEPINIT_SYNC,
+    LEPINIT_CMD,
+    LEPINIT_DONE,
+    LEPINIT_FAIL,
+};
+
+enum
+{
+    THERMTRIG_OFF = 0,
+    THERMTRIG_HOT,
+    THERMTRIG_COLD,
 };
 
 #endif

@@ -60,10 +60,19 @@ void settings_default() {
   config_settings.pin_shutter = PINCFG_G26;
   config_settings.pin_exinput = PINCFG_G36;
   config_settings.trigger_edge = 0;
+
+  #ifdef ENABLE_BUILD_LEPTON
+  config_settings.lepton_dispmode = DISP_MODE_RGB;
+  config_settings.lepton_measmode = MES_AUTO_MAX;
+  config_settings.lepton_trigmode = THERMTRIG_OFF;
+  config_settings.lepton_trigtemp = 35;
+  config_settings.lepton_trigzone = 160;
+  #endif
 }
 
 bool settings_load() {
   EEPROM.begin(sizeof(configsettings_t));
+  //dbg_ser.printf("settings struct size = %u\r\n", sizeof(configsettings_t));
   EEPROM.readBytes(0, (void*)(&config_settings), sizeof(configsettings_t));
   uint32_t crc_calced = CHECKSUM(&config_settings, sizeof(configsettings_t) - sizeof(uint32_t));
   // if the data is invalid, report so

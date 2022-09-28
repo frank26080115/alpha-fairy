@@ -1,12 +1,14 @@
 #include "AlphaFairy.h"
 #include <FairyEncoder.h>
 
+bool fenc_enabled = true;
 int32_t fenc_val;
 
 void fenc_task()
 {
     static bool prev_can_run = false;
-    bool can_run = ptpcam.isOperating() && ptpcam.is_manuallyfocused();
+
+    bool can_run = ptpcam.isOperating() && ptpcam.is_manuallyfocused() && fenc_enabled;
     // we don't want to waste IO time if the camera is not connected or not in manual focus mode
     if (prev_can_run != can_run) {
         fenc_val = 0;

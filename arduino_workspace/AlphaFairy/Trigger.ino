@@ -90,6 +90,15 @@ void imutrig_drawLevel()
     gui_drawLevelBar(imutrig_accelBar, imutrig_gyroBar, imutrig_accelThresh, imutrig_gyroThresh);
 }
 
+#ifdef ENABLE_BUILD_LEPTON
+extern int lepton_trigBar;
+extern int lepton_trigThresh;
+void lepton_drawLevel()
+{
+    gui_drawLevelBar(lepton_trigBar, -1, lepton_trigThresh, -1);
+}
+#endif
+
 void trigger_drawLevel()
 {
     if (trigger_source == TRIGSRC_ALL) {
@@ -104,6 +113,11 @@ void trigger_drawLevel()
     else if (trigger_source == TRIGSRC_IMU) {
         imutrig_drawLevel();
     }
+    #ifdef ENABLE_BUILD_LEPTON
+    else if (trigger_source == TRIGSRC_THERMAL) {
+        lepton_drawLevel();
+    }
+    #endif
     else {
         gui_drawLevelBar(-1, -1, -1, -1); // draws a black region
     }
@@ -122,6 +136,13 @@ bool trigger_all_poll()
     if (trigger_source == TRIGSRC_IMU || trigger_source == TRIGSRC_ALL) {
         triggered |= imutrig_poll();
     }
+    #ifdef ENABLE_BUILD_LEPTON
+    if (trigger_source == TRIGSRC_THERMAL || trigger_source == TRIGSRC_ALL)
+    {
+        lepton_poll(true);
+        triggered |= lepton_checkTrigger();
+    }
+    #endif
     return triggered;
 }
 
@@ -168,9 +189,20 @@ class PageTrigger : public FairyCfgItem
 class PageTriggerSource : public PageTrigger
 {
     public:
-        PageTriggerSource() : PageTrigger("Trigger Source", (int32_t*)&(trigger_source), 0, 3, 1, TXTFMT_TRIGSRC)
+        PageTriggerSource() : PageTrigger("Trigger Source", (int32_t*)&(trigger_source), 0,
+        #ifdef ENABLE_BUILD_LEPTON
+            4
+        #else
+            3
+        #endif
+            , 1, TXTFMT_TRIGSRC)
         {
             this->_autosave = false;
+        };
+
+        virtual void on_readjust(void)
+        {
+            draw_icon();
         };
 };
 
@@ -681,6 +713,10 @@ class AppShutterTrigger : public FairyCfgApp
             this->install(new PageTriggerImuAccel());
             this->install(new PageTriggerImuRot());
 
+            #ifdef ENABLE_BUILD_LEPTON
+            install_lepton_trigger(this);
+            #endif
+
             this->install(new PageTriggerArm());
         };
 
@@ -710,6 +746,12 @@ class AppShutterTrigger : public FairyCfgApp
             {
                 M5Lcd.drawPngFile(SPIFFS, "/imu_icon.png", x, y);
             }
+            #ifdef ENABLE_BUILD_LEPTON
+            else if (trigger_source == TRIGSRC_THERMAL)
+            {
+                M5Lcd.drawPngFile(SPIFFS, "/lepton_icon.png", x, y);
+            }
+            #endif
             else
             {
                 FairyCfgApp::draw_icon();

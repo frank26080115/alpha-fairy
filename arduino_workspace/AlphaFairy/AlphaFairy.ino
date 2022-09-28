@@ -14,6 +14,10 @@
 #include <SerialCmdLine.h>
 #include <SonyCameraInfraredRemote.h>
 
+#ifdef ENABLE_BUILD_LEPTON
+#include <Lepton.h>
+#endif
+
 PtpIpSonyAlphaCamera ptpcam((char*)"ALPHA-FAIRY", NULL);
 SonyHttpCamera       httpcam;
 AlphaFairyCamera     fairycam(&ptpcam, &httpcam);
@@ -38,6 +42,9 @@ void setup()
     Serial.begin(SERIAL_PORT_BAUDRATE);
     dbg_ser.enabled = true;
 
+    Wire1.begin(21, 22);
+    Wire1.setClock(400000);
+
     cpufreq_init();
 
     settings_init();
@@ -48,6 +55,7 @@ void setup()
     M5.IMU.Init();
     M5.IMU.SetGyroFsr(M5.IMU.GFS_500DPS);
     M5.IMU.SetAccelFsr(M5.IMU.AFS_4G);
+
     M5.Axp.begin();
     M5.Axp.ScreenSwitch(false); // turn off the LCD backlight while initializing, avoids junk being shown on the screen
     M5Lcd.begin(); // our own extended LCD object
@@ -114,11 +122,16 @@ void setup_menus()
     // taking advantage of Arduino's automatic function prototype generation
     // each *.ino file can have its own setup_xxx function
 
-    main_menu.install(&menu_remote  );
-    main_menu.install(&menu_focus   );
+    main_menu.install(&menu_remote);
+    menu_remote.set_enc_nav(false);
+    main_menu.install(&menu_focus);
+    menu_focus.set_enc_nav(false);
     setup_intervalometer();
     main_menu.install(&menu_utils   );
     setup_autoconnect();
+    #ifdef ENABLE_BUILD_LEPTON
+    setup_leptonflir();
+    #endif
 
     setup_qikrmt();
     setup_remoteshutter();
@@ -162,6 +175,10 @@ bool app_poll()
 
         pmic_log();
 
+        #ifdef ENABLE_BUILD_LEPTON
+        lepton_poll(false);
+        #endif
+
         yield();
 
         cpufreq_task();
@@ -169,7 +186,6 @@ bool app_poll()
 
         return true; // can do more low priority tasks
     }
-
     return false; // should not do more low priority tasks
 }
 

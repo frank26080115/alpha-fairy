@@ -11,8 +11,8 @@
 
 //#define DISABLE_STATUS_BAR
 //#define DISABLE_POWER_SAVE
-#define DISABLE_ALL_MSG
 #define DISABLE_CMD_LINE
+#define DISABLE_ALL_MSG
 //#define HTTP_MOCKBTNS_ENABLE
 //#define HTTP_ON_BOOT
 //#define HTTP_ENABLE_CMD_INTEFACE
@@ -38,5 +38,7 @@
 #define BTN_DEBOUNCE 50
 
 #define SERIAL_PORT_BAUDRATE   115200
+
+//#define ENABLE_BUILD_LEPTON
 
 #endif

@@ -224,6 +224,7 @@ class PageFactoryReset : public FairyMenuItem
 
         virtual bool on_execute(void)
         {
+            draw_borderRect(5, TFT_RED);
             settings_default();
             settings_save();
             wifiprofile_deleteAll();
@@ -367,6 +368,7 @@ class AppWifiConfig : public FairySubmenu
             install(new PageWifiSelectProfile());
             install(new PageFactoryReset());
             _already_running = false;
+            set_enc_nav(false);
         };
 
         virtual bool on_execute(void)

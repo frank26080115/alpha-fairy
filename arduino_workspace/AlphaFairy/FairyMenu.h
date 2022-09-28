@@ -76,11 +76,15 @@ class FairySubmenu : public FairyMenuItem
     public:
         FairySubmenu(const char* img_fname, uint16_t id = 0);
         inline  void set_bigbtn_nav(bool x) { _bigbtn_nav = x; }; // allows the use of the big button as a next button, which disables on_execute completely
+        inline  void set_enc_nav(bool x) { _enc_nav = x; };
         virtual void install(FairyItem* itm);                     // adds item to linked list
         virtual bool on_execute(void);                            // usually used for a menu loop
         virtual bool task(void);                                  // usually used to do stuff inside the menu loop, return true means "exit submenu"
         inline  void rewind(void) { cur_node = head_node; };      // reset to showing the first item in the linked list
         FairyItem* nav_next(void);                                // navigate to the next item that is not hidden
+        #ifdef ENABLE_BUILD_LEPTON
+        FairyItem* nav_prev(void);                                // navigate to the prev item that is not hidden
+        #endif
 
         // linked list getters
         inline FairyItemNode_t* get_headNode(void) { return head_node; };
@@ -92,6 +96,7 @@ class FairySubmenu : public FairyMenuItem
         FairyItemNode_t* cur_node = NULL;
 
         bool _bigbtn_nav = false; // allows the use of the big button as a next button, which disables on_execute completely
+        bool _enc_nav = true;     // allows the lepton encoder to navigate
 };
 
 class FairyCfgItem : public FairyItem
