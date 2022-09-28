@@ -65,6 +65,8 @@ uint32_t lepton_startTime = 0;
 int lepton_trigBar    = 0;
 int lepton_trigThresh = 0;
 
+int lepton_saveNum = 0;
+
 extern int32_t trigger_source;
 
 /** @brief  Read the encoder wheel
@@ -255,10 +257,50 @@ void lepton_dispBatt(uint16_t x, uint16_t y, float vol)
     ib->drawLine(x2 + (w2/2), y, x2 + (w2/2), y + w3    , antc);
     ib->drawLine(x2         , y, x2 + (w2/2), y + (w2/2), antc);
     ib->drawLine(x2 + w2    , y, x2 + (w2/2), y + (w2/2), antc);
-
     ib->drawLine(x2 + w2 + spc, y     , x2 + w2 + spc + w3, y + w3, antc);
     ib->drawLine(x2 + w2 + spc, y + w3, x2 + w2 + spc + w3, y + 0 , antc);
+
+    #ifndef ENABLE_LEPTON_SCALING
+    if (lepton_saveNum > 0)
+    {
+        ib->setCursor(x2 - 5, 21);
+        ib->printf("SAVED: %u", lepton_saveNum);
+    }
+    #endif
 }
+
+#ifndef ENABLE_LEPTON_SCALING
+void lepton_saveImg()
+{
+    char fname[32] = {0};
+    while (true)
+    {
+        if (lepton_saveNum == 0) {
+            lepton_saveNum++;
+        }
+        sprintf(fname, "/flir_%u.bin", lepton_saveNum);
+        if (SPIFFS.exists(fname) == false) {
+            break;
+        }
+        else {
+            lepton_saveNum++;
+            continue;
+        }
+    }
+    File f = SPIFFS.open(fname, FILE_WRITE);
+    if (!f) {
+        return;
+    }
+    dbg_ser.printf("saving FLIR img to %s\r\n", fname);
+    f.write((uint8_t*)&fpa_temp, 2);
+    f.write((uint8_t*)&raw_max, 2);
+    f.write((uint8_t*)&raw_min, 2);
+    uint8_t* ptr = (uint8_t*)smallBuffer;
+    f.write(ptr, FLIR_X * FLIR_Y * 2);
+    f.close();
+    M5Lcd.fillRect(FLIR_X + 5, 20, 70, 60, TFT_BLACK);
+}
+#endif
 
 /** @brief  Update encoder data
   */
@@ -291,6 +333,9 @@ void lepton_makeFrameBuff()
     lepton_imgBuff = new TFT_eSprite(&M5Lcd);
     lepton_imgBuff->createSprite(w > h ? w : h, w > h ? h : w);
     lepton_imgBuff->setTextFont(0);
+    //lepton_imgBuff->highlight(true);
+    lepton_imgBuff->setTextWrap(true);
+    //lepton_imgBuff->setHighlightColor(TFT_BLACK);
     lepton_imgBuff->setTextColor(TFT_WHITE);
 }
 
@@ -306,6 +351,12 @@ void lepton_updateFlir(bool gui)
     lepton_lastPollTime = millis();
     #ifdef ENABLE_LEPTON_SCALING
     lepton_updateEncoder();
+    #else
+    bool enc_sw; int16_t enc_inc;
+    lepton_encRead(&enc_sw, &enc_inc, NULL);
+    if (enc_sw) {
+        lepton_saveImg();
+    }
     #endif
 
     uint16_t i = 0, raw_cursor = raw_max;

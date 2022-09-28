@@ -28,6 +28,7 @@ void wifipwr_func   (void* cmd, char* argstr, Stream* stream);
 void pmiclog_func   (void* cmd, char* argstr, Stream* stream);
 void listlog_func   (void* cmd, char* argstr, Stream* stream);
 void readlog_func   (void* cmd, char* argstr, Stream* stream);
+void readhex_func   (void* cmd, char* argstr, Stream* stream);
 #endif
 
 const cmd_def_t cmds[] = {
@@ -53,6 +54,7 @@ const cmd_def_t cmds[] = {
   { "pmiclog"  , pmiclog_func },
   { "listlog"  , listlog_func },
   { "readlog"  , readlog_func },
+  { "readhex"  , readhex_func },
   #endif
   { "", NULL }, // end of table
 };
@@ -332,6 +334,22 @@ void readlog_func(void* cmd, char* argstr, Stream* stream)
     stream->println();
     while (f.available() > 0) {
         stream->write((uint8_t)(f.read()));
+    }
+    f.close();
+    stream->println();
+}
+
+void readhex_func(void* cmd, char* argstr, Stream* stream)
+{
+    int i = 0;
+    File f = SPIFFS.open(argstr);
+    stream->println();
+    while (f.available() > 0) {
+        stream->printf("0x%02X, ", (uint8_t)(f.read()));
+        i++;
+        if ((i % 16) == 0) {
+            stream->printf("\r\n");
+        }
     }
     f.close();
     stream->println();
