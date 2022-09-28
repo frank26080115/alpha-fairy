@@ -148,6 +148,7 @@ class PageWifiSelectProfile : public FairyMenuItem
                 if (wifiprofile_isBlank(_profile_num)) {
                     _profile_num = 0;
                 }
+                dbg_ser.printf("spin-sel right wifi-profile %u\r\n", _profile_num);
             }
             else if (x < 0)
             {
@@ -163,7 +164,9 @@ class PageWifiSelectProfile : public FairyMenuItem
                 while (wifiprofile_isBlank(_profile_num) && _profile_num > 0) {
                     _profile_num--;
                 }
+                dbg_ser.printf("spin-sel left wifi-profile %u\r\n", _profile_num);
             }
+            draw_text();
         };
 
         virtual bool on_execute(void)
@@ -190,6 +193,7 @@ class PageWifiSelectProfile : public FairyMenuItem
         void draw_text(void)
         {
             M5Lcd.setRotation(0);
+            M5Lcd.fillRect(0, 87, M5Lcd.width(), 90, TFT_WHITE);
             M5Lcd.highlight(true);
             M5Lcd.setTextWrap(true);
             M5Lcd.setHighlightColor(TFT_WHITE);

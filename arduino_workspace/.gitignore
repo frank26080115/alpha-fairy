@@ -28,7 +28,7 @@ libraries/M5*
 
 libraries/readme.txt
 
-AlphaFairy/data/*
+#AlphaFairy/data/*
 
 # Prerequisites
 *.d
