@@ -56,6 +56,15 @@ const float kEncoderTempStep = 0.05f;
 uint16_t lepton_histoBuff[64] = {0};
 #endif
 uint8_t lepenc_errCnt = 0;
+bool lepton_success = false;
+bool lepton_enable_poll = true;
+uint8_t lepton_initStage = 0;
+uint32_t lepton_initMidTime = 0;
+uint32_t lepton_lastPollTime = 0;
+uint32_t lepton_startTime = 0;
+int lepton_trigBar    = 0;
+int lepton_trigThresh = 0;
+
 extern int32_t trigger_source;
 
 /** @brief  Read the encoder wheel
@@ -294,6 +303,7 @@ void lepton_updateFlir(bool gui)
 {
     pwr_tick(true);
     lepton.getRawValues();
+    lepton_lastPollTime = millis();
     #ifdef ENABLE_LEPTON_SCALING
     lepton_updateEncoder();
     #endif
@@ -531,12 +541,12 @@ void lepton_updateFlir(bool gui)
     }
 }
 
-int lepton_trigBar    = 0;
-int lepton_trigThresh = 0;
-
 bool lepton_checkTrigger()
 {
     if (config_settings.lepton_trigmode == THERMTRIG_OFF) {
+        return false;
+    }
+    if (lepton_initStage != LEPINIT_DONE) {
         return false;
     }
     int16_t x, y;
@@ -580,9 +590,6 @@ bool lepton_checkTrigger()
     return found;
 }
 
-bool lepton_success = false;
-uint8_t lepton_initStage = 0;
-uint32_t lepton_initMidTime = 0;
 bool lepton_init()
 {
     if (lepton_initStage == LEPINIT_RST_1)
@@ -679,6 +686,14 @@ bool lepton_init()
 
 void lepton_poll(bool init)
 {
+    if (lepton_enable_poll == false) {
+        return;
+    }
+
+    if ((millis() - lepton_lastPollTime) < 300) {
+        return;
+    }
+
     if (lepton_initStage != LEPINIT_DONE) {
         if (init) {
             lepton_init();
@@ -686,6 +701,7 @@ void lepton_poll(bool init)
         return;
     }
     lepton.getRawValues();
+    lepton_lastPollTime = millis();
 }
 
 bool lepton_nullFunc(void* x)
@@ -722,14 +738,19 @@ class PageLeptonImage : public FairyCfgItem
         {
             lepton_updateFlir(true);
 
+            #ifdef ENABLE_BUILD_LEPTON_TRIGGER_SIMPLE
+            if ((millis() - lepton_startTime) < 5000) {
+                return;
+            }
+
             bool trig = lepton_checkTrigger();
 
             if (trig) {
                 draw_borderRect(3, TFT_RED);
                 pwr_tick(true);
                 cam_shootQuick();
-                app_sleep(200, false);
             }
+            #endif
         };
 
         virtual void on_redraw(void)
@@ -754,6 +775,7 @@ class PageLeptonMesMode : public FairyCfgItem
     public:
         PageLeptonMesMode() : FairyCfgItem("Meas. Mode", (int32_t*)&(config_settings.lepton_measmode), 0, 2, 1, TXTFMT_NONE)
         {
+            this->_margin_y = MICTRIG_LEVEL_MARGIN; this->_autosave = false;
         };
 
         virtual void on_redraw(void)
@@ -801,6 +823,7 @@ class PageLeptonDispMode : public FairyCfgItem
     public:
         PageLeptonDispMode() : FairyCfgItem("Disp. Mode", (int32_t*)&(config_settings.lepton_dispmode), 0, 4, 1, TXTFMT_NONE)
         {
+            this->_margin_y = MICTRIG_LEVEL_MARGIN; this->_autosave = false;
         };
 
         virtual void on_redraw(void)
@@ -849,10 +872,38 @@ class PageLeptonDispMode : public FairyCfgItem
 };
 #endif
 
-class PageLeptonTriggerMode : public FairyCfgItem
+class PageLeptonTrigger : public FairyCfgItem
 {
     public:
-        PageLeptonTriggerMode() : FairyCfgItem("Trigger Mode", (int32_t*)&(config_settings.lepton_trigmode), 0, 2, 1, TXTFMT_NONE)
+        PageLeptonTrigger(const char* disp_name, int32_t* linked_var, int32_t val_min, int32_t val_max, int32_t step_size, uint32_t fmt_flags) : FairyCfgItem(disp_name, linked_var, val_min, val_max, step_size, fmt_flags)
+        { this->_margin_y = MICTRIG_LEVEL_MARGIN; this->_autosave = true; };
+        PageLeptonTrigger(const char* disp_name, bool (*cb)(void*), const char* icon) : FairyCfgItem(disp_name, cb, icon)
+        { this->_margin_y = MICTRIG_LEVEL_MARGIN; this->_autosave = false; };
+
+        virtual void on_drawLive (void)
+        {
+            if (this->get_parentId() == MENUITEM_TRIGGER) {
+                trigger_drawLevel();
+            }
+            else {
+                lepton_drawLevel();
+            }
+        };
+
+        virtual void on_extraPoll(void) {
+            if (this->get_parentId() == MENUITEM_TRIGGER) {
+                trigger_all_poll();
+            }
+            else {
+                lepton_checkTrigger();
+            }
+        };
+};
+
+class PageLeptonTriggerMode : public PageLeptonTrigger
+{
+    public:
+        PageLeptonTriggerMode() : PageLeptonTrigger("Trigger Mode", (int32_t*)&(config_settings.lepton_trigmode), 0, 2, 1, TXTFMT_NONE)
         {
         };
 
@@ -868,6 +919,11 @@ class PageLeptonTriggerMode : public FairyCfgItem
 
         virtual void on_redraw(void)
         {
+            if (this->get_parentId() == MENUITEM_TRIGGER) {
+                if (config_settings.lepton_trigmode == THERMTRIG_OFF) {
+                    config_settings.lepton_trigmode = THERMTRIG_HOT;
+                }
+            }
             M5Lcd.fillScreen(TFT_BLACK);
             FairyCfgItem::on_redraw();
             draw_info();
@@ -911,10 +967,10 @@ class PageLeptonTriggerMode : public FairyCfgItem
         };
 };
 
-class PageLeptonTriggerTemp : public FairyCfgItem
+class PageLeptonTriggerTemp : public PageLeptonTrigger
 {
     public:
-        PageLeptonTriggerTemp() : FairyCfgItem("Trig Temp.", (int32_t*)&(config_settings.lepton_trigtemp), 0, 200, 1, TXTFMT_BYTENS)
+        PageLeptonTriggerTemp() : PageLeptonTrigger("Trig Temp.", (int32_t*)&(config_settings.lepton_trigtemp), 0, 200, 1, TXTFMT_BYTENS)
         {
         };
 
@@ -938,10 +994,10 @@ class PageLeptonTriggerTemp : public FairyCfgItem
         };
 };
 
-class PageLeptonTriggerZone : public FairyCfgItem
+class PageLeptonTriggerZone : public PageLeptonTrigger
 {
     public:
-        PageLeptonTriggerZone() : FairyCfgItem("Trig Zone", (int32_t*)&(config_settings.lepton_trigzone), 2, FLIR_X > FLIR_Y ? FLIR_X : FLIR_Y, 1, TXTFMT_BYTENS)
+        PageLeptonTriggerZone() : PageLeptonTrigger("Trig Zone", (int32_t*)&(config_settings.lepton_trigzone), 2, FLIR_X > FLIR_Y ? FLIR_X : FLIR_Y, 1, TXTFMT_BYTENS)
         {
         };
 
@@ -970,6 +1026,13 @@ class PageLeptonExit : public FairyCfgItem
     public:
         PageLeptonExit() : FairyCfgItem("Exit", lepton_nullFunc, "/back_icon.png")
         {
+            this->_margin_y = MICTRIG_LEVEL_MARGIN; this->_autosave = false;
+        };
+
+        virtual void on_redraw(void)
+        {
+            M5Lcd.fillScreen(TFT_BLACK);
+            FairyCfgItem::on_redraw();
         };
 
         virtual bool on_execute(void)
@@ -988,9 +1051,11 @@ class AppLepton : public FairyCfgApp
             install(new PageLeptonDispMode());
             #endif
             install(new PageLeptonMesMode());
+            #ifdef ENABLE_BUILD_LEPTON_TRIGGER_SIMPLE
             install(new PageLeptonTriggerMode());
             install(new PageLeptonTriggerTemp());
             install(new PageLeptonTriggerZone());
+            #endif
             install(new PageLeptonExit());
         };
 
@@ -1003,6 +1068,7 @@ class AppLepton : public FairyCfgApp
                 app_poll();
             }
             if (lepton_initStage == LEPINIT_DONE) {
+                lepton_startTime = millis();
                 bool r = FairyCfgApp::on_execute();
                 return r;
             }
@@ -1021,9 +1087,11 @@ void setup_leptonflir()
 
 void install_lepton_trigger(FairyCfgApp* parent)
 {
+    #ifdef ENABLE_BUILD_LEPTON_TRIGGER_COMPLEX
     parent->install(new PageLeptonTriggerMode());
     parent->install(new PageLeptonTriggerTemp());
     parent->install(new PageLeptonTriggerZone());
+    #endif
 }
 
 #endif

@@ -1,5 +1,9 @@
 #include "AlphaFairy.h"
 
+#ifdef ENABLE_BUILD_LEPTON
+extern bool lepton_enable_poll;
+#endif
+
 void app_waitAllReleaseGfx(uint8_t waitgfx)
 {
     btnAny_clrPressed();
@@ -7,6 +11,10 @@ void app_waitAllReleaseGfx(uint8_t waitgfx)
     {
         return;
     }
+
+    #ifdef ENABLE_BUILD_LEPTON
+    lepton_enable_poll = false;
+    #endif
 
     cpufreq_boost();
 
@@ -37,6 +45,10 @@ void app_waitAllReleaseGfx(uint8_t waitgfx)
     while ((last_time - (now = millis())) < BTN_DEBOUNCE);
 
     redraw_flag = true;
+
+    #ifdef ENABLE_BUILD_LEPTON
+    lepton_enable_poll = true;
+    #endif
 }
 
 void app_waitAllRelease()
@@ -46,6 +58,9 @@ void app_waitAllRelease()
 
 void app_waitAnyPress(bool can_sleep)
 {
+    #ifdef ENABLE_BUILD_LEPTON
+    lepton_enable_poll = false;
+    #endif
     while (true)
     {
         app_poll();
@@ -57,6 +72,9 @@ void app_waitAnyPress(bool can_sleep)
         }
     }
     btnAny_clrPressed();
+    #ifdef ENABLE_BUILD_LEPTON
+    lepton_enable_poll = true;
+    #endif
 }
 
 void app_waitAllReleaseConnecting()
@@ -73,12 +91,18 @@ void app_sleep(uint32_t x, bool forget_btns)
 {
     uint32_t tstart = millis();
     uint32_t now;
+    #ifdef ENABLE_BUILD_LEPTON
+    lepton_enable_poll = false;
+    #endif
     while (((now = millis()) - tstart) < x) {
         app_poll();
     }
     if (forget_btns) {
         btnAny_clrPressed();
     }
+    #ifdef ENABLE_BUILD_LEPTON
+    lepton_enable_poll = true;
+    #endif
 }
 
 int8_t imu_getFocusPull()

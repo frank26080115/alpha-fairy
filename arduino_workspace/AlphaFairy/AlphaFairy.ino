@@ -175,10 +175,6 @@ bool app_poll()
 
         pmic_log();
 
-        #ifdef ENABLE_BUILD_LEPTON
-        lepton_poll(false);
-        #endif
-
         yield();
 
         cpufreq_task();

@@ -355,6 +355,6 @@ void draw_borderRect(int16_t thickness, uint16_t colour)
     int16_t i;
     for (i = 0; i < thickness; i++)
     {
-        M5Lcd.drawRect(0 + i, 0 + i, M5Lcd.width() - 1 - i, M5Lcd.height() - 1 - i, TFT_RED);
+        M5Lcd.drawRect(0 + i, 0 + i, M5Lcd.width() - 1 - (i * 2), M5Lcd.height() - 1 - (i * 2), TFT_RED);
     }
 }

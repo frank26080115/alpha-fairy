@@ -137,11 +137,13 @@ bool trigger_all_poll()
         triggered |= imutrig_poll();
     }
     #ifdef ENABLE_BUILD_LEPTON
+    #ifdef ENABLE_BUILD_LEPTON_TRIGGER_COMPLEX
     if (trigger_source == TRIGSRC_THERMAL || trigger_source == TRIGSRC_ALL)
     {
         lepton_poll(true);
         triggered |= lepton_checkTrigger();
     }
+    #endif
     #endif
     return triggered;
 }
@@ -190,7 +192,7 @@ class PageTriggerSource : public PageTrigger
 {
     public:
         PageTriggerSource() : PageTrigger("Trigger Source", (int32_t*)&(trigger_source), 0,
-        #ifdef ENABLE_BUILD_LEPTON
+        #if defined(ENABLE_BUILD_LEPTON) && defined(ENABLE_BUILD_LEPTON_TRIGGER_COMPLEX)
             4
         #else
             3
