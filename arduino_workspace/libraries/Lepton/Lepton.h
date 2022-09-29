@@ -13,6 +13,45 @@
 
 #define ESP_GetUS() ((uint64_t)(esp_timer_get_time()))
 
+enum
+{
+    LEPSTATE_RST0 = 0,
+    LEPSTATE_RST1,
+    LEPSTATE_RST2,
+    LEPSTATE_RST3,
+    LEPSTATE_INIT_BOOT,
+    LEPSTATE_INIT_SYNC,
+    LEPSTATE_INIT_SYNC_WAIT,
+    LEPSTATE_INIT_CMD1,
+    LEPSTATE_INIT_CMD2,
+    LEPSTATE_INIT_CMD_END,
+    LEPSTATE_INIT_DONE,
+    LEPSTATE_SYNCFRAME,
+    LEPSTATE_RESYNCFRAME,
+    LEPSTATE_SYNCFRAME_WAIT,
+    LEPSTATE_VSYNC1,
+    LEPSTATE_VSYNC2,
+    LEPSTATE_VSYNC3,
+    LEPSTATE_VSYNC4,
+    LEPSTATE_VSYNC_CMD1,
+    LEPSTATE_VSYNC_CMD1_WAIT,
+    LEPSTATE_VSYNC_CMD2,
+    LEPSTATE_VSYNC_CMD2_WAIT,
+    LEPSTATE_VSYNC_END,
+    LEPSTATE_VSYNC_END_DELAY,
+    LEPSTATE_RESYNC_DLY,
+    LEPSTATE_BAD_LINE,
+};
+
+enum
+{
+    LEPSMRET_NONE,
+    LEPSMRET_INIT,
+    LEPSMRET_LOOP,
+    LEPSMRET_NEWDATA,
+    LEPSMRET_ERROR,
+};
+
 class Lepton {
 public:
   // Registers for use with readRegister and writeRegister.
@@ -83,9 +122,10 @@ public:
 
   // Do a get command, and get the resulting data
   uint16_t doGetCommand(uint16_t commandIdBase, uint16_t* data);
+  void doGetCommandStart(uint16_t commandIdBase);
 
   // Do a set command, using the provided data
-  void doSetCommand(uint16_t commandIdBase, uint16_t* data, uint16_t dataLen);
+  void doSetCommand(uint16_t commandIdBase, uint16_t* data, uint16_t dataLen, bool wait = true);
 
   // Do a run command, using the provided data and returning the result in the same buffer
   uint16_t doRunCommand(uint16_t commandIdBase, uint16_t* data, uint16_t dataLen);
@@ -106,6 +146,11 @@ public:
   void readFrameRaw(uint16_t* data);
   uint16_t wait_160X120_NextFrame();
 
+  // state machine task
+  uint8_t state_machine_inner();
+  uint8_t state_machine();
+  inline bool hasNewData(bool clr) { bool x = _new_data; if (clr) { _new_data = false;} return x; };
+
   // checks if the lepton device is actually on the I2C bus
   inline bool i2cAvail(void) { return _i2cAvail; };
 
@@ -119,6 +164,15 @@ private:
   static const uint16_t TYPE_RUN = 2;
 
   bool _i2cAvail = true;
+  bool _new_data = false;
+  int16_t sm_state = 0; // state machine state
+  int16_t sm_state_next = 0;
+  int16_t sm_line = 0;
+  uint32_t sm_time = 0;
+  uint64_t sm_time_us = 0;
+  uint32_t sm_time_frm = 0;
+  uint16_t sm_line_err = 0, sm_init_err = 0, sm_sync_err = 0;
+  uint32_t sm_frm_cnt = 0;
 
   // Start I2C transmission relating to a specific register
   void startTransmission(uint16_t reg);

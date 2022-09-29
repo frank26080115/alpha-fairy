@@ -8,8 +8,8 @@
 #define rotationHorizont 0
 #define rotationVert 0
 
-static byte leptonFrame[164];
-unsigned short  smallBuffer[160*120];
+static uint8_t leptonFrame[164];
+uint16_t smallBuffer[160*120];
 uint16_t raw_max = 0, raw_min = 0xFFFF;
 //uint16_t frame_buffer[4][60][164];
 uint16_t aux_temp = 0, fpa_temp = 0, max_x, max_y, min_x, min_y;
@@ -40,12 +40,12 @@ static void ESP_DelayUS(uint64_t us)
   }
 }
 
-static volatile bool vsync_triggered = 0;
+static volatile bool vsync_triggered = false;
 static volatile uint64_t vsync_time = 0;
 
 static void IRAM_ATTR onVsyncISR()
 {
-  vsync_triggered = 1;
+  vsync_triggered = true;
   //vsync_time = (uint64_t)esp_timer_get_time();
 }
 
@@ -97,11 +97,18 @@ uint16_t Lepton::doGetCommand(uint16_t commandIdBase, uint16_t *data)
   return readData(data);
 }
 
-void Lepton::doSetCommand(uint16_t commandIdBase, uint16_t *data, uint16_t dataLen)
+void Lepton::doGetCommandStart(uint16_t commandIdBase)
+{
+  writeRegister(REG_COMMAND_ID, commandIdBase | TYPE_GET);
+}
+
+void Lepton::doSetCommand(uint16_t commandIdBase, uint16_t *data, uint16_t dataLen, bool wait)
 {
   writeData(data, dataLen);
   writeRegister(REG_COMMAND_ID, commandIdBase | TYPE_SET);
-  waitIdle();
+  if (wait) {
+    waitIdle();
+  }
 }
 
 uint16_t Lepton::doRunCommand(uint16_t commandIdBase, uint16_t *data, uint16_t dataLen)
@@ -115,23 +122,28 @@ uint16_t Lepton::doRunCommand(uint16_t commandIdBase, uint16_t *data, uint16_t d
 /* Get one line package from the Lepton */
 int Lepton::getPackage(byte line, byte seg)
 {
-  lepton_spi->transferBytes(NULL,leptonFrame,164);
+  lepton_spi->transferBytes(NULL, leptonFrame, 164);
 
-  if((leptonFrame[0] & 0x0F) == 0x0F)
+  if((leptonFrame[0] & 0x0F) == 0x0F) {
+    // discard packet
     return 1;
+  }
 
   //Check if the line number matches the expected line
-  if (leptonFrame[1] != line)
-   return 2;
+  if (leptonFrame[1] != line) {
+    return 2;
+  }
 
   //For the Lepton3.x, check if the segment number matches
   if (line == 20)
   {
     byte segment = (leptonFrame[0] >> 4);
-    if (segment == 0)
+    if (segment == 0) {
       return 3;
-    if (segment != seg)
+    }
+    if (segment != seg) {
       return 4;
+    }
   }
 
   return 0;
@@ -147,7 +159,10 @@ bool Lepton::savePackage(byte line, byte segment)
   for (int column = 0; column < 80; column++)
   {
     //Make a 16-bit rawvalue from the lepton frame
-    uint16_t result = (uint16_t)(leptonFrame[(column << 1) + 4] << 8 | leptonFrame[(column << 1) + 5]);
+    int cidx = column << 1;
+    uint16_t h8 = leptonFrame[(cidx) + 4];
+    uint16_t l8 = leptonFrame[(cidx) + 5];
+    uint16_t result = (uint16_t)((h8 << 8) | l8);
 
     if (result > raw_max)
     {
@@ -165,7 +180,7 @@ bool Lepton::savePackage(byte line, byte segment)
     //Invalid value, return
     if (result == 0)
     {
-      return 0;
+      return false;
     }
     else
     {
@@ -175,17 +190,17 @@ bool Lepton::savePackage(byte line, byte segment)
   }
 
   //Everything worked
-  return 1;
+  return true;
 }
 
 bool WaitForVsync()
 {
   uint32_t t = millis();
-  vsync_triggered = 0;
-  while (vsync_triggered == 0 && (millis() - t) < LEPTON_WAIT_TIMEOUT) {
+  vsync_triggered = false;
+  while (vsync_triggered == false && (millis() - t) < LEPTON_WAIT_TIMEOUT) {
     yield();
   }
-  return vsync_triggered != 0;
+  return vsync_triggered != false;
 }
 
 /* Get one frame of raw values from the lepton */
@@ -257,11 +272,346 @@ void Lepton::getRawValues()
     }
   }
 
-  doGetCommand(CMD_SYS_FPA_TEMPERATURE_KELVIN, &fpa_temp);
-  doGetCommand(CMD_SYS_AUX_TEMPERATURE_KELVIN, &aux_temp);
+  doGetCommand(CMD_SYS_FPA_TEMPERATURE_KELVIN, (uint16_t*)&fpa_temp);
+  doGetCommand(CMD_SYS_AUX_TEMPERATURE_KELVIN, (uint16_t*)&aux_temp);
 
   //End lepton_spi Transmission
   end();
+}
+
+uint8_t Lepton::state_machine_inner()
+{
+    uint8_t ret = LEPSMRET_NONE;
+    uint8_t sts_reg;
+    switch (sm_state)
+    {
+        case LEPSTATE_RST0:
+            if (sm_init_err > 3) {
+                ret = LEPSMRET_ERROR;
+                return ret;
+            }
+            Serial.print("R");
+            sm_sync_err = 0;
+            pinMode(LEPTON_RESET_PIN, OUTPUT);
+            digitalWrite(LEPTON_RESET_PIN, HIGH);
+            pinMode(_syncPin, INPUT); //vsync
+            attachInterrupt(_syncPin, onVsyncISR, RISING);
+            pinMode(_ssPin, OUTPUT);
+            digitalWrite(_ssPin, HIGH);
+            sm_time = millis();
+            sm_state = LEPSTATE_RST1;
+            break;
+        case LEPSTATE_RST1:
+            if ((millis() - sm_time) >= 100)
+            {
+                digitalWrite(LEPTON_RESET_PIN, LOW);
+                sm_state = LEPSTATE_RST2;
+                sm_time = millis();
+            }
+            break;
+        case LEPSTATE_RST2:
+            if ((millis() - sm_time) >= 300)
+            {
+                lepton_spi->begin(2, 25, 34, 35);
+                digitalWrite(LEPTON_RESET_PIN, HIGH);
+                sm_state = LEPSTATE_RST3;
+                sm_time = millis();
+            }
+            break;
+        case LEPSTATE_RST3:
+            if ((millis() - sm_time) >= 1000)
+            {
+                _i2cAvail = true;
+                sm_state = LEPSTATE_INIT_BOOT;
+                sm_time = millis();
+            }
+            break;
+        case LEPSTATE_INIT_BOOT:
+            if (((sts_reg = readRegister(REG_STATUS)) & STATUS_BIT_BOOT_STATUS) != 0 && _i2cAvail)
+            {
+                sm_state = LEPSTATE_INIT_SYNC;
+                sm_time = millis();
+            }
+            else if ((millis() - sm_time) > 5000 || _i2cAvail == false)
+            {
+                ret = LEPSMRET_ERROR;
+                sm_state = LEPSTATE_RST0;
+                sm_init_err++;
+            }
+            break;
+        case LEPSTATE_INIT_SYNC:
+            if (((sts_reg = readRegister(REG_STATUS)) & STATUS_BIT_BUSY) == 0 && _i2cAvail)
+            {
+                //lepton_spi->beginTransaction(SPISettings(20000000, MSBFIRST, SPI_MODE3));
+                //digitalWrite(_ssPin, LOW);
+                sm_state = LEPSTATE_INIT_SYNC_WAIT;
+                sm_time = millis();
+            }
+            else if ((millis() - sm_time) > 5000 || _i2cAvail == false)
+            {
+                ret = LEPSMRET_ERROR;
+                sm_state = LEPSTATE_RST0;
+                sm_init_err++;
+            }
+            break;
+        case LEPSTATE_INIT_SYNC_WAIT:
+            if ((millis() - sm_time) >= 1000)
+            {
+                sm_state = LEPSTATE_INIT_CMD1;
+                sm_time = millis();
+            }
+            break;
+        case LEPSTATE_INIT_CMD1:
+        case LEPSTATE_INIT_CMD2:
+            if (((sts_reg = readRegister(REG_STATUS)) & STATUS_BIT_BUSY) == 0 && _i2cAvail)
+            {
+                if (sm_state == LEPSTATE_INIT_CMD1) {
+                    uint16_t SYNC = 5 * 1;
+                    doSetCommand(CMD_OEM_SYNC_SET, &SYNC, 1, false);
+                }
+                else if (sm_state == LEPSTATE_INIT_CMD2) {
+                    uint16_t DELAY = 3 * 1;
+                    doSetCommand(CMD_OEM_DELAY_SET, &DELAY, 1, false);
+                }
+                sm_state++;
+                sm_time = millis();
+            }
+            else if ((millis() - sm_time) > 1000 || _i2cAvail == false)
+            {
+                Serial.printf("X 0x%04X ", sts_reg);
+                //end();
+                sm_state = LEPSTATE_RST0;
+                ret = LEPSMRET_ERROR;
+                sm_init_err++;
+            }
+            break;
+        case LEPSTATE_INIT_CMD_END:
+            if (((sts_reg = readRegister(REG_STATUS)) & STATUS_BIT_BUSY) == 0 && _i2cAvail)
+            {
+                //end();
+                Serial.printf("lepton init done\r\n");
+                sm_frm_cnt = 0;
+                sm_state = LEPSTATE_INIT_DONE;
+                sm_time = millis();
+            }
+            else if ((millis() - sm_time) > 5000 || _i2cAvail == false)
+            {
+                //end();
+                sm_state = LEPSTATE_RST0;
+                ret = LEPSMRET_ERROR;
+            }
+            break;
+        case LEPSTATE_INIT_DONE:
+            if ((millis() - sm_time) >= 1000)
+            {
+                sm_state = LEPSTATE_SYNCFRAME;
+            }
+            break;
+        case LEPSTATE_SYNCFRAME:
+            // reset variables for frame
+            // do not try to read frame during transfer
+            raw_max = 0;
+            raw_min = 0xFFFF;
+            max_x = 0;
+            max_y = 0;
+            min_x = 0;
+            min_y = 0;
+            sm_time_frm = millis(); // use this time for the frame rate
+        case LEPSTATE_RESYNCFRAME:
+            vsync_triggered = false;
+            sm_line = -1;
+            sm_line_err = 0;
+            lepton_spi->beginTransaction(SPISettings(20000000, MSBFIRST, SPI_MODE3));
+            digitalWrite(_ssPin, LOW);
+            sm_state = LEPSTATE_SYNCFRAME_WAIT;
+            ret = LEPSMRET_LOOP;
+            sm_time_us = ESP_GetUS();
+            break;
+            ESP_DelayUS(20);
+        case LEPSTATE_SYNCFRAME_WAIT:
+            if ((ESP_GetUS() - sm_time_us) >= 20)
+            {
+                sm_state = LEPSTATE_VSYNC1;
+                sm_time = millis();
+            }
+            ret = LEPSMRET_LOOP;
+            break;
+        case LEPSTATE_VSYNC1:
+        case LEPSTATE_VSYNC2:
+        case LEPSTATE_VSYNC3:
+        case LEPSTATE_VSYNC4:
+            if ((millis() - sm_time_frm) >= 200)
+            {
+                sm_state = LEPSTATE_VSYNC_CMD1;
+                sm_time = millis();
+            }
+            else if (sm_line >= 0) // iteration has started
+            {
+                if (sm_line_err >= 255)
+                {
+                    sm_line_err = 0;
+                    end(); // will restart SPI later
+                    sm_state_next = LEPSTATE_RESYNCFRAME; // cache state
+                    sm_state = LEPSTATE_RESYNC_DLY; // 186 ms delay
+                    sm_time = millis();
+                    break;
+                }
+
+                ret = LEPSMRET_LOOP;
+                int seg = (sm_state - LEPSTATE_VSYNC1) + 1; // determine seg number (1 to 4) from state variable
+                int retVal = getPackage((byte)sm_line, (byte)seg);
+                if (retVal == 0)
+                {
+                    bool saveRet = savePackage((byte)sm_line, (byte)seg);
+                    if (saveRet == false) {
+                        retVal = 9;
+                    }
+                    if (saveRet)
+                    {
+                        //Serial.print(".");
+                    }
+                    else
+                    {
+                        //Serial.print("-");
+                    }
+                }
+                else
+                {
+                    //Serial.printf("%u", retVal);
+                }
+                if (retVal != 0) // error
+                {
+                    sm_line_err++;
+                    sm_state_next = sm_state; // cache state
+                    sm_state = LEPSTATE_BAD_LINE; // perform short wait
+                    sm_time_us = ESP_GetUS();     // perform short wait
+                    sm_line = 0; // restart iteration
+                    break;
+                }
+                else
+                {
+                    sm_line++; // next line
+                    if (sm_line >= 60) // all lines done
+                    {
+                        sm_line = -1; // stop iteration
+                        sm_state++;   // next segment (or go do the commands)
+                        sm_time = millis();
+                        vsync_triggered = false; // wait for next edge
+                    }
+                }
+            }
+            else if (vsync_triggered != false) // wait for next edge
+            {
+                //Serial.print("!");
+                sm_line = 0; // starts the iteration through all 60 lines
+                //vsync_triggered = false;
+                sm_line_err = 0;
+                ret = LEPSMRET_LOOP;
+            }
+            else if ((millis() - sm_time) >= 1000) // timeout waiting for vsync
+            {
+                #if 0
+                end();
+                ret = LEPSMRET_ERROR;
+                sm_sync_err++;
+                if (sm_sync_err < 10)
+                {
+                    sm_state = LEPSTATE_RESYNC_DLY; // 186 ms delay
+                    sm_state_next = LEPSTATE_SYNCFRAME;
+                    sm_time = millis();
+                    break;
+                }
+                else
+                {
+                    Serial.printf("lepton sync err give up\r\n");
+                    sm_state = LEPSTATE_RST0;
+                }
+                #else
+                Serial.print("?");
+                sm_line = 0;
+                sm_line_err = 0;
+                ret = LEPSMRET_LOOP;
+                #endif
+            }
+            break;
+        case LEPSTATE_VSYNC_CMD1:
+            end();
+        case LEPSTATE_VSYNC_CMD2:
+            ret = LEPSMRET_LOOP;
+            doGetCommandStart(sm_state == LEPSTATE_VSYNC_CMD1 ? CMD_SYS_FPA_TEMPERATURE_KELVIN : CMD_SYS_AUX_TEMPERATURE_KELVIN);
+            sm_state++;
+            sm_time = millis();
+            break;
+        case LEPSTATE_VSYNC_CMD1_WAIT:
+        case LEPSTATE_VSYNC_CMD2_WAIT:
+            ret = LEPSMRET_LOOP;
+            if (((sts_reg = readRegister(REG_STATUS)) & STATUS_BIT_BUSY) == 0 && _i2cAvail)
+            {
+                if (readData((uint16_t*)((sm_state == LEPSTATE_VSYNC_CMD1_WAIT) ? (&fpa_temp) : (&aux_temp))) > 0) {
+                    sm_state++;
+                    break;
+                }
+                else {
+                    sm_state = LEPSTATE_RST0;
+                    ret = LEPSMRET_ERROR;
+                }
+            }
+            else if ((millis() - sm_time) > 5000 || _i2cAvail == false)
+            {
+                sm_state = LEPSTATE_RST0;
+                ret = LEPSMRET_ERROR;
+            }
+            break;
+        case LEPSTATE_VSYNC_END:
+            _new_data = true;
+            sm_frm_cnt++;
+            ret = LEPSMRET_NEWDATA;
+            sm_state = LEPSTATE_VSYNC_END_DELAY;
+            sm_time = millis();
+            break;
+        case LEPSTATE_VSYNC_END_DELAY:
+            if ((millis() - sm_time_frm) >= (1060/27)) // should be 1/27 of a second
+            {
+                sm_sync_err = 0;
+                sm_line_err = 0;
+                sm_state = LEPSTATE_SYNCFRAME;
+                sm_time = millis();
+            }
+            break;
+        case LEPSTATE_BAD_LINE:
+            if ((ESP_GetUS() - sm_time_us) >= 900)
+            {
+                sm_state = sm_state_next; // this should go back to one of the vsync wait states
+            }
+            break;
+        case LEPSTATE_RESYNC_DLY:
+            if ((millis() - sm_time) >= 186) // datasheet "8.2.2.3.1 Establishing/Re-Establishing Sync" says 185 msec
+            {
+                sm_state = sm_state_next;
+                sm_time = millis();
+            }
+            break;
+        default:
+            sm_state = LEPSTATE_RST0;
+            ret = LEPSMRET_ERROR;
+            break;
+    }
+
+    if (ret == LEPSMRET_NONE && sm_state <= LEPSTATE_INIT_DONE) {
+        ret = LEPSMRET_INIT;
+    }
+    return ret;
+}
+
+uint8_t Lepton::state_machine()
+{
+    uint8_t r;
+    do
+    {
+        r = state_machine_inner();
+    }
+    while (r == LEPSMRET_LOOP);
+    return r;
 }
 
 void Lepton::reset()
@@ -359,7 +709,7 @@ void Lepton::transmitWord(uint16_t value) {
 }
 
 void Lepton::endTransmission() {
-  uint8_t error = Wire1.endTransmission();
+  int8_t error = Wire1.endTransmission();
   if (error != 0) {
     _i2cAvail = false;
   }
@@ -434,7 +784,7 @@ uint16_t Lepton::wait_160X120_NextFrame() {
 
 void Lepton::dumpHex(uint16_t *data, int dataLen) {
   for (int i = 0; i < dataLen; i++) {
-    Serial.printf("%4x ", data[i]);
+    Serial.printf("%4X ", data[i]);
   }
   Serial.println();
 }

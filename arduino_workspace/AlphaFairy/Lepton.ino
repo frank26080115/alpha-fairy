@@ -339,15 +339,18 @@ void lepton_makeFrameBuff()
     lepton_imgBuff->setTextColor(TFT_WHITE);
 }
 
-#define GET_PIXEL_TEMPERATURE(_pixidx)     (0.0217f * smallBuffer[(_pixidx)] + ((fpa_temp / 100.0f) - 273.15f) - 177.77f)
+#define GET_PIXEL_TEMPERATURE(_pixidx)     (0.0217f * smallBuffer[(_pixidx)] + (float)((fpa_temp / 100.0f) - 273.15f) - 177.77f)
 #define GET_PIXEL_INDEX(_x, _y)            (((_y) * FLIR_X) + (_x))
 
 /** @brief  Update frame
   */
 void lepton_updateFlir(bool gui)
 {
+    //lepton.getRawValues();
+    if (lepton.state_machine() != LEPSMRET_NEWDATA) {
+        return;
+    }
     pwr_tick(true);
-    lepton.getRawValues();
     lepton_lastPollTime = millis();
     #ifdef ENABLE_LEPTON_SCALING
     lepton_updateEncoder();
@@ -357,6 +360,7 @@ void lepton_updateFlir(bool gui)
     if (enc_sw) {
         lepton_saveImg();
     }
+    lepton_enc_data.data = 0;
     #endif
 
     uint16_t i = 0, raw_cursor = raw_max;
@@ -381,6 +385,8 @@ void lepton_updateFlir(bool gui)
     float max_temp = 0.0217f * raw_max + fpa_temp_f - 177.77f;
     float min_temp = 0.0217f * raw_min + fpa_temp_f - 177.77f;
     float center_temp = GET_PIXEL_TEMPERATURE(9519);
+
+    dbg_ser.printf("%d, %d, %d, %.2f, %.2f, %.2f, \r\n", fpa_temp, raw_max, raw_min, fpa_temp_f, max_temp, min_temp);
 
     //The quantized step was calculated using the temperature range cursor
     float cursor_temp = max_temp;
@@ -600,6 +606,9 @@ bool lepton_checkTrigger()
     if (lepton_initStage != LEPINIT_DONE) {
         return false;
     }
+    if (lepton.state_machine() != LEPSMRET_NEWDATA) {
+        return false;
+    }
     int16_t x, y;
     int16_t cx = FLIR_X / 2;
     int16_t cy = FLIR_Y / 2;
@@ -737,22 +746,7 @@ bool lepton_init()
 
 void lepton_poll(bool init)
 {
-    if (lepton_enable_poll == false) {
-        return;
-    }
-
-    if ((millis() - lepton_lastPollTime) < 300) {
-        return;
-    }
-
-    if (lepton_initStage != LEPINIT_DONE) {
-        if (init) {
-            lepton_init();
-        }
-        return;
-    }
-    lepton.getRawValues();
-    lepton_lastPollTime = millis();
+    lepton.state_machine();
 }
 
 bool lepton_nullFunc(void* x)
@@ -1113,6 +1107,7 @@ class AppLepton : public FairyCfgApp
         virtual bool on_execute(void)
         {
             M5Lcd.fillScreen(TFT_DARKGREY);
+            #if 0
             while (lepton_initStage < LEPINIT_DONE)
             {
                 lepton_init();
@@ -1126,6 +1121,15 @@ class AppLepton : public FairyCfgApp
             else {
                 return false;
             }
+            #else
+            while (lepton.state_machine() != LEPSMRET_NEWDATA) {
+                //app_poll();
+                yield();
+            }
+            lepton_startTime = millis();
+            bool r = FairyCfgApp::on_execute();
+            return r;
+            #endif
         };
 };
 
