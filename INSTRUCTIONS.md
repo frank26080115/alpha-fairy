@@ -44,7 +44,7 @@ From the camera menu, the option "Still Image Save Destination" should be set to
 
 From the camera menu, connect to the SSID that the AlphaFairy is broadcasting ("fairywifi" by default), the password should be "1234567890"
 
-On the M5StickC's screen, the "no signal" icon should disappear. On the camera's screen, the Wi-Fi symbol should be fully white and the PC icon should be fully white.
+On the M5StickC's screen, the "no signal" icon should disappear. On the camera's screen, the `Wi-Fi` symbol should be fully white and the `-PC-` icon should be fully white.
 
 NOTE: models theoretically supported: A1, A7SM3, A9M2, A7M4A, A7RM4, A7C, A7M4
 
