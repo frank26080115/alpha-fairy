@@ -31,6 +31,8 @@ static uint32_t last_sta_reconn_time = 0;
 //                                                     0,  1,  2, 3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
 const int8_t wifipwr_table[WIFI_PWR_TABLE_MAX + 1] = { 0, -4, -4, 8, 20, 28, 34, 44, 52, 60, 68, 74, 76, 78, 78, };
 
+WiFiUDP ssdp_sock;
+
 void NetMgr_taskAP(void);
 void NetMgr_taskSTA(void);
 void NetMgr_eventHandler(WiFiEvent_t event, WiFiEventInfo_t info);
@@ -99,6 +101,13 @@ void NetMgr_taskAP()
     tcpip_adapter_get_sta_list(&wifi_sta_list, &adapter_sta_list);
 
     NetMgr_tableSync(&adapter_sta_list);
+    if (NetMgr_getConnectableClient() != 0)
+    {
+        // start SSDP listening as soon as possible
+        ssdp_sock.beginMulticast(IPAddress(239,255,255,250), 1900);
+        ssdp_sock.beginMulticastPacket();
+        ssdp_sock.endPacket();
+    }
     if (callback != NULL) {
         callback();
     }
@@ -113,6 +122,10 @@ void NetMgr_taskSTA()
         IPAddress localIp = WiFi.localIP();
         if (gateway != 0 && localIp != 0)
         {
+            // start SSDP listening as soon as possible
+            ssdp_sock.beginMulticast(IPAddress(239,255,255,250), 1900);
+            ssdp_sock.beginMulticastPacket();
+            ssdp_sock.endPacket();
             if (status != last_sta_status)
             {
                 last_sta_status = status;
@@ -468,4 +481,9 @@ char* NetMgr_getSSID() {
 
 char* NetMgr_getPassword() {
     return NetMgr_password;
+}
+
+WiFiUDP* NetMgr_getSsdpSock() {
+    // this socket is already listening, pass it to the camera object
+    return &ssdp_sock;
 }

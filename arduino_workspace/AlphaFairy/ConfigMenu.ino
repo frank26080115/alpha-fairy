@@ -46,6 +46,7 @@ install(new FairyCfgItem("power save time (s)"    , (int32_t*)&(config_settings.
 install(new PageLcdBrightness("LCD bright"        , (int32_t*)&(config_settings.lcd_brightness         ),    7,   12,     1, TXTFMT_LCDBRITE ));
 install(new FairyCfgItem("LCD dim time (s)"       , (int32_t*)&(config_settings.lcd_dim_secs           ),    0, 1000,     1, TXTFMT_BYTENS | TXTFMT_ZEROINF));
 install(new FairyCfgItem("WiFi power"             , (int32_t*)&(config_settings.wifi_pwr               ),    0,   14,     1, TXTFMT_BYTENS   ));
+install(new FairyCfgItem("SSDP timeout (s)"       , (int32_t*)&(config_settings.ssdp_timeout           ),    0, 1000,     1, TXTFMT_BYTENS   ));
 install(new FairyCfgItem("IR en"                  , (int32_t*)&(config_settings.infrared_enabled       ),    0,    1,     1, TXTFMT_BOOL     ));
 install(new FairyCfgItem("camera protocol"        , (int32_t*)&(config_settings.protocol               ),    0,    2,     1, TXTFMT_PROTOCOL ));
 install(new FairyCfgItem("pin - shutter rel."     , (int32_t*)&(config_settings.pin_shutter            ),    0,    4,     1, TXTFMT_PINCFG   ));

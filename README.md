@@ -12,7 +12,7 @@ This remote combines the features of other simple camera remotes, plus many comp
 
 This GitHub repo contains the C++ source code (and graphics files) that can be compiled and loaded into the M5StickC-Plus, so anybody can [create this remote](INSTRUCTIONS.md).
 
-Supported camera models: A1, A6600, RX100M4, RX0M4
+Supported camera models: A1, A6600, A6000, RX100M4, RX0M4
 
 Untested but theoretically can support over PTP protocol: A7SM3, A9M2, A7M4A, A7RM4, A7C, A7M4, ZV-E10, listed on https://support.d-imaging.sony.co.jp/app/sdk/en/index.html
 

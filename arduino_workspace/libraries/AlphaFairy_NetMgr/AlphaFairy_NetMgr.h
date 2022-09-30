@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include <WiFi.h>
+#include <WiFiUdp.h>
 #include "esp_wifi.h"
 
 #ifdef __cplusplus
@@ -57,6 +58,8 @@ void NetMgr_markClientPhoneHttp(uint32_t ip);
 void NetMgr_markClientError(uint32_t ip);
 void NetMgr_markClientDisconnect(uint32_t ip);
 bool NetMgr_shouldReportError(void);
+
+WiFiUDP* NetMgr_getSsdpSock(void);
 
 #ifdef __cplusplus
 }

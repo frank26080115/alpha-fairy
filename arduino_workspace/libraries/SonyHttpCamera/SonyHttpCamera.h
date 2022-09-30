@@ -88,7 +88,7 @@ class SonyHttpCamera
         typedef std::function<void(void*, AsyncHTTPRequest*, size_t available)> onDataCB;
         #endif
 
-        void begin(uint32_t ip);
+        void begin(uint32_t ip, WiFiUDP* udpsock = NULL);
         void poll(void);
         void task(void);
 
@@ -127,6 +127,7 @@ class SonyHttpCamera
         uint32_t critical_error_cnt = 0;
 
         void borrowBuffer(char*, uint32_t);
+        inline void set_ssdpTimeout(uint32_t x) { ssdp_allowed_time = x; };
 
         virtual void set_debugflags(uint32_t x);
         uint32_t debug_flags;
@@ -137,6 +138,8 @@ class SonyHttpCamera
         uint8_t  state, state_after_wait;
         uint32_t req_id;
         uint32_t wait_until;
+        uint32_t start_time;
+        uint32_t ssdp_allowed_time = 5;
 
         char friendly_name[256];
         char service_url[256];
@@ -165,7 +168,7 @@ class SonyHttpCamera
                                     WiFiClient* stream
                                     #endif
                                     , int32_t chunk, char* buff, uint32_t* buff_idx);
-        WiFiUDP ssdp_udp;
+        WiFiUDP* ssdp_udp;
 
         uint32_t init_retries;
         uint32_t error_cnt;
@@ -196,8 +199,9 @@ class SonyHttpCamera
         void get_dd_xml(void);
         uint32_t event_found_flag;
 
-        void ssdp_start(void);
-        bool ssdp_checkurl(void);
+        void ssdp_start(WiFiUDP* sock);
+        bool ssdp_checkurl(WiFiUDP* sock);
+        bool ssdp_poll(WiFiUDP* sock);
         void cmd_prep(void);
         #ifdef SHCAM_USE_ASYNC
         bool request_prep(const char* method, const char* url, const char* contentType, readyStateChangeCB cb_s, onDataCB cb_d);

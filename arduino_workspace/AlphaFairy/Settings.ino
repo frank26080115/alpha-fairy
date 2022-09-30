@@ -18,6 +18,7 @@ void settings_default() {
 
   config_settings.wifi_profile = 0;
   config_settings.wifi_pwr = 0;
+  config_settings.ssdp_timeout = 10;
 
   config_settings.focus_pause_time_ms    = 100;
   config_settings.shutter_press_time_ms  = 200;

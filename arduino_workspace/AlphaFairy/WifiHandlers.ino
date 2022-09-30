@@ -55,7 +55,8 @@ void wifi_onConnect()
     if (httpcam.canNewConnect() && config_settings.protocol != ALLOWEDPROTOCOL_PTP) {
         newip = NetMgr_getConnectableClient();
         if (newip != 0) {
-            httpcam.begin(newip);
+            httpcam.begin(newip, NetMgr_getSsdpSock());
+            httpcam.set_ssdpTimeout(config_settings.ssdp_timeout);
         }
     }
 }

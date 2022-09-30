@@ -25,6 +25,7 @@ typedef struct
   int32_t lcd_dim_secs;
   int32_t wifi_pwr;
   int32_t lcd_brightness;
+  int32_t ssdp_timeout;
 
   int32_t intv_bulb;
   int32_t intv_intval;

@@ -132,18 +132,32 @@ void SonyHttpCamera::parse_dd_xml(char* data, int32_t maxlen)
 
 void SonyHttpCamera::get_dd_xml()
 {
-    if (strlen(url_buffer) <= 0) {
-        sprintf(url_buffer, "http://%s:64321/dd.xml", IPAddress(ip_addr).toString().c_str());
+    char* url_buffer_used = (char*)cmd_buffer; // borrow another buffer
+    if (strlen(url_buffer) <= 0)
+    {
+        // we didn't get a valid URL from SSDP
+        // try different default URLs until something works
+        uint8_t rem = init_retries % 2;
+        if (rem == 0) {
+            sprintf(url_buffer_used, "http://%s:64321/dd.xml", IPAddress(ip_addr).toString().c_str());
+        }
+        else if (rem == 1) {
+            sprintf(url_buffer_used, "http://%s:61000/scalarwebapi_dd.xml", IPAddress(ip_addr).toString().c_str());
+        }
     }
-    dbgser_states->printf("getting dd.xml from URL: %s\r\n", url_buffer);
+    else
+    {
+        strcpy(url_buffer_used, url_buffer);
+    }
+    dbgser_states->printf("getting dd.xml from URL: %s\r\n", url_buffer_used);
     #ifdef SHCAM_USE_ASYNC
-    bool openres = request_prep("GET", url_buffer, NULL, ddRequestCb, NULL);
+    bool openres = request_prep("GET", url_buffer_used, NULL, ddRequestCb, NULL);
     if (openres) {
         httpreq->send();
         state = SHCAMSTATE_INIT_GETDD;
     }
     #else
-    httpclient.begin(url_buffer);
+    httpclient.begin(url_buffer_used);
     last_http_resp_code = httpclient.GET();
     http_content_len = httpclient.getSize();
     if (last_http_resp_code == 200)
@@ -156,7 +170,7 @@ void SonyHttpCamera::get_dd_xml()
         dbgser_states->printf("httpcam unable to get dd.xml");
         #ifndef SHCAM_USE_ASYNC
         init_retries++;
-        if (init_retries > 3) {
+        if (init_retries > 10) {
             critical_error_cnt++;
             dbgser_states->printf(", resp code %d, giving up", last_http_resp_code);
             state = SHCAMSTATE_FORBIDDEN;
@@ -248,26 +262,47 @@ void SonyHttpCamera::initRequestCb(void* optParm, AsyncHTTPRequest* req, int rea
 }
 #endif
 
-void SonyHttpCamera::ssdp_start(void)
+void SonyHttpCamera::ssdp_start(WiFiUDP* sock)
 {
-    ssdp_udp.beginMulticast(IPAddress(239,255,255,250), 1900);
-    ssdp_udp.beginMulticastPacket();
-    ssdp_udp.print("M-SEARCH * HTTP/1.1\r\n");
-    ssdp_udp.print("HOST: 239.255.255.250:1900\r\n");
-    ssdp_udp.print("MAN: \"ssdp:discover\"\r\n");
-    ssdp_udp.print("MX: 2\r\n");
-    ssdp_udp.print("ST: urn:schemas-sony-com:service:ScalarWebAPI:1\r\n");
-    ssdp_udp.print("USER-AGENT: xyz/1.0 abc/1.0\r\n");
-    ssdp_udp.print("\r\n");
-    ssdp_udp.endPacket();
+    if (sock == NULL) {
+        return;
+    }
+    sock->beginMulticast(IPAddress(239,255,255,250), 1900);
+    sock->beginMulticastPacket();
+    sock->print("M-SEARCH * HTTP/1.1\r\n");
+    sock->print("HOST: 239.255.255.250:1900\r\n");
+    sock->print("MAN: \"ssdp:discover\"\r\n");
+
+    // cycle through possible queries
+    uint8_t rem = init_retries % 4;
+    if (rem == 0 || rem == 2) {
+        sock->print("MX: 1\r\n");
+        sock->print("ST: urn:schemas-sony-com:service:ScalarWebAPI:1\r\n");
+        sock->print("USER-AGENT: xyz/1.0 abc/1.0\r\n");
+    }
+    else if (rem == 1) {
+        sock->print("MX: 1\r\n");
+        sock->print("ST: urn:dial-multiscreen-org:service:dial:1\r\n");
+        sock->print("USER-AGENT: Google Chrome/1.0 Windows\r\n");
+    }
+    else if (rem == 3) {
+        sock->print("ST:ssdp:all\r\n");
+        sock->print("MX: 1\r\n");
+    }
+
+    sock->print("\r\n");
+    sock->endPacket();
 }
 
-bool SonyHttpCamera::ssdp_checkurl(void)
+bool SonyHttpCamera::ssdp_checkurl(WiFiUDP* sock)
 {
+    if (sock == NULL) {
+        return false;
+    }
     String s;
-    while (ssdp_udp.available())
+    while (sock->available())
     {
-        s = ssdp_udp.readStringUntil('\n');
+        s = sock->readStringUntil('\n');
         if (s.startsWith("LOCATION:"))
         {
             char* ss = (char*)&(s.c_str()[9]);
@@ -288,4 +323,50 @@ bool SonyHttpCamera::ssdp_checkurl(void)
         }
     }
     return false;
+}
+
+bool SonyHttpCamera::ssdp_poll(WiFiUDP* sock)
+{
+    bool got_ssdp = false;
+    bool got_url_ssdp = false;
+    uint32_t now = millis();
+
+    if (sock == NULL) {
+        return false;
+    }
+
+    if (now >= wait_until)
+    {
+        sock->parsePacket();
+        if (sock->available() > 0) {
+            got_url_ssdp = ssdp_checkurl(sock);
+            got_ssdp |= got_url_ssdp;
+            dbgser_states->print("httpcam SSDP got reply, reached time to parse");
+            if (got_ssdp) {
+                dbgser_states->printf(", URL: %s\r\n", url_buffer);
+            }
+            else {
+                dbgser_states->print(", no URL result\r\n");
+            }
+        }
+
+        if (got_ssdp == false) {
+            init_retries++;
+            if ((now - start_time) >= (ssdp_allowed_time * 1000)) {
+                got_ssdp = true; // give up and get dd.xml anyways
+                critical_error_cnt++;
+                dbgser_states->println("httpcam SSDP give up");
+            }
+            else {
+                dbgser_states->printf("httpcam SSDP timeout, try %u\r\n", init_retries);
+                ssdp_start(sock);
+                wait_until = now + 250;
+            }
+        }
+    }
+    if (got_ssdp) {
+        init_retries = 0;
+        get_dd_xml();
+    }
+    return got_url_ssdp;
 }

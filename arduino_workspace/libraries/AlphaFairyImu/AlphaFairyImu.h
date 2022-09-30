@@ -11,7 +11,7 @@ class AlphaFairyImu
         void    poll();
         int     getSpin();
         void    resetSpin();
-        int8_t getTilt();
+        int8_t  getTilt();
         int16_t getPitch();
         bool    hasChange;
         bool    hasMajorMotion;

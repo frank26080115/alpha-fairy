@@ -32,9 +32,11 @@ SonyHttpCamera::SonyHttpCamera()
     begin(0);
 }
 
-void SonyHttpCamera::begin(uint32_t ip)
+void SonyHttpCamera::begin(uint32_t ip, WiFiUDP* sock)
 {
+    uint32_t now = millis();
     ip_addr = ip;
+    ssdp_udp = sock;
     init_retries = 0;
     error_cnt = 0;
     event_api_version = 3;
@@ -53,7 +55,8 @@ void SonyHttpCamera::begin(uint32_t ip)
     {
         state = SHCAMSTATE_WAIT;
         state_after_wait = SHCAMSTATE_CONNECTING;
-        wait_until = millis() + 1000;
+        start_time = now;
+        wait_until = now + 1000;
         dbgser_states->printf("httpcam hello IP %08X\r\n", ip);
     }
     else if (ip == 0)
@@ -355,11 +358,20 @@ void SonyHttpCamera::task()
 
     poll();
 
+    if (state == SHCAMSTATE_WAIT && state_after_wait == SHCAMSTATE_CONNECTING && now < wait_until && ip_addr != 0)
+    {
+        ssdp_poll(ssdp_udp);
+        return;
+    }
+
     if (state == SHCAMSTATE_WAIT && now >= wait_until) {
         state = state_after_wait;
         if (state == SHCAMSTATE_CONNECTING && ip_addr != 0) {
             dbgser_states->println("httpcam starting SSDP");
-            ssdp_start();
+            if (ssdp_udp == NULL) {
+                ssdp_udp = new WiFiUDP();
+            }
+            ssdp_start(ssdp_udp);
             state = SHCAMSTATE_INIT_SSDP;
             wait_until = now + 2000;
             init_retries = 0;
@@ -369,45 +381,7 @@ void SonyHttpCamera::task()
 
     if (state == SHCAMSTATE_INIT_SSDP)
     {
-        bool got_ssdp = false;
-        if (ssdp_udp.available() > 0)
-        {
-            dbgser_states->println("httpcam SSDP got reply");
-            got_ssdp = true;
-        }
-        else if (now >= wait_until)
-        {
-            ssdp_udp.parsePacket();
-            if (ssdp_udp.available() > 0) {
-                got_ssdp = ssdp_checkurl();
-                dbgser_states->print("httpcam SSDP got reply after timeout");
-                if (got_ssdp) {
-                    dbgser_states->printf(", URL: %s\r\n", url_buffer);
-                }
-                else {
-                    dbgser_states->print("\r\n");
-                }
-            }
-            if (got_ssdp == false) {
-                init_retries++;
-                if (init_retries >= 15) {
-                    got_ssdp = true; // give up and get dd.xml anyways
-                    critical_error_cnt++;
-                    dbgser_states->println("httpcam SSDP give up");
-                }
-                else {
-                    dbgser_states->printf("httpcam SSDP timeout, try %u\r\n", init_retries);
-                    if (init_retries < 5) {
-                        ssdp_start();
-                    }
-                    wait_until = now + 750;
-                }
-            }
-        }
-        if (got_ssdp) {
-            init_retries = 0;
-            get_dd_xml();
-        }
+        ssdp_poll(ssdp_udp);
     }
 
     #ifndef SHCAM_USE_ASYNC
