@@ -122,6 +122,7 @@ class SonyHttpCamera
         void (*cb_onConnect)(void) = NULL;
         void (*cb_onDisconnect)(void) = NULL;
         void (*cb_onCriticalError)(void) = NULL;
+        void (*cb_onNoServiceUrl)(void) = NULL;
 
         uint32_t critical_error_cnt = 0;
 

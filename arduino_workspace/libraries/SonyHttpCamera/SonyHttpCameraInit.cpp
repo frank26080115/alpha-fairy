@@ -124,6 +124,9 @@ void SonyHttpCamera::parse_dd_xml(char* data, int32_t maxlen)
     {
         dbgser_states->printf("no service URL found\r\n");
         state = SHCAMSTATE_FORBIDDEN;
+        if (cb_onNoServiceUrl != NULL) {
+            cb_onNoServiceUrl();
+        }
     }
 }
 

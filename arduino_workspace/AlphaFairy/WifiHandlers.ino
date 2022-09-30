@@ -18,6 +18,7 @@ void cam_cb_setup()
     httpcam.cb_onConnect       = ptpcam_onConnect;
     httpcam.cb_onDisconnect    = httpcam_onDisconnect;
     httpcam.cb_onCriticalError = httpcam_onCriticalError;
+    httpcam.cb_onNoServiceUrl  = httpcam_onNoServiceUrl;
 }
 
 void wifi_onConnect()
@@ -139,6 +140,18 @@ void httpcam_onCriticalError()
         if (NetMgr_shouldReportError() && ptpcam.isOperating() == false) {
             critical_error("/crit_error.png");
         }
+    }
+}
+
+void httpcam_onNoServiceUrl()
+{
+    pwr_tick(true);
+    if (ptpcam.canNewConnect()) {
+        dbg_ser.printf("maybe try ptp\r\n");
+        ptpcam.begin(httpcam.getIp());
+    }
+    else {
+        dbg_ser.printf("unable to try ptp, state 0x%04X\r\n", ptpcam.getState());
     }
 }
 
