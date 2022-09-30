@@ -150,13 +150,6 @@ void SonyHttpCamera::get_dd_xml()
         strcpy(url_buffer_used, url_buffer);
     }
     dbgser_states->printf("getting dd.xml from URL: %s\r\n", url_buffer_used);
-    #ifdef SHCAM_USE_ASYNC
-    bool openres = request_prep("GET", url_buffer_used, NULL, ddRequestCb, NULL);
-    if (openres) {
-        httpreq->send();
-        state = SHCAMSTATE_INIT_GETDD;
-    }
-    #else
     httpclient.begin(url_buffer_used);
     last_http_resp_code = httpclient.GET();
     http_content_len = httpclient.getSize();
@@ -165,10 +158,8 @@ void SonyHttpCamera::get_dd_xml()
         dbgser_states->printf("httpcam success got dd.xml\r\n");
         parse_dd_xml((char*)httpclient.getString().c_str());
     }
-    #endif
     else {
         dbgser_states->printf("httpcam unable to get dd.xml");
-        #ifndef SHCAM_USE_ASYNC
         init_retries++;
         if (init_retries > 10) {
             critical_error_cnt++;
@@ -182,85 +173,9 @@ void SonyHttpCamera::get_dd_xml()
             dbgser_states->printf(", resp code %d, try %u", last_http_resp_code, init_retries);
             state = SHCAMSTATE_INIT_GETDD;
         }
-        #endif
         dbgser_states->printf("\r\n");
     }
 }
-
-#ifdef SHCAM_USE_ASYNC
-void SonyHttpCamera::ddRequestCb(void* optParm, AsyncHTTPRequest* req, int readyState)
-{
-    SonyHttpCamera* cam = (SonyHttpCamera*)optParm;
-    if (cam->state == SHCAMSTATE_FORBIDDEN) {
-        return;
-    }
-    if (readyState == readyStateDone) 
-    {
-        int respcode;
-        if ((respcode = req->responseHTTPcode()) == 200)
-        {
-            dbgser_states->printf("got dd.xml\r\n");
-            // expect about 3 kilobytes of data
-            cam->parse_dd_xml(req->responseLongText());
-        }
-        else
-        {
-            dbgser_states->printf("failed to get dd.xml, code %d", respcode);
-            cam->init_retries++;
-            if (cam->init_retries < 3) {
-                dbgser_states->printf(", retrying (%u)\r\n", cam->init_retries);
-                cam->get_dd_xml();
-            }
-            else {
-                dbgser_states->printf(", giving up (%u)\r\n", cam->init_retries);
-                cam->state = SHCAMSTATE_FAILED;
-            }
-        }
-        cam->request_close();
-    }
-}
-
-void SonyHttpCamera::initRequestCb(void* optParm, AsyncHTTPRequest* req, int readyState)
-{
-    SonyHttpCamera* cam = (SonyHttpCamera*)optParm;
-
-    if (cam->state == SHCAMSTATE_FORBIDDEN) {
-        return;
-    }
-
-    if (readyState == readyStateDone) 
-    {
-        int rcode;
-        int do_next = 0;
-        if ((rcode = req->responseHTTPcode()) == 200)
-        {
-            dbgser_states->printf("httpcam init state %u done\r\n", cam->state);
-            do_next = cam->state + 1; // go to next step
-            cam->init_retries = 0;
-        }
-        else
-        {
-            dbgser_states->printf("httpcam init state %u error %d", cam->state, rcode);
-            cam->init_retries++;
-            if (cam->init_retries < 2) {
-                dbgser_states->printf(", retry %d\r\n", cam->init_retries);
-                do_next = cam->state - 1; // retry previous step
-            }
-            else {
-                dbgser_states->printf(", skipping %d, do next\r\n", cam->init_retries);
-                //cam->state = SHCAMSTATE_FAILED;
-                do_next = cam->state + 1;
-                cam->init_retries = 0;
-            }
-        }
-        if (do_next != 0)
-        {
-            cam->state = do_next; // next call to poll will handle it
-        }
-        cam->request_close();
-    }
-}
-#endif
 
 void SonyHttpCamera::ssdp_start(WiFiUDP* sock)
 {

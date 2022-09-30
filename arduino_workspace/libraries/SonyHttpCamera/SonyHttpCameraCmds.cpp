@@ -9,18 +9,10 @@ const char SonyHttpCamera::cmd_zoom_fmt[]                  = "{\"method\": \"act
 void SonyHttpCamera::cmd_prep(void)
 {
     wait_while_busy(0, DEFAULT_BUSY_TIMEOUT, NULL);
-    #ifdef SHCAM_USE_ASYNC
-    request_prep("POST", service_url, "application/json", genericRequestCb, NULL);
-    #endif
 }
 
 bool SonyHttpCamera::cmd_send(char* cmd, char* alt_url, bool callend)
 {
-    #ifdef SHCAM_USE_ASYNC
-    httpreq->send(cmd);
-    state |= 1;
-    return true;
-    #else
     dbgser_tx->printf("httpcam cmd %s\r\n", cmd);
     httpclient.begin(alt_url == NULL ? service_url : alt_url);
     httpclient.addHeader("Content-Type", "application/json");
@@ -34,7 +26,6 @@ bool SonyHttpCamera::cmd_send(char* cmd, char* alt_url, bool callend)
         state |= 1;
     }
     return success;
-    #endif
 }
 
 void SonyHttpCamera::cmd_Shoot(void)
@@ -47,11 +38,6 @@ void SonyHttpCamera::cmd_Shoot(void)
 
 void SonyHttpCamera::cmd_MovieRecord(bool is_start)
 {
-    #ifdef SHCAM_NEED_ENTER_MOVIE_MODE
-    if (is_start && shoot_mode != SHOOTMODE_MOVIE) {
-        cmd_MovieMode(true);
-    }
-    #endif
     cmd_prep();
     sprintf(cmd_buffer, cmd_generic_fmt, is_start ? "startMovieRec" : "stopMovieRec", req_id);
     cmd_send(cmd_buffer);
