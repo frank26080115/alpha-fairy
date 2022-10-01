@@ -1,12 +1,14 @@
 #include "AlphaFairy.h"
 
+extern bool airplane_mode;
+
 void cam_shootQuick()
 {
     // convenience function for quickly taking a photo without complicated connectivity checks
-    if (ptpcam.isOperating()) {
+    if (airplane_mode == false && ptpcam.isOperating()) {
         ptpcam.cmd_Shoot(config_settings.shutter_press_time_ms);
     }
-    else if (httpcam.isOperating()) {
+    else if (airplane_mode == false && httpcam.isOperating()) {
         httpcam.cmd_Shoot();
     }
     else
@@ -44,7 +46,7 @@ void cam_shootQuickGpio()
 void cam_shootOpen()
 {
     // convenience function for quickly taking a photo without complicated connectivity checks
-    if (ptpcam.isOperating())
+    if (airplane_mode == false && ptpcam.isOperating())
     {
         ptpcam.cmd_Shutter(true);
         if (gpio_time != 0)
@@ -60,7 +62,7 @@ void cam_shootOpen()
             gpio_time = 0;
         }
     }
-    else if (httpcam.isOperating()) {
+    else if (airplane_mode == false && httpcam.isOperating()) {
         httpcam.cmd_Shoot();
     }
     else
@@ -90,7 +92,7 @@ void cam_shootOpen()
 void cam_shootClose()
 {
     // convenience function for quickly taking a photo without complicated connectivity checks
-    if (ptpcam.isOperating()) {
+    if (airplane_mode == false && ptpcam.isOperating()) {
         ptpcam.cmd_Shutter(false);
         if (gpio_time != 0)
         {
@@ -105,7 +107,7 @@ void cam_shootClose()
             gpio_time = 0;
         }
     }
-    else if (httpcam.isOperating()) {
+    else if (airplane_mode == false && httpcam.isOperating()) {
         // do nothing
     }
     else
@@ -132,10 +134,10 @@ void cam_shootClose()
 void cam_videoStart()
 {
     // convenience function for quickly taking a video without complicated connectivity checks
-    if (ptpcam.isOperating()) {
+    if (airplane_mode == false && ptpcam.isOperating()) {
         ptpcam.cmd_MovieRecord(true);
     }
-    else if (httpcam.isOperating()) {
+    else if (airplane_mode == false && httpcam.isOperating()) {
         httpcam.cmd_MovieRecord(true);
     }
     else
@@ -149,10 +151,10 @@ void cam_videoStart()
 void cam_videoStop()
 {
     // convenience function for quickly taking a video without complicated connectivity checks
-    if (ptpcam.isOperating()) {
+    if (airplane_mode == false && ptpcam.isOperating()) {
         ptpcam.cmd_MovieRecord(false);
     }
-    else if (httpcam.isOperating()) {
+    else if (airplane_mode == false && httpcam.isOperating()) {
         httpcam.cmd_MovieRecord(false);
     }
     else

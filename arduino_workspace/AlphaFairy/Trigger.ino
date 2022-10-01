@@ -433,6 +433,10 @@ class PageTriggerArm : public PageTrigger
 
         virtual bool on_execute(void)
         {
+            if (fairycam.isOperating() == false) {
+                pwr_airplaneModeEnter();
+            }
+
             app_waitAllRelease();
             execute();
             on_redraw();
@@ -753,6 +757,7 @@ class AppShutterTrigger : public FairyCfgApp
             bool ret = FairyCfgApp::on_execute();
             tallylite_enable = true;
             mictrig_pause();
+            pwr_airplaneModeExit();
             return ret;
         };
 

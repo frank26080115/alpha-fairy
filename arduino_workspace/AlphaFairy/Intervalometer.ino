@@ -168,6 +168,10 @@ class PageInterval : public FairyCfgItem
 
 bool intervalometer_func(void* ptr)
 {
+    if (fairycam.isOperating() == false) {
+        pwr_airplaneModeEnter();
+    }
+
     FairyItem* pg = (FairyItem*)ptr;
     uint16_t caller_id = pg->get_parentId(); // need to know if this is normal intervalometer or astrophotography intervalometer
 
@@ -448,6 +452,13 @@ class AppIntervalometer : public FairyCfgApp
                 install(new PageInterval("Num of Shots", (int32_t*)&(config_settings.intv_limit), 0, 10000, 1, TXTFMT_BYTENS));
                 install(new PageInterval("Start", intervalometer_func, "/go_icon.png"));
             };
+
+        virtual bool on_execute(void)
+        {
+            bool ret = FairyCfgApp::on_execute();
+            pwr_airplaneModeExit();
+            return ret;
+        };
 };
 
 extern FairySubmenu main_menu;

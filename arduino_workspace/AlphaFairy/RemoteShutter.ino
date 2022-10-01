@@ -1,5 +1,7 @@
 #include "AlphaFairy.h"
 
+extern bool airplane_mode;
+
 void remote_shutter(uint8_t time_delay, bool use_gui)
 {
     uint32_t tstart, now, tdiff;
@@ -7,7 +9,7 @@ void remote_shutter(uint8_t time_delay, bool use_gui)
 
     cpufreq_boost();
 
-    if (fairycam.isOperating() == false)
+    if (fairycam.isOperating() == false || airplane_mode != false)
     {
         bool can_still_shoot = false;
         // no camera connected via wifi so use infrared or GPIO if possible

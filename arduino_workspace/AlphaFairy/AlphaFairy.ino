@@ -29,6 +29,8 @@ DebuggingSerial      dbg_ser(&Serial);
 
 uint32_t gpio_time = 0; // keeps track of the GPIO shutter activation time so it doesn't get stuck
 
+bool airplane_mode = false;
+
 bool redraw_flag = false; // forces menu redraw
 SpriteMgr* sprites;
 
@@ -152,15 +154,18 @@ void setup_menus()
 bool app_poll()
 {
     // high priority tasks
-    NetMgr_task();
-    ptpcam.task();
-    httpcam.task();
-    #ifdef HTTP_ON_BOOT
-    httpsrv_poll();
-    #endif
+    if (airplane_mode == false)
+    {
+        NetMgr_task();
+        ptpcam.task();
+        httpcam.task();
+        #ifdef HTTP_ON_BOOT
+        httpsrv_poll();
+        #endif
+    }
 
     // do low priority tasks if the networking is not busy
-    if (ptpcam.isKindaBusy() == false) {
+    if (ptpcam.isKindaBusy() == false || airplane_mode != false) {
         imu.poll();
         cmdline.task();
         fenc_task();

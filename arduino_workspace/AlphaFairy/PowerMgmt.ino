@@ -14,6 +14,7 @@ float batt_ibatt_max = -1;
 
 extern bool http_is_active;
 extern bool autoconnect_active;
+extern bool airplane_mode;
 
 uint32_t pwr_last_tick = 0;
 uint32_t lcddim_last_tick = 0;
@@ -134,7 +135,15 @@ void gui_drawStatusBar(bool is_black)
         x += icon_width;
     }
 
-    if (fairycam.isOperating() == false && http_is_active == false && autoconnect_active == false)
+    if (airplane_mode)
+    {
+        sprintf(fpath, "%sairplane%s%s", txt_prefix, is_black ? txt_black : txt_white, txt_suffix);
+
+        sprites->draw(fpath, x, y, icon_width, 12);
+
+        x += icon_width;
+    }
+    else if (fairycam.isOperating() == false && http_is_active == false && autoconnect_active == false)
     {
         if (ptpcam.isPairingWaiting()) {
             gui_prepStatusBarText(x, y, is_black);
@@ -269,12 +278,20 @@ void pwr_lightSleepEnter()
     old_e = e;
     esp_wifi_start();
     #else
-    // attempt modem sleep
-    if (NetMgr_getOpMode() == WIFIOPMODE_STA) {
-        esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
+    if (airplane_mode == false)
+    {
+        // attempt modem sleep
+        if (NetMgr_getOpMode() == WIFIOPMODE_STA) {
+            esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
+        }
+        WiFi.setSleep(true);
+        vTaskDelay(10 / portTICK_PERIOD_MS);
     }
-    WiFi.setSleep(true);
-    vTaskDelay(10 / portTICK_PERIOD_MS);
+    else
+    {
+        esp_sleep_enable_timer_wakeup(5000);
+        esp_light_sleep_start();
+    }
     #endif
 }
 
@@ -299,8 +316,33 @@ void pwr_lightSleepSetup()
     // note: gpio_wakeup_enable is called from pwr_lightSleepEnter because the ISR changes the interrupt mode every time it fires
     #endif
     esp_sleep_enable_wifi_wakeup();
-    esp_sleep_enable_timer_wakeup(10000);
+    esp_sleep_enable_timer_wakeup(5000);
     #endif
+}
+
+void pwr_airplaneModeEnter()
+{
+    if (airplane_mode) {
+        return;
+    }
+    airplane_mode = true;
+    esp_wifi_disconnect();
+    esp_wifi_stop();
+}
+
+void pwr_airplaneModeExit()
+{
+    #if 0
+    if (airplane_mode)
+    {
+        wifiprofile_connect(config_settings.wifi_profile);
+    }
+    #else
+    while (true) {
+        ESP.restart();
+    }
+    #endif
+    airplane_mode = false;
 }
 
 // shutdown, or pretend to shutdown
@@ -308,11 +350,8 @@ void pwr_shutdown()
 {
     // disconnect wifi
     esp_wifi_disconnect();
-    dbg_ser.println("wifi disconnected");
     esp_wifi_stop();
-    dbg_ser.println("wifi stopped");
     esp_wifi_deinit();
-    dbg_ser.println("wifi deinited");
 
     // show the animation on screen
     show_poweroff();
@@ -427,7 +466,6 @@ void show_poweroff()
     }
     else // battery is dead
     {
-        
         M5Lcd.drawPngFile(SPIFFS, "/dead_batt.png", 0, 0);
         delay(500);
         int b = config_settings.lcd_brightness - 1;
