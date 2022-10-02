@@ -159,7 +159,9 @@ bool trigger_all_poll()
     #ifdef ENABLE_BUILD_LEPTON_TRIGGER_COMPLEX
     if (trigger_source == TRIGSRC_THERMAL || trigger_source == TRIGSRC_ALL)
     {
+        #ifndef ENABLE_BUILD_LEPTON_THREAD
         lepton_poll(true);
+        #endif
         triggered |= lepton_checkTrigger();
     }
     #endif

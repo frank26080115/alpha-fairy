@@ -81,6 +81,12 @@ void setup()
     cam_cb_setup();
     wifi_init();
 
+    #ifdef ENABLE_BUILD_LEPTON
+    #ifdef ENABLE_BUILD_LEPTON_THREAD
+    lepton_threadStart();
+    #endif
+    #endif
+
     dbg_ser.printf("finished setup() at %u ms\r\n", millis());
 
     // clear the button flags

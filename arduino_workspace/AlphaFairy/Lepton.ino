@@ -58,12 +58,17 @@ uint16_t lepton_histoBuff[64] = {0};
 uint8_t lepenc_errCnt = 0;
 bool lepton_success = false;
 bool lepton_enable_poll = true;
-uint8_t lepton_initStage = 0;
+volatile uint8_t lepton_initStage = 0;
 uint32_t lepton_initMidTime = 0;
 uint32_t lepton_lastPollTime = 0;
 uint32_t lepton_startTime = 0;
 int lepton_trigBar    = 0;
 int lepton_trigThresh = 0;
+
+#ifdef ENABLE_BUILD_LEPTON_THREAD
+volatile bool lepton_isPolling = false;
+volatile bool lepton_isShowing = false;
+#endif
 
 int lepton_saveNum = 0;
 
@@ -347,7 +352,15 @@ void lepton_makeFrameBuff()
 void lepton_updateFlir(bool gui)
 {
     pwr_tick(true);
+    #ifndef ENABLE_BUILD_LEPTON_THREAD
     lepton.getRawValues();
+    #endif
+    #ifdef ENABLE_BUILD_LEPTON_THREAD
+    if (lepton_isPolling) {
+        return;
+    }
+    lepton_isShowing = true;
+    #endif
     lepton_lastPollTime = millis();
     #ifdef ENABLE_LEPTON_SCALING
     lepton_updateEncoder();
@@ -590,6 +603,10 @@ void lepton_updateFlir(bool gui)
     if (gui) {
         lepton_imgBuff->pushSprite(0, 0);
     }
+
+    #ifdef ENABLE_BUILD_LEPTON_THREAD
+    lepton_isShowing = false;
+    #endif
 }
 
 bool lepton_checkTrigger()
@@ -600,6 +617,12 @@ bool lepton_checkTrigger()
     if (lepton_initStage != LEPINIT_DONE) {
         return false;
     }
+    #ifdef ENABLE_BUILD_LEPTON_THREAD
+    if (lepton_isPolling) {
+        return false;
+    }
+    lepton_isShowing = true;
+    #endif
     int16_t x, y;
     int16_t cx = FLIR_X / 2;
     int16_t cy = FLIR_Y / 2;
@@ -632,6 +655,10 @@ bool lepton_checkTrigger()
         }
     }
 
+    #ifdef ENABLE_BUILD_LEPTON_THREAD
+    lepton_isShowing = false;
+    #endif
+
     if (foundlim)
     {
         lepton_trigBar    = map(lround(limtemp * 100.0)              , 0,  6000, 10, 170);
@@ -640,6 +667,41 @@ bool lepton_checkTrigger()
 
     return found;
 }
+
+#ifdef ENABLE_BUILD_LEPTON_THREAD
+void lepton_task(void* obj_ptr)
+{
+    while (true)
+    {
+        if (lepton_isShowing) {
+            delay(1);
+            continue;
+        }
+        lepton_isPolling = true;
+        lepton_poll(true);
+        lepton_isPolling = false;
+        delay(40);
+    }
+}
+
+void lepton_threadStart()
+{
+    static TaskHandle_t task;
+    static bool task_started = false;
+    if (task_started) {
+        return;
+    }
+    xTaskCreatePinnedToCore(
+                            lepton_task,
+                            "lepton_task",
+                            5000,
+                            NULL,
+                            2,
+                            &task,
+                            xPortGetCoreID()
+                        );
+}
+#endif
 
 bool lepton_init()
 {
@@ -700,8 +762,8 @@ bool lepton_init()
         #else
         delay(1000); // using millis() and scheduling doesn't seem to work as well as using delay()
         uint16_t SYNC = 5, DELAY = 3;
-        lepton.doSetCommand(0x4854, &SYNC, 1);
-        lepton.doSetCommand(0x4858, &DELAY, 1);
+        lepton.doSetCommand(lepton.CMD_OEM_SYNC_SET , &SYNC, 1);
+        lepton.doSetCommand(lepton.CMD_OEM_DELAY_SET, &DELAY, 1);
         lepton.end();
         lepton_initStage = LEPINIT_DONE;
         dbg_ser.println("lepton done");
@@ -738,10 +800,6 @@ bool lepton_init()
 void lepton_poll(bool init)
 {
     if (lepton_enable_poll == false) {
-        return;
-    }
-
-    if ((millis() - lepton_lastPollTime) < 300) {
         return;
     }
 
@@ -787,6 +845,12 @@ class PageLeptonImage : public FairyCfgItem
 
         virtual void on_eachFrame(void)
         {
+            #ifdef ENABLE_BUILD_LEPTON_THREAD
+            if (lepton_isPolling) {
+                return;
+            }
+            #endif
+
             lepton_updateFlir(true);
 
             #ifdef ENABLE_BUILD_LEPTON_TRIGGER_SIMPLE
@@ -807,7 +871,9 @@ class PageLeptonImage : public FairyCfgItem
         virtual void on_redraw(void)
         {
             M5Lcd.fillScreen(TFT_BLACK);
+            #ifndef ENABLE_BUILD_LEPTON_THREAD
             lepton_updateFlir(true);
+            #endif
         };
 
         virtual void draw_statusBar(void)
@@ -1115,7 +1181,9 @@ class AppLepton : public FairyCfgApp
             M5Lcd.fillScreen(TFT_DARKGREY);
             while (lepton_initStage < LEPINIT_DONE)
             {
+                #ifndef ENABLE_BUILD_LEPTON_THREAD
                 lepton_init();
+                #endif
                 app_poll();
             }
             if (lepton_initStage == LEPINIT_DONE) {
