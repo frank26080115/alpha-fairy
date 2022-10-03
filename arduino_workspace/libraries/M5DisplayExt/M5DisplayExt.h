@@ -9,9 +9,12 @@
 
 class M5DisplayExt : public M5Display {
   public:
+    #ifdef ENABLE_BUILD_BMP
     void drawBmpFile(fs::FS &fs, const char *path, uint16_t x, uint16_t y);
     void drawBmpFileSprite(TFT_eSPI* sprite, fs::FS &fs, const char *path, uint16_t x, uint16_t y);
+    #endif
 
+    #ifdef ENABLE_BUILD_JPG
     void drawJpgFile(fs::FS &fs, const char *path, uint16_t x = 0, uint16_t y = 0,
                   uint16_t maxWidth = 0, uint16_t maxHeight = 0,
                   uint16_t offX = 0, uint16_t offY = 0,
@@ -20,7 +23,7 @@ class M5DisplayExt : public M5Display {
     //              uint16_t maxWidth = 0, uint16_t maxHeight = 0,
     //              uint16_t offX = 0, uint16_t offY = 0,
     //              jpeg_div_t scale = JPEG_DIV_NONE);
-
+    #endif
 
     void drawPngFile(fs::FS &fs, const char *path, uint16_t x = 0, uint16_t y = 0,
                   uint16_t maxWidth = 0, uint16_t maxHeight = 0,

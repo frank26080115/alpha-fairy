@@ -620,7 +620,7 @@ bool lepton_checkTrigger()
         {
             float t = GET_PIXEL_TEMPERATURE(GET_PIXEL_INDEX(x, y));
             int tt = lround(t);
-            if ((foundlim == false) || (config_settings.lepton_trigmode == THERMTRIG_HOT && t > limtemp) || (config_settings.lepton_trigmode == THERMTRIG_COLD && t < limtemp)) {
+            if ((foundlim == false) || (config_settings.lepton_trigmode == THERMTRIG_HOT && tt > limtemp) || (config_settings.lepton_trigmode == THERMTRIG_COLD && tt < limtemp)) {
                 limtemp = t;
                 foundlim = true;
             }
@@ -797,9 +797,16 @@ class PageLeptonImage : public FairyCfgItem
             bool trig = lepton_checkTrigger();
 
             if (trig) {
+                dbg_ser.println("therm simple trigger");
+                _triptime = millis();
                 draw_borderRect(3, TFT_RED);
                 pwr_tick(true);
                 cam_shootQuick();
+            }
+            else if (_triptime > 0 && (millis() - _triptime) >= 500) {
+                dbg_ser.println("therm trigger clear screen");
+                draw_borderRect(3, TFT_BLACK);
+                _triptime = 0;
             }
             #endif
         };
@@ -819,6 +826,9 @@ class PageLeptonImage : public FairyCfgItem
         {
             return false;
         };
+
+    protected:
+        uint32_t _triptime = 0;
 };
 
 class PageLeptonMesMode : public FairyCfgItem

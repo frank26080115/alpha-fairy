@@ -20,6 +20,7 @@
 #endif
 
 #define SHCAM_NEED_ENTER_MOVIE_MODE
+//#define SHCAM_EXTRA_DATA
 
 enum
 {
@@ -162,6 +163,10 @@ class SonyHttpCamera
         char str_iso[32];
         char str_focusstatus[32];
         char str_afmode[32];
+        #ifdef SHCAM_EXTRA_DATA
+        char str_aperture[32];
+        char str_expocomp[32];
+        #endif
 
         int8_t   zoom_state;
         uint32_t zoom_time;

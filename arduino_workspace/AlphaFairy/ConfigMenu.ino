@@ -49,8 +49,10 @@ install(new FairyCfgItem("WiFi power"             , (int32_t*)&(config_settings.
 install(new FairyCfgItem("SSDP timeout (s)"       , (int32_t*)&(config_settings.ssdp_timeout           ),    0, 1000,     1, TXTFMT_BYTENS   ));
 install(new FairyCfgItem("IR en"                  , (int32_t*)&(config_settings.infrared_enabled       ),    0,    1,     1, TXTFMT_BOOL     ));
 install(new FairyCfgItem("camera protocol"        , (int32_t*)&(config_settings.protocol               ),    0,    2,     1, TXTFMT_PROTOCOL ));
+#ifndef ENABLE_BUILD_LEPTON
 install(new FairyCfgItem("pin - shutter rel."     , (int32_t*)&(config_settings.pin_shutter            ),    0,    4,     1, TXTFMT_PINCFG   ));
 install(new FairyCfgItem("pin - ext input"        , (int32_t*)&(config_settings.pin_exinput            ),    0,    4,     1, TXTFMT_PINCFG   ));
+#endif
 install(new FairyCfgItem("Save + Exit", config_save_exit, "/back_icon.png"));
         };
 

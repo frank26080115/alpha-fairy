@@ -107,7 +107,9 @@ enum
 {
     TRIGSRC_ALL = 0,
     TRIGSRC_MIC,
+    #ifndef ENABLE_BUILD_LEPTON
     TRIGSRC_EXINPUT,
+    #endif
     TRIGSRC_IMU,
     TRIGSRC_THERMAL,
 };

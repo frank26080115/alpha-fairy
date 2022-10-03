@@ -815,6 +815,7 @@ static int pngle_feed_internal(pngle_t *pngle, const uint8_t *buf, size_t len)
 
 int pngle_feed(pngle_t *pngle, const void *buf, size_t len)
 {
+	if (pngle == NULL || buf == NULL) return -1;
 	size_t pos = 0;
 	pngle_state_t last_state = pngle->state;
 

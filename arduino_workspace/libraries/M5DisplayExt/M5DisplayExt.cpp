@@ -20,6 +20,8 @@ uint32_t read32(fs::File &f) {
   return result;
 }
 
+#ifdef ENABLE_BUILD_BMP
+
 void M5DisplayExt::drawBmpFile(fs::FS &fs, const char *path, uint16_t x, uint16_t y) {
     drawBmpFileSprite(this, fs, path, x, y);
 }
@@ -87,6 +89,15 @@ void M5DisplayExt::drawBmpFileSprite(TFT_eSPI* sprite, fs::FS &fs, const char *p
   bmpFS.close();
 }
 
+#endif
+
+#define jpgColor(c)                                                            \
+  (((uint16_t)(((uint8_t *)(c))[0] & 0xF8) << 8) |                             \
+   ((uint16_t)(((uint8_t *)(c))[1] & 0xFC) << 3) |                             \
+   ((((uint8_t *)(c))[2] & 0xF8) >> 3))
+
+#ifdef ENABLE_BUILD_JPG
+
 /***************************************************
   This library is written to be compatible with Adafruit's ILI9341
   library and automatically detects the display type on ESP_WROVER_KITs
@@ -100,11 +111,6 @@ void M5DisplayExt::drawBmpFileSprite(TFT_eSPI* sprite, fs::FS &fs, const char *p
  */
 
 #include "rom/tjpgd.h"
-
-#define jpgColor(c)                                                            \
-  (((uint16_t)(((uint8_t *)(c))[0] & 0xF8) << 8) |                             \
-   ((uint16_t)(((uint8_t *)(c))[1] & 0xFC) << 3) |                             \
-   ((((uint8_t *)(c))[2] & 0xF8) >> 3))
 
 #if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_ERROR
 const char *jd_errors[] = {"Succeeded",
@@ -304,6 +310,8 @@ void M5DisplayExt::drawJpgFile(fs::FS &fs, const char *path, uint16_t x, uint16_
 
   file.close();
 }
+
+#endif
 
 
 /*

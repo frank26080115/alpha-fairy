@@ -126,9 +126,11 @@ void trigger_drawLevel()
     else if (trigger_source == TRIGSRC_MIC) {
         mictrig_drawLevel();
     }
+    #ifndef ENABLE_BUILD_LEPTON
     else if (trigger_source == TRIGSRC_EXINPUT) {
         extinput_drawLevel();
     }
+    #endif
     else if (trigger_source == TRIGSRC_IMU) {
         imutrig_drawLevel();
     }
@@ -149,9 +151,11 @@ bool trigger_all_poll()
         mictrig_poll();
         triggered |= mictrig_hasTriggered;
     }
+    #ifndef ENABLE_BUILD_LEPTON
     if (trigger_source == TRIGSRC_EXINPUT || trigger_source == TRIGSRC_ALL) {
         triggered |= extinput_poll();
     }
+    #endif
     if (trigger_source == TRIGSRC_IMU || trigger_source == TRIGSRC_ALL) {
         triggered |= imutrig_poll();
     }
@@ -212,7 +216,9 @@ class PageTriggerSource : public PageTrigger
     public:
         PageTriggerSource() : PageTrigger("Trigger Source", (int32_t*)&(trigger_source), 0,
         #if defined(ENABLE_BUILD_LEPTON) && defined(ENABLE_BUILD_LEPTON_TRIGGER_COMPLEX)
-            4
+            3
+        #elif defined(ENABLE_BUILD_LEPTON) && !defined(ENABLE_BUILD_LEPTON_TRIGGER_COMPLEX)
+            2
         #else
             3
         #endif
@@ -270,6 +276,8 @@ class PageSoundTriggerLevel : public PageTrigger
         };
 };
 
+#ifndef ENABLE_BUILD_LEPTON
+
 class PageTriggerSigEdge : public PageTrigger
 {
     public:
@@ -305,6 +313,8 @@ class PageTriggerSigLevel : public PageTrigger
             return trigger_source == TRIGSRC_EXINPUT || trigger_source == TRIGSRC_ALL;
         };
 };
+
+#endif
 
 class PageTriggerImuAccel : public PageTrigger
 {
@@ -439,6 +449,7 @@ class PageTriggerArm : public PageTrigger
 
             app_waitAllRelease();
             execute();
+            sprites->unload_all();
             on_redraw();
             app_waitAllRelease();
             return false;
@@ -465,6 +476,8 @@ class PageTriggerArm : public PageTrigger
             uint32_t t = 0;
 
             M5Lcd.fillScreen(TFT_BLACK);
+
+            sprites->unload_all();
 
             // enforce minimum arming delay, gives the user a chance to run away, also the button seems to trigger the mic when pressed
             config_settings.trigger_armtime = (config_settings.trigger_armtime < 3) ? 3 : config_settings.trigger_armtime;
@@ -697,23 +710,28 @@ class PageTriggerArm : public PageTrigger
                 _linenum++;
             }
             M5Lcd.setCursor(_margin_x, get_y(_linenum));
-            if (trigger_source == TRIGSRC_MIC || trigger_source == TRIGSRC_EXINPUT)
+            if (trigger_source == TRIGSRC_MIC
+                #ifndef ENABLE_BUILD_LEPTON
+                    || trigger_source == TRIGSRC_EXINPUT
+                #endif
+                )
             {
                 M5Lcd.print("Level: ");
                 if (trigger_source == TRIGSRC_MIC) {
                     gui_showVal(config_settings.mictrig_level, TXTFMT_NONE, (Print*)&M5Lcd);
                 }
+                #ifndef ENABLE_BUILD_LEPTON
                 else {
                     if (config_settings.trigger_edge != 0) {
                         M5Lcd.print("!");
                     }
                     gui_showVal(config_settings.trigger_siglevel, TXTFMT_NONE, (Print*)&M5Lcd);
                 }
+                #endif
                 blank_line();
                 _linenum++;
             }
 
-            //if (trigger_action == TRIGACT_PHOTO && (trigger_source == TRIGSRC_MIC || trigger_source == TRIGSRC_EXINPUT) == false)
             if (_linenum == 1)
             {
                 // if nothing interesting to write, then just show the trigger source
@@ -738,8 +756,10 @@ class AppShutterTrigger : public FairyCfgApp
             this->install(new PageTriggerVideoTime());
 
             this->install(new PageSoundTriggerLevel());
+            #ifndef ENABLE_BUILD_LEPTON
             this->install(new PageTriggerSigEdge());
             this->install(new PageTriggerSigLevel());
+            #endif
             this->install(new PageTriggerImuAccel());
             this->install(new PageTriggerImuRot());
 
@@ -769,10 +789,12 @@ class AppShutterTrigger : public FairyCfgApp
             {
                 M5Lcd.drawPngFile(SPIFFS, "/mic_icon.png", x, y);
             }
+            #ifndef ENABLE_BUILD_LEPTON
             else if (trigger_source == TRIGSRC_EXINPUT)
             {
                 M5Lcd.drawPngFile(SPIFFS, "/extinput_icon.png", x, y);
             }
+            #endif
             else if (trigger_source == TRIGSRC_IMU)
             {
                 M5Lcd.drawPngFile(SPIFFS, "/imu_icon.png", x, y);

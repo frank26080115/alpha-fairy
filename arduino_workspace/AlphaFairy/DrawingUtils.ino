@@ -160,9 +160,11 @@ void gui_showVal(int32_t x, uint32_t txtfmt, Print* printer)
             else if (x == TRIGSRC_MIC) {
                 i += sprintf(&(str[i]), "mic");
             }
+            #ifndef ENABLE_BUILD_LEPTON
             else if (x == TRIGSRC_EXINPUT) {
                 i += sprintf(&(str[i]), "ext-input");
             }
+            #endif
             else if (x == TRIGSRC_IMU) {
                 i += sprintf(&(str[i]), "IMU");
             }
@@ -180,9 +182,11 @@ void gui_showVal(int32_t x, uint32_t txtfmt, Print* printer)
             else if (x == TRIGSRC_MIC) {
                 i += sprintf(&(str[i]), "MIC");
             }
+            #ifndef ENABLE_BUILD_LEPTON
             else if (x == TRIGSRC_EXINPUT) {
                 i += sprintf(&(str[i]), "EXT");
             }
+            #endif
             else if (x == TRIGSRC_IMU) {
                 i += sprintf(&(str[i]), "IMU");
             }
@@ -355,6 +359,6 @@ void draw_borderRect(int16_t thickness, uint16_t colour)
     int16_t i;
     for (i = 0; i < thickness; i++)
     {
-        M5Lcd.drawRect(0 + i, 0 + i, M5Lcd.width() - 1 - (i * 2), M5Lcd.height() - 1 - (i * 2), TFT_RED);
+        M5Lcd.drawRect(0 + i, 0 + i, M5Lcd.width() - 1 - (i * 2), M5Lcd.height() - 1 - (i * 2), colour);
     }
 }

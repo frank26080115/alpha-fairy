@@ -148,6 +148,22 @@ bool SonyHttpCamera::parse_event(char* data, int32_t maxlen)
         }
     }
 
+#ifdef SHCAM_EXTRA_DATA
+    found = scan_json_for_key(rx_buff, maxlen, "currentFNumber", &i, &j, (char*)res_buff, 64);
+    if (found && strlen(res_buff) > 0) {
+        strcpy(str_aperture, res_buff);
+        dbgser_devprop_dump->printf("httpcam event key \"currentFNumber\" = \"%s\"\r\n", res_buff);
+        ret |= true;
+    }
+
+    found = scan_json_for_key(rx_buff, maxlen, "currentExposureCompensation", &i, &j, (char*)res_buff, 64);
+    if (found && strlen(res_buff) > 0) {
+        strcpy(str_expocomp, res_buff);
+        dbgser_devprop_dump->printf("httpcam event key \"currentExposureCompensation\" = \"%s\"\r\n", res_buff);
+        ret |= true;
+    }
+#endif
+
     found = scan_json_for_key(rx_buff, maxlen, "currentFocusMode", &i, &j, (char*)res_buff, 64);
     if (found && strlen(res_buff) > 0) {
         // warning, it seems like this item is missing, even from my a6600
