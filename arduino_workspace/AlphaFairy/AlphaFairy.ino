@@ -87,7 +87,6 @@ void setup()
     btnAny_clrPressed();
 
     imu.poll();
-    fencoder.begin();
 
     pwr_tick(true);
 
@@ -192,7 +191,6 @@ bool app_poll()
 
 void shutterrelease_task()
 {
-    #ifndef ENABLE_BUILD_LEPTON
     if (gpio_time != 0)
     {
         // release the GPIO after a timeout
@@ -206,7 +204,6 @@ void shutterrelease_task()
             gpio_time = 0;
         }
     }
-    #endif
 }
 
 extern int wifi_err_reason;

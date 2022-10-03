@@ -160,11 +160,9 @@ void gui_showVal(int32_t x, uint32_t txtfmt, Print* printer)
             else if (x == TRIGSRC_MIC) {
                 i += sprintf(&(str[i]), "mic");
             }
-            #ifndef ENABLE_BUILD_LEPTON
             else if (x == TRIGSRC_EXINPUT) {
                 i += sprintf(&(str[i]), "ext-input");
             }
-            #endif
             else if (x == TRIGSRC_IMU) {
                 i += sprintf(&(str[i]), "IMU");
             }
@@ -182,11 +180,9 @@ void gui_showVal(int32_t x, uint32_t txtfmt, Print* printer)
             else if (x == TRIGSRC_MIC) {
                 i += sprintf(&(str[i]), "MIC");
             }
-            #ifndef ENABLE_BUILD_LEPTON
             else if (x == TRIGSRC_EXINPUT) {
                 i += sprintf(&(str[i]), "EXT");
             }
-            #endif
             else if (x == TRIGSRC_IMU) {
                 i += sprintf(&(str[i]), "IMU");
             }
@@ -227,17 +223,14 @@ void gui_showVal(int32_t x, uint32_t txtfmt, Print* printer)
         if (x == PINCFG_NONE) {
             i += sprintf(&(str[i]), "none");
         }
-        else if (x == PINCFG_G0) {
-            i += sprintf(&(str[i]), "G0");
-        }
-        else if (x == PINCFG_G25) {
-            i += sprintf(&(str[i]), "G25");
-        }
-        else if (x == PINCFG_G26) {
-            i += sprintf(&(str[i]), "G26");
-        }
-        else if (x == PINCFG_G36) {
-            i += sprintf(&(str[i]), "G36");
+        else {
+            int pin = get_pinCfgGpio(x);
+            if (pin >= 0) {
+                i += sprintf(&(str[i]), "G%u", pin);
+            }
+            else {
+                i += sprintf(&(str[i]), "G??");
+            }
         }
     }
     else if ((txtfmt & TXTFMT_DIVHUNDRED) != 0) {

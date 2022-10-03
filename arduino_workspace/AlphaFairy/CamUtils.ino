@@ -13,13 +13,10 @@ void cam_shootQuick()
     }
     else
     {
-        #ifndef ENABLE_BUILD_LEPTON
         if (config_settings.pin_shutter != PINCFG_NONE && config_settings.pin_shutter != config_settings.pin_exinput) {
             cam_shootQuickGpio();
         }
-        else
-        #endif
-            if (config_settings.infrared_enabled) {
+        else if (config_settings.infrared_enabled) {
             SonyCamIr_Shoot();
         }
     }
@@ -32,7 +29,6 @@ void cam_shootQuickGpio()
     if (pin < 0) {
         return;
     }
-    #ifndef ENABLE_BUILD_LEPTON
     #ifdef SHUTTER_GPIO_ACTIVE_HIGH
     pinMode(pin, OUTPUT);
     digitalWrite(pin, HIGH);
@@ -44,7 +40,6 @@ void cam_shootQuickGpio()
     digitalWrite(pin, LOW);
     app_sleep(config_settings.shutter_press_time_ms, false);
     pinMode(pin, INPUT);
-    #endif
     #endif
 }
 
@@ -72,7 +67,6 @@ void cam_shootOpen()
     }
     else
     {
-        #ifndef ENABLE_BUILD_LEPTON
         if (config_settings.pin_shutter != PINCFG_NONE && config_settings.pin_shutter != config_settings.pin_exinput)
         {
             int32_t pin = get_pinCfgGpio(config_settings.pin_shutter);
@@ -89,9 +83,7 @@ void cam_shootOpen()
             }
             gpio_time = millis();
         }
-        else
-        #endif
-            if (config_settings.infrared_enabled) {
+        else if (config_settings.infrared_enabled) {
             SonyCamIr_Shoot();
         }
     }
@@ -120,7 +112,6 @@ void cam_shootClose()
     }
     else
     {
-        #ifndef ENABLE_BUILD_LEPTON
         if (config_settings.pin_shutter != PINCFG_NONE && config_settings.pin_shutter != config_settings.pin_exinput)
         {
             gpio_time = 0; // stop the timer
@@ -134,9 +125,7 @@ void cam_shootClose()
                 #endif
             }
         }
-        else
-        #endif
-            if (config_settings.infrared_enabled) {
+        else if (config_settings.infrared_enabled) {
             // do nothing
         }
     }

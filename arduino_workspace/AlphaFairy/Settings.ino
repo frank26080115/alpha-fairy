@@ -58,8 +58,13 @@ void settings_default() {
 
   config_settings.tallylite = 1;
 
+  #ifdef ENABLE_BUILD_LEPTON
+  config_settings.pin_shutter = PINCFG_NONE;
+  config_settings.pin_exinput = PINCFG_NONE;
+  #else
   config_settings.pin_shutter = PINCFG_G26;
   config_settings.pin_exinput = PINCFG_G36;
+  #endif
   config_settings.trigger_edge = 0;
 
   #ifdef ENABLE_BUILD_LEPTON

@@ -8,6 +8,11 @@ void fenc_task()
 {
     static bool prev_can_run = false;
 
+    if (config_settings.pin_shutter == PINCFG_G32 || config_settings.pin_shutter == PINCFG_G33 || config_settings.pin_exinput == PINCFG_G32 || config_settings.pin_exinput == PINCFG_G33) {
+        fenc_enabled = false;
+        return;
+    }
+
     bool can_run = ptpcam.isOperating() && ptpcam.is_manuallyfocused() && fenc_enabled;
     // we don't want to waste IO time if the camera is not connected or not in manual focus mode
     if (prev_can_run != can_run) {

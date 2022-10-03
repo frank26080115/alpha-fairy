@@ -16,11 +16,15 @@ FairyEncoder::FairyEncoder(TwoWire* wire, uint8_t i2c_addr, uint32_t chk_intv_fa
     _chkintv_slow = chk_intv_slow;
     _chkintv_sleep = chk_intv_sleep;
     _check_interval = _chkintv_slow;
+    _has_begun = false;
 }
 
 void FairyEncoder::begin()
 {
-    _wire->begin();
+    if (_has_begun == false) {
+        _wire->begin();
+        _has_begun = true;
+    }
     _last_cnt = 0;
     _last_read = 0;
     _last_check_time = 0;
@@ -33,6 +37,10 @@ void FairyEncoder::task()
 
     if ((now - _last_check_time) < _check_interval) {
         return;
+    }
+
+    if (_has_begun == false) {
+        begin();
     }
 
     _last_check_time = now;

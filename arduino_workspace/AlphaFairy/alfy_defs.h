@@ -97,19 +97,24 @@ enum
 enum
 {
     PINCFG_NONE = 0,
-    PINCFG_G0,
-    PINCFG_G25,
-    PINCFG_G26,
-    PINCFG_G36,
+    #ifndef ENABLE_BUILD_LEPTON
+    PINCFG_G0,      // front header, shared with Lepton SPI
+    PINCFG_G25,     // shared with G36 and Lepton SPI
+    #endif
+    PINCFG_G26,     // front header
+    PINCFG_G32,     // rear I2C
+    PINCFG_G33,     // rear I2C
+    #ifndef ENABLE_BUILD_LEPTON
+    PINCFG_G36,     // front header, shared with G25 (and Lepton SPI)
+    #endif
+    PINCFG_END,
 };
 
 enum
 {
     TRIGSRC_ALL = 0,
     TRIGSRC_MIC,
-    #ifndef ENABLE_BUILD_LEPTON
     TRIGSRC_EXINPUT,
-    #endif
     TRIGSRC_IMU,
     TRIGSRC_THERMAL,
 };

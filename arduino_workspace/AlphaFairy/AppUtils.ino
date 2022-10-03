@@ -284,15 +284,19 @@ void dissolve_restart(uint16_t colour)
 
 int32_t get_pinCfgGpio(int32_t x)
 {
-    #ifndef ENABLE_BUILD_LEPTON
     switch (x)
     {
+        #ifndef ENABLE_BUILD_LEPTON
         case PINCFG_G0 : return 0;
         case PINCFG_G25: return 25;
+        #endif
         case PINCFG_G26: return 26;
+        case PINCFG_G32: return 32;
+        case PINCFG_G33: return 33;
+        #ifndef ENABLE_BUILD_LEPTON
         case PINCFG_G36: return 36;
+        #endif
     }
-    #endif
     return -1;
 }
 
@@ -301,7 +305,11 @@ void safe_all_pins()
     #ifndef ENABLE_BUILD_LEPTON
     pinMode(0, INPUT);
     pinMode(25, INPUT);
+    #endif
     pinMode(26, INPUT);
+    pinMode(32, INPUT);
+    pinMode(33, INPUT);
+    #ifndef ENABLE_BUILD_LEPTON
     pinMode(36, INPUT);
     #endif
 }

@@ -49,10 +49,8 @@ install(new FairyCfgItem("WiFi power"             , (int32_t*)&(config_settings.
 install(new FairyCfgItem("SSDP timeout (s)"       , (int32_t*)&(config_settings.ssdp_timeout           ),    0, 1000,     1, TXTFMT_BYTENS   ));
 install(new FairyCfgItem("IR en"                  , (int32_t*)&(config_settings.infrared_enabled       ),    0,    1,     1, TXTFMT_BOOL     ));
 install(new FairyCfgItem("camera protocol"        , (int32_t*)&(config_settings.protocol               ),    0,    2,     1, TXTFMT_PROTOCOL ));
-#ifndef ENABLE_BUILD_LEPTON
-install(new FairyCfgItem("pin - shutter rel."     , (int32_t*)&(config_settings.pin_shutter            ),    0,    4,     1, TXTFMT_PINCFG   ));
-install(new FairyCfgItem("pin - ext input"        , (int32_t*)&(config_settings.pin_exinput            ),    0,    4,     1, TXTFMT_PINCFG   ));
-#endif
+install(new FairyCfgItem("pin - shutter rel."     , (int32_t*)&(config_settings.pin_shutter            ), 0, PINCFG_END - 1, 1, TXTFMT_PINCFG));
+install(new FairyCfgItem("pin - ext input"        , (int32_t*)&(config_settings.pin_exinput            ), 0, PINCFG_END - 1, 1, TXTFMT_PINCFG));
 install(new FairyCfgItem("Save + Exit", config_save_exit, "/back_icon.png"));
         };
 
@@ -66,26 +64,27 @@ install(new FairyCfgItem("Save + Exit", config_save_exit, "/back_icon.png"));
 
             bool exit = FairyCfgApp::on_execute();
 
-            if (exit)
+            if (has_saved == false)
             {
-                if (has_saved == false)
-                {
-                    // user quit via pwr button press, so do not save the settings
-                    memcpy(&config_settings, _backup, sizeof(configsettings_t));
-                    M5.Axp.ScreenBreath(config_settings.lcd_brightness);
+                // user quit via pwr button press, so do not save the settings
+                memcpy(&config_settings, _backup, sizeof(configsettings_t));
+                M5.Axp.ScreenBreath(config_settings.lcd_brightness);
+            }
+            else
+            {
+                if (_backup->wifi_pwr != config_settings.wifi_pwr) {
+                    NetMgr_setWifiPower((wifi_power_t)wifipwr_table[config_settings.wifi_pwr]);
                 }
-                else
-                {
-                    if (_backup->wifi_pwr != config_settings.wifi_pwr) {
-                        NetMgr_setWifiPower((wifi_power_t)wifipwr_table[config_settings.wifi_pwr]);
-                    }
-                }
-
-                if (_backup != NULL) {
-                    free(_backup);
-                    _backup = NULL;
+                while (_backup->pin_shutter != config_settings.pin_shutter || _backup->pin_exinput != config_settings.pin_exinput) {
+                    ESP.restart();
                 }
             }
+
+            if (_backup != NULL) {
+                free(_backup);
+                _backup = NULL;
+            }
+
             return exit;
         }
 

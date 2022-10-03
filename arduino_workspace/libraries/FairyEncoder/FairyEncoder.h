@@ -30,6 +30,7 @@ class FairyEncoder
         TwoWire* _wire;
         uint8_t _i2c_addr;
         bool _avail;
+        bool _has_begun = false;
         int16_t _last_cnt;
         int16_t _last_read;
         uint32_t _last_check_time, _last_move_time;
