@@ -1112,6 +1112,10 @@ class AppLepton : public FairyCfgApp
 
         virtual bool on_execute(void)
         {
+            #ifndef ENABLE_BUILD_LEPTON_TRIGGER_SIMPLE
+            pwr_airplaneModeEnter();
+            #endif
+            bool r = false;
             M5Lcd.fillScreen(TFT_DARKGREY);
             while (lepton_initStage < LEPINIT_DONE)
             {
@@ -1120,12 +1124,12 @@ class AppLepton : public FairyCfgApp
             }
             if (lepton_initStage == LEPINIT_DONE) {
                 lepton_startTime = millis();
-                bool r = FairyCfgApp::on_execute();
-                return r;
+                r = FairyCfgApp::on_execute();
             }
-            else {
-                return false;
-            }
+            #ifndef ENABLE_BUILD_LEPTON_TRIGGER_SIMPLE
+            pwr_airplaneModeExit();
+            #endif
+            return r;
         };
 };
 
