@@ -20,7 +20,7 @@
 #endif
 
 #define SHCAM_NEED_ENTER_MOVIE_MODE
-//#define SHCAM_EXTRA_DATA
+#define SHCAM_EXTRA_DATA
 
 enum
 {
@@ -166,6 +166,7 @@ class SonyHttpCamera
         #ifdef SHCAM_EXTRA_DATA
         char str_aperture[32];
         char str_expocomp[32];
+        char str_expomode[32];
         #endif
 
         int8_t   zoom_state;
@@ -209,6 +210,12 @@ class SonyHttpCamera
         inline int      get_iso_idx         (void) { return (tbl_iso != NULL) ? get_idx_within_strtbl(tbl_iso, str_iso) : -1; };
 
         uint32_t get_another_shutterspd(int idx, char* tgt);
+
+        #ifdef SHCAM_EXTRA_DATA
+        inline char* get_str_aperture(void) { return str_aperture; };
+        inline char* get_str_expocomp(void) { return str_expocomp; };
+        inline char* get_str_expomode(void) { return str_expomode; };
+        #endif
 
         void cmd_Shoot(void);
         void cmd_MovieRecord(bool is_start);

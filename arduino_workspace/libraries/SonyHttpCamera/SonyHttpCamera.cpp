@@ -162,6 +162,13 @@ bool SonyHttpCamera::parse_event(char* data, int32_t maxlen)
         dbgser_devprop_dump->printf("httpcam event key \"currentExposureCompensation\" = \"%s\"\r\n", res_buff);
         ret |= true;
     }
+
+    found = scan_json_for_key(rx_buff, maxlen, "currentExposureMode", &i, &j, (char*)res_buff, 64);
+    if (found && strlen(res_buff) > 0) {
+        strcpy(str_expomode, res_buff);
+        dbgser_devprop_dump->printf("httpcam event key \"currentExposureMode\" = \"%s\"\r\n", res_buff);
+        ret |= true;
+    }
 #endif
 
     found = scan_json_for_key(rx_buff, maxlen, "currentFocusMode", &i, &j, (char*)res_buff, 64);

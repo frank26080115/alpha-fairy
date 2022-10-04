@@ -65,6 +65,46 @@ bool AlphaFairyCamera::is_focused(void)
     return false;
 }
 
+uint16_t AlphaFairyCamera::get_exposureMode(void)
+{
+    #ifdef SONYCAM_PROPCODE_NEED_MORE
+    if (cam_ptp->isOperating()) {
+        int32_t x = cam_ptp->get_property(PTP_PROPCODE_ExposureProgramMode);
+        if (x >= SONYALPHA_EXPOMODE_IntelligentAuto && x <= SONYALPHA_EXPOMODE_AntiMotionBlur) {
+            return x;
+        }
+        x = cam_ptp->get_property(SONYALPHA_PROPCODE_ExposeIndex);
+        if (x >= SONYALPHA_EXPOMODE_IntelligentAuto && x <= SONYALPHA_EXPOMODE_AntiMotionBlur) {
+            return x;
+        }
+    }
+    #endif
+    #ifdef SHCAM_EXTRA_DATA
+    if (cam_http->isOperating())
+    {
+        if (memcmp("Manual", cam_http->get_str_expomode(), 5) == 0) {
+            return SONYALPHA_EXPOMODE_M;
+        }
+        if (memcmp("Program Auto", cam_http->get_str_expomode(), 5) == 0) {
+            return SONYALPHA_EXPOMODE_P;
+        }
+        if (memcmp("Aperture", cam_http->get_str_expomode(), 5) == 0) {
+            return SONYALPHA_EXPOMODE_A;
+        }
+        if (memcmp("Shutter", cam_http->get_str_expomode(), 5) == 0) {
+            return SONYALPHA_EXPOMODE_S;
+        }
+        if (memcmp("Intelligent Auto", cam_http->get_str_expomode(), 5) == 0) {
+            return SONYALPHA_EXPOMODE_IntelligentAuto;
+        }
+        if (memcmp("Superior Auto", cam_http->get_str_expomode(), 5) == 0) {
+            return SONYALPHA_EXPOMODE_SuperiorAuto;
+        }
+    }
+    #endif
+    return 0;
+}
+
 bool AlphaFairyCamera::need_wait_af(void)
 {
     if (cam_ptp->isOperating()) {
