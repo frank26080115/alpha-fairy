@@ -38,7 +38,7 @@ PtpIpCamera::PtpIpCamera(char* name) {
     #endif
     dbgser_tx->enabled = false;
     dbgser_devprop_dump->  enabled = false;
-    dbgser_devprop_change->enabled = true;
+    dbgser_devprop_change->enabled = false;
 }
 
 void PtpIpCamera::begin(uint32_t ip, uint32_t wait) {
@@ -546,7 +546,7 @@ void PtpIpCamera::parse_cmd_ack(uint8_t* data)
 {
     ptpip_pkt_cmdack_t* pktstruct = (ptpip_pkt_cmdack_t*)data;
     conn_id = pktstruct->conn_id;
-    copy_utf16_to_bytes(cam_name, pktstruct->name);
+    copy_utf16_to_bytes(cam_name, pktstruct->name, NAME_BUFFER_SIZE);
     dbgser_states->printf("PTP recv'ed CMD-ACK, conn-ID 0x%08X, name: %s\r\n", conn_id, cam_name);
     check_name();
 }
@@ -556,7 +556,7 @@ void PtpIpCamera::wait_while_busy(uint32_t min_time, uint32_t max_time, volatile
     volatile bool to_exit = false;
     uint32_t start_time = millis();
     uint32_t now = start_time;
-    while ((canSend() == false && (now - start_time) < max_time) || (now - start_time) < min_time) {
+    while ((canSend() == false && (now - start_time) < max_time) || ((now - start_time) < min_time && min_time > 0)) {
         now = millis();
         poll(); // poll, not task, because poll only reads and never sends
         // note: poll calls yield

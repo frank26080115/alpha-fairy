@@ -4,8 +4,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-uint32_t copy_bytes_to_utf16   (void* dest, void* src);
-uint32_t copy_utf16_to_bytes   (void* dest, void* src);
+uint32_t copy_bytes_to_utf16   (void* dest, void* src, int n);
+uint32_t copy_utf16_to_bytes   (void* dest, void* src, int n);
 void     copyn_utf16_to_bytes  (void* dest, void* src, uint32_t n);
 void     buffer_consume        (uint8_t buff[], uint32_t* buff_idx, uint32_t read_cnt, uint32_t buff_max);
 void     print_buffer_hex      (uint8_t* data, uint32_t len);

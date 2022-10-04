@@ -5,15 +5,17 @@
 
 //#define PTPIP_DEBUG_RX
 
-uint32_t copy_bytes_to_utf16(void* dest, void* src) {
+uint32_t copy_bytes_to_utf16(void* dest, void* src, int n) {
     int i, j;
     uint8_t* dp = (uint8_t*)dest;
     uint8_t* sp = (uint8_t*)src;
     i = 0; j = 0;
-    while (1) {
+    while (i < (n - 1)) {
         uint8_t c = sp[i];
         dp[j] = c;
         dp[j+1] = 0;
+        dp[j+2] = 0;
+        dp[j+3] = 0;
         i += 1;
         j += 2;
         if (c == 0) {
@@ -23,12 +25,12 @@ uint32_t copy_bytes_to_utf16(void* dest, void* src) {
     return j;
 }
 
-uint32_t copy_utf16_to_bytes(void* dest, void* src) {
+uint32_t copy_utf16_to_bytes(void* dest, void* src, int n) {
     int i, j;
     uint8_t* dp = (uint8_t*)dest;
     uint8_t* sp = (uint8_t*)src;
     i = 0; j = 0;
-    while (1) {
+    while (j < (n - 1)) {
         uint8_t c = sp[i];
         dp[j] = c;
         i += 2;

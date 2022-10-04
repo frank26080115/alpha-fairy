@@ -48,13 +48,13 @@ PtpIpSonyAlphaCamera::PtpIpSonyAlphaCamera(char* host_name, uint16_t* interested
     // make the properties table based on how many properties we are interested in
     uint8_t i, j;
     // so count first
-    for (i = 0; ; i++) {
+    for (i = 0; i < 255; i++) {
         if (interested_properties_default[i] == 0) { // end of table
             break;
         }
     }
     if (interested_properties != NULL) {
-        for (j = 0; ; j++) {
+        for (j = 0; j < 255 ; j++) {
             if (interested_properties[j] == 0) { // end of table
                 break;
             }

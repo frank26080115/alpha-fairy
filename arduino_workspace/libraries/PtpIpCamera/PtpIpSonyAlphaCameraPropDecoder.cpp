@@ -246,7 +246,7 @@ bool PtpIpSonyAlphaCamera::update_property(uint16_t prop_code, uint16_t data_typ
     }
 
     bool is_interested = false;
-    for (i = 0; ; i++) {
+    for (i = 0; i < 255; i++) {
         uint16_t intprop = p_interested_properties[i];
         if (intprop != 0) // not end of table
         {

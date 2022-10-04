@@ -126,7 +126,7 @@ bool PtpIpCamera::send_cmd_req()
     pktstruct->header.pkt_type = PTP_PKTTYPE_INITCMDREQ;
     fill_guid((char*)(pktstruct->guid));
     len = 8 + PTP_GUID_LEN;
-    len += copy_bytes_to_utf16(pktstruct->name, my_name);
+    len += copy_bytes_to_utf16(pktstruct->name, my_name, NAME_BUFFER_SIZE);
     version_ptr = (uint32_t*)&(outbuff[len]);
     (*version_ptr) = 0x00010000;
     len += 4;
