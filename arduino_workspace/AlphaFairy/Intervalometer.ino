@@ -4,6 +4,8 @@
 
 static uint32_t intervalometer_start_time;
 
+extern bool tallylite_enable;
+
 void interval_drawTimer(int8_t x)
 {
     static uint8_t i = 0;
@@ -455,7 +457,9 @@ class AppIntervalometer : public FairyCfgApp
 
         virtual bool on_execute(void)
         {
+            tallylite_enable = false;
             bool ret = FairyCfgApp::on_execute();
+            tallylite_enable = true;
             pwr_airplaneModeExit();
             return ret;
         };

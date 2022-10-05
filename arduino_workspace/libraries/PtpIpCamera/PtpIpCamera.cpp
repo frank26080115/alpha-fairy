@@ -476,6 +476,10 @@ bool PtpIpCamera::decode_pkt(uint8_t buff[], uint32_t buff_len)
         }
         else {
             dbgser_important->printf("PTP init oper-resp failed 0x%04X (state/substate %u/%u)\r\n", operresp->resp_code, state, substate);
+            #ifdef PTPIP_IGNORE_INIT_ERROR
+            state += 1;
+            substate += 1;
+            #endif
         }
         state &= 0xFFFFFFFE;
     }

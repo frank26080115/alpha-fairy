@@ -155,4 +155,16 @@ enum
     PTP_EVENTCODE_RecordingInterrupted       = 0xC105,
 };
 
+enum
+{
+    PTP_EXPOPROGMODE_UNDEFINED       = 0x0000,
+    PTP_EXPOPROGMODE_MANUAL          = 0x0001,
+    PTP_EXPOPROGMODE_AUTO            = 0x0002,
+    PTP_EXPOPROGMODE_A               = 0x0003,
+    PTP_EXPOPROGMODE_S               = 0x0004,
+    PTP_EXPOPROGMODE_PROGRAMCREATIVE = 0x0005,
+    PTP_EXPOPROGMODE_PROGRAMACTION   = 0x0006,
+    PTP_EXPOPROGMODE_PORTRAIT        = 0x0007,
+};
+
 #endif

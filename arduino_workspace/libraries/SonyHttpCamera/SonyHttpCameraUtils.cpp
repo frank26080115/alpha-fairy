@@ -99,6 +99,27 @@ bool scan_json_for_key(char* data, int32_t datalen, const char* keystr, signed i
                                     prev_c = c;
                                 }
                             }
+                            else if (c == '{')
+                            {
+                                i++;
+                                sidx = i;
+                                bool in_quote = false;
+                                prev_c = c;
+                                for (; i < slen && c != 0 && found == false; i++)
+                                {
+                                    c = data[i];
+                                    if (c == '"' && prev_c != '\\')
+                                    {
+                                        in_quote ^= true;
+                                    }
+                                else if (c == '}' && in_quote == false)
+                                    {
+                                        eidx = i - 1;
+                                        found = true;
+                                    }
+                                    prev_c = c;
+                                }
+                            }
                             else if (c == ',')
                             {
                                 if (found == false) {

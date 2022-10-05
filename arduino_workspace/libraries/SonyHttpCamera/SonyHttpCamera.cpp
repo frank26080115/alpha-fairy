@@ -159,7 +159,28 @@ bool SonyHttpCamera::parse_event(char* data, int32_t maxlen)
     found = scan_json_for_key(rx_buff, maxlen, "currentExposureCompensation", &i, &j, (char*)res_buff, 64);
     if (found && strlen(res_buff) > 0) {
         strcpy(str_expocomp, res_buff);
+        // the expo compensation string requires a bit of cleanup
+        int z = strlen(str_expocomp) - 1;
+        for (; z > 0; z--) {
+            char zc = str_expocomp[z];
+            if ((zc < '0' || zc > '9') && zc != '-' && zc != '+' && zc != '.') {
+                str_expocomp[z] = 0;
+            }
+            else {
+                break; // no need to clean up valid characters
+            }
+        }
+
+        expocomp = atoi(str_expocomp) * 333; // this converts it into the same units that PTP mode uses
+
         dbgser_devprop_dump->printf("httpcam event key \"currentExposureCompensation\" = \"%s\"\r\n", res_buff);
+        ret |= true;
+    }
+
+    found = scan_json_for_key(rx_buff, maxlen, "currentExposureMode", &i, &j, (char*)res_buff, 64);
+    if (found && strlen(res_buff) > 0) {
+        strcpy(str_expomode, res_buff);
+        dbgser_devprop_dump->printf("httpcam event key \"currentExposureMode\" = \"%s\"\r\n", res_buff);
         ret |= true;
     }
 #endif

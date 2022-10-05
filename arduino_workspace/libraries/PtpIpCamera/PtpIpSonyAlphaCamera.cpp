@@ -5,7 +5,6 @@
 #include <stdlib.h>
 
 #define SONYCAM_CHECK_PROPS_INTERVAL 10000
-#define SONYCAM_PROPCODE_NEED_MORE
 
 static const ptpip_init_substep_t init_table[] = {
     { PTP_OPCODE_GetDeviceInfo             , {     0,  0, 0 } , 0 },
@@ -40,6 +39,7 @@ static const uint16_t interested_properties_default[] = {
     SONYALPHA_PROPCODE_SonyBatteryLevel,
     SONYALPHA_PROPCODE_MemoryRemaining_Card1,
     SONYALPHA_PROPCODE_MemoryRemaining_Card2,
+    PTP_PROPCODE_ExposureProgramMode,
     #endif
     0x0000, // end of table
 };
@@ -219,7 +219,7 @@ bool PtpIpSonyAlphaCamera::is_manuallyfocused()
         return false;
     }
     int32_t x = get_property(prop_code);
-    return (x == 1);
+    return (x == SONYALPHA_AFMODE_MF);
 }
 
 bool PtpIpSonyAlphaCamera::is_movierecording()

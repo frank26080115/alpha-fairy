@@ -63,6 +63,9 @@ void wifi_onConnect()
 
 void wifi_onDisconnect(uint8_t x, int reason)
 {
+    NetMgr_markClientDisconnect(ptpcam.getIp());
+    NetMgr_markClientDisconnect(httpcam.getIp());
+
     if (x == WIFIDISCON_NORMAL)
     {
         Serial.printf("WiFi disconnected normal, reason %d\r\n", reason);
@@ -198,7 +201,7 @@ void handle_user_reauth()
         if (btnPwr_hasPressed())
         {
             // power button press means give up
-            dbg_ser.printf("autoconnect user wants give up\r\n");
+            dbg_ser.printf("autoconnect user wants give up (handle_user_reauth)\r\n");
             btnPwr_clrPressed();
             user_quit = true;
         }
@@ -216,6 +219,14 @@ void handle_user_reauth()
             // user did not cancel
         }
     }
+    else
+    {
+        // user actually quit and wants to shutdown
+        // this function is called from FairyMenu task loop
+        // so if we don't quit, it loops and happens again
+        show_poweroff();
+    }
+
     autoconnect_active = false;
     redraw_flag = true;
 }

@@ -480,7 +480,7 @@ bool wifi_newConnectOrPrompt(uint8_t profile_num, wifiprofile_t* profile, bool n
                 if (btnPwr_hasPressed())
                 {
                     // power button press means give up
-                    dbg_ser.printf("autoconnect user wants give up\r\n");
+                    dbg_ser.printf("autoconnect user wants give up (wifi_newConnectOrPrompt)\r\n");
                     btnPwr_clrPressed();
                     user_quit = true;
                     return true;

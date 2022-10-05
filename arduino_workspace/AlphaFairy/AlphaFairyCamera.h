@@ -23,6 +23,7 @@ class AlphaFairyCamera
         inline bool isOperating() { return cam_ptp->isOperating() || cam_http->isOperating(); };
         bool is_movierecording(void);
         bool is_manuallyfocused(void);
+        uint32_t get_exposureMode(void);
         bool need_wait_af(void);
         bool is_focused(void);
         bool cmd_AutoFocus(bool onoff);
