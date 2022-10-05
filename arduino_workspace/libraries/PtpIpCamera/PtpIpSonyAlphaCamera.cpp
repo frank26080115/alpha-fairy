@@ -219,7 +219,7 @@ bool PtpIpSonyAlphaCamera::is_manuallyfocused()
         return false;
     }
     int32_t x = get_property(prop_code);
-    return (x == 1);
+    return (x == SONYALPHA_AFMODE_MF);
 }
 
 bool PtpIpSonyAlphaCamera::is_movierecording()

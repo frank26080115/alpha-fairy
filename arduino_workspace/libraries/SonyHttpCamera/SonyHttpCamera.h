@@ -212,6 +212,7 @@ class SonyHttpCamera
         uint32_t get_another_shutterspd(int idx, char* tgt);
 
         #ifdef SHCAM_EXTRA_DATA
+        inline char* get_str_afmode  (void) { return str_afmode  ; };
         inline char* get_str_aperture(void) { return str_aperture; };
         inline char* get_str_expocomp(void) { return str_expocomp; };
         inline char* get_str_expomode(void) { return str_expomode; };
