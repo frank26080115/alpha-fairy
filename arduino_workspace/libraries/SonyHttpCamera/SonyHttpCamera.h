@@ -167,6 +167,7 @@ class SonyHttpCamera
         char str_aperture[32];
         char str_expocomp[32];
         char str_expomode[32];
+        int  expocomp;
         #endif
 
         int8_t   zoom_state;
@@ -216,6 +217,7 @@ class SonyHttpCamera
         inline char* get_str_aperture(void) { return str_aperture; };
         inline char* get_str_expocomp(void) { return str_expocomp; };
         inline char* get_str_expomode(void) { return str_expomode; };
+        inline int   get_expocomp    (void) { return expocomp;     };
         #endif
 
         void cmd_Shoot(void);

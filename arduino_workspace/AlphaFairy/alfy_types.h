@@ -66,6 +66,8 @@ typedef struct
   int32_t lepton_trigzone;
 #endif
 
+  uint32_t infoview_mode;
+
   uint32_t crc32;
 }
 configsettings_t;

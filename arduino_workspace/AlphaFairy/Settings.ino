@@ -57,6 +57,7 @@ void settings_default() {
   config_settings.fenc_large = 10;
 
   config_settings.tallylite = 1;
+  config_settings.infoview_mode = 0;
 
   #ifdef ENABLE_BUILD_LEPTON
   config_settings.pin_shutter = PINCFG_NONE;
@@ -104,6 +105,22 @@ void settings_save() {
   config_settings.crc32 = crc_calced;
   EEPROM.writeBytes(0, (const void*)(&config_settings), sizeof(configsettings_t));
   EEPROM.commit();
+}
+
+uint32_t settings_saveLaterTime = 0;
+
+void settings_saveLater()
+{
+    // delay the flash writing to preserve flash life
+    settings_saveLaterTime = millis();
+}
+
+void settings_saveTask(bool force)
+{
+    if (settings_saveLaterTime != 0 && ((millis() - settings_saveLaterTime) >= 5000 || force)) {
+        settings_save();
+        settings_saveLaterTime = 0;
+    }
 }
 
 uint32_t fletcher32(const uint16_t *data, size_t len)

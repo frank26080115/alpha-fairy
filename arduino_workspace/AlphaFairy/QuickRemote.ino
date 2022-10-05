@@ -3,19 +3,6 @@
 #define QIKRMT_ROLL_SPAN 60
 #define QIKRMT_HYSTER    3
 #define QIKRMT_FPULL_Y   198
-enum
-{
-    QIKRMTBTN_IDLE,
-    QIKRMTBTN_PRESSED_LOCKING_WAIT,
-    QIKRMTBTN_PRESSED_UNLOCKING_WAIT,
-};
-
-enum
-{
-    QIKRMTIMU_FREE,
-    QIKRMTIMU_FREE_TEMP,
-    QIKRMTIMU_LOCKED,
-};
 
 uint8_t qikrmt_imuState = QIKRMTIMU_LOCKED;
 uint8_t qikrmt_col = 0;
@@ -67,13 +54,18 @@ void qikrmt_task(bool freeze_row)
             ang = imu.rolli;
             ang = ang > 90 ? 90 : (ang < -90 ?  -90 : ang); // limit
 
-            if (ang > qikrmt_roll_center + (QIKRMT_ROLL_SPAN / 2)) { // exceeded boundary, shift the center point
-                qikrmt_roll_center = ang - (QIKRMT_ROLL_SPAN / 2);
-                qikrmt_row = 2;
+            if (ang < -45)
+            {
+                qikrmt_row = QIKRMT_ROW_INFOSCR; // show info
+                tallylite_enable = false;
             }
-            else if (ang < qikrmt_roll_center - (QIKRMT_ROLL_SPAN / 2)) { // exceeded boundary, shift the center point
+            else if ((qikrmt_row == QIKRMT_ROW_INFOSCR && ang > -40) || (ang < qikrmt_roll_center - (QIKRMT_ROLL_SPAN / 2))) { // exceeded boundary, shift the center point
                 qikrmt_roll_center = ang + (QIKRMT_ROLL_SPAN / 2);
                 qikrmt_row = 0;
+            }
+            else if (ang > qikrmt_roll_center + (QIKRMT_ROLL_SPAN / 2)) { // exceeded boundary, shift the center point
+                qikrmt_roll_center = ang - (QIKRMT_ROLL_SPAN / 2);
+                qikrmt_row = 2;
             }
             // pick a row based on the angle, centered over a particular angle representing the center
             else if (qikrmt_row == 0 && ang >= qikrmt_roll_center - (QIKRMT_ROLL_SPAN / (3 * 2)) + QIKRMT_HYSTER)
@@ -112,18 +104,42 @@ void qikrmt_task(bool freeze_row)
         cpufreq_boost();
         pwr_tick(true); // movement means don't turn off
 
-        // first draw a white box over the previous coordinate to remove the box
-        if (qikrmt_row_prev >= 0 && qikrmt_col_prev >= 0) {
-            qikrmt_drawBox(qikrmt_row_prev, qikrmt_col_prev, TFT_WHITE);
+        if (qikrmt_row == QIKRMT_ROW_INFOSCR)
+        {
+            if (qikrmt_row_prev != qikrmt_row || redraw_flag)
+            {
+                // just entered, or needs a clearing
+                infoscr_setup(config_settings.infoview_mode, true);
+            }
+            infoscr_print();
+            tallylite_enable = false; // disable talley light because infoscr implements its own talley light
         }
+        else
+        {
+            // if previous was info-view, then redraw the entire background
+            if (qikrmt_row_prev == QIKRMT_ROW_INFOSCR) {
+                M5Lcd.setRotation(0);
+                M5Lcd.drawPngFile(SPIFFS, "/qikrmt_active.png", 0, 0);
+                tallylite_enable = true;
+            }
 
-        // draw the new box
-        qikrmt_drawBox(qikrmt_row, qikrmt_col, qikrmt_imuState == QIKRMTIMU_LOCKED ? TFT_BLACK : TFT_ORANGE);
+            // first draw a white box over the previous coordinate to remove the box
+            if (qikrmt_row_prev >= 0 && qikrmt_col_prev >= 0) {
+                qikrmt_drawBox(qikrmt_row_prev, qikrmt_col_prev, TFT_WHITE);
+            }
 
-        // blank out the arrows for focus pull when not in focus mode
-        if (qikrmt_row != 2) {
-            M5Lcd.fillRect(0, QIKRMT_FPULL_Y, M5Lcd.width(), 26, TFT_WHITE);
+            // draw the new box
+            qikrmt_drawBox(qikrmt_row, qikrmt_col, qikrmt_imuState == QIKRMTIMU_LOCKED ? TFT_BLACK : TFT_ORANGE);
+
+            // blank out the arrows for focus pull when not in focus mode
+            if (qikrmt_row != 2) {
+                M5Lcd.fillRect(0, QIKRMT_FPULL_Y, M5Lcd.width(), 26, TFT_WHITE);
+            }
         }
+    }
+    else if (qikrmt_row == QIKRMT_ROW_INFOSCR)
+    {
+        infoscr_print();
     }
 
     // when in focus pull mode, indicate step size of focus change
@@ -181,11 +197,15 @@ class AppQuickRemote : public FairyMenuItem
                 app_poll();
 
                 if (redraw_flag) {
-                    M5Lcd.drawPngFile(SPIFFS, "/qikrmt_active.png", 0, 0);
+                    if (qikrmt_row != QIKRMT_ROW_INFOSCR) {
+                        M5Lcd.drawPngFile(SPIFFS, "/qikrmt_active.png", 0, 0);
+                    }
                 }
 
                 qikrmt_task(false);       // draw the table, with the indicator position set by IMU polling
-                gui_drawStatusBar(false);
+                if (qikrmt_row != QIKRMT_ROW_INFOSCR) {
+                    gui_drawStatusBar(false);
+                }
                 pwr_sleepCheck();
 
                 redraw_flag = false;
@@ -250,6 +270,14 @@ class AppQuickRemote : public FairyMenuItem
                             focus_pull(true, QIKRMT_FPULL_Y);
                         }
                     }
+                    else if (qikrmt_row == QIKRMT_ROW_INFOSCR)
+                    {
+                        // cycle through display mode and save the user preference
+                        config_settings.infoview_mode++;
+                        config_settings.infoview_mode %= INFOSCR_END;
+                        redraw_flag = true;
+                        settings_saveLater();
+                    }
                 }
 
                 if (btnPwr_hasPressed())
@@ -258,9 +286,16 @@ class AppQuickRemote : public FairyMenuItem
                     btnPwr_clrPressed();
                     break;
                 }
+
+                settings_saveTask(false); // saves settings if change occurred and enough time has passed
             } // end of while loop
 
             draw_mainImage(); // draws the faded image
+
+            settings_saveTask(true); // save if needed
+
+            qikrmt_imuState = QIKRMTIMU_LOCKED; // restore default
+
             return false;
         };
 };

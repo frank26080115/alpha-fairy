@@ -68,6 +68,7 @@ int lepton_trigThresh = 0;
 int lepton_saveNum = 0;
 
 extern int32_t trigger_source;
+extern bool tallylite_enable;
 
 /** @brief  Read the encoder wheel
   */
@@ -1134,7 +1135,9 @@ class AppLepton : public FairyCfgApp
             }
             if (lepton_initStage == LEPINIT_DONE) {
                 lepton_startTime = millis();
+                tallylite_enable = false;
                 r = FairyCfgApp::on_execute();
+                tallylite_enable = true;
             }
             #ifndef ENABLE_BUILD_LEPTON_TRIGGER_SIMPLE
             pwr_airplaneModeExit();
