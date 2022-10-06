@@ -32,7 +32,7 @@ The fun part about this project for me is to create a usable user interface on a
    * takes consecutive photos as the auto-focus point moves around the scene, to obtain multiple photos focused on multiple objects, convenient for landscape photography
  * Focus Pull
    * with optional focus knob (for **linear** focus pull)
- * Talley Light
+ * Talley Light, Virtual "Top Panel"
  * Sensored Trigger Shutter
    * trigger sources: microphone, voltage input, and/or IMU motion trigger
    * trigger action: take photo, take video (adjustable duration), start intervalometer

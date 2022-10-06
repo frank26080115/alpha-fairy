@@ -60,6 +60,14 @@ When the camera stops recording, the red screen will disappear and the remote wi
 
 This feature can be disabled through the configuration menu.
 
+## Virtual Top Panel
+
+This is a simple camera settings display. (inspired by cameras that actually have this as a real feature)
+
+![](doc/img/virtual-top-panel.jpg)
+
+It is activated by using the Quick-Remote feature, but tilting forward to the extreme. Pressing the side-button will lock it into this mode once this mode is displayed. Pressing the big-button will cycle through 4 display styles (landscape vs portrait, black vs white).
+
 ## Focus Pull
 
 ![](doc/img/focus_pull_imu.webp)
