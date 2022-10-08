@@ -6,6 +6,7 @@ PtpIpSonyAlphaCamera ptpcam((char*)"ALPHA-FAIRY", NULL); // declare with name an
 void setup()
 {
     Serial.begin(115200);
+    WiFi.mode(WIFI_AP);
     WiFi.softAP("fairywifi", "1234567890"); // start WiFi AP
     Serial.println("Hello World. PTP Demo. WiFi AP initialized, waiting for client...");
 }
@@ -43,7 +44,7 @@ void loop()
             client_ip = check_ip;
             Serial.print("New WiFi Client: ");
             Serial.println(IPAddress(client_ip));
-            ptpcam.begin(client_ip);
+            ptpcam.begin(client_ip); // start the handshake
         }
     }
 
@@ -53,7 +54,18 @@ void loop()
         if (c == 'x') // this is a command from serial port
         {
             Serial.println("Command: Shoot Photo");
-            ptpcam.cmd_Shoot(200); // execute the command
+            if (ptpcam.isOperating()) // check connection
+            {
+                ptpcam.cmd_Shoot(200); // execute the command
+            }
+            else
+            {
+                Serial.println("Error: Camera Not Connected");
+            }
+        }
+        else if (c != '\r' && c != '\n')
+        {
+            Serial.printf("Unknown Command: %c\r\n", c);
         }
     }
 }

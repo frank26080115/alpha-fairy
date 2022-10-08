@@ -46,9 +46,11 @@ void SonyHttpCamera::begin(uint32_t ip, WiFiUDP* sock)
     has_focus_status = false;
     req_id = 1;
     rx_buff_idx = 0;
-    if (rx_buff != NULL) {
-        rx_buff[0] = 0;
+    if (rx_buff == NULL) {
+        rx_buff_size = 1024 * 6;
+        rx_buff = (char*)malloc(rx_buff_size); // rx_buff could be shared if assigned before begin is called
     }
+    rx_buff[0] = 0;
     url_buffer[0] = 0;
     last_poll_time = 0;
     if (state != SHCAMSTATE_FORBIDDEN && ip != 0)
