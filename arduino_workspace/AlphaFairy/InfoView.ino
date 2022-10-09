@@ -5,13 +5,20 @@
 #define INFOSCR_MIDDIV_MARGIN 5
 #define INFOSCR_LINESPACE 2
 
-uint8_t infoscr_mode;
+#define INFOSCR_REQ_TIME_LIMIT 2000
+
+uint8_t infoscr_mode = 0;
 uint16_t infoscr_forecolour, infoscr_backcolour;
 uint8_t infoscr_itmIdx = 0;
 uint32_t infoscr_tickTime = 0;
+int8_t infoscr_editItem = -1;
+uint16_t infoscr_expomode = 0;
 
 extern bool tallylite_enable;
 extern uint8_t qikrmt_imuState;
+
+uint32_t infoscr_reqTime = 0;
+int32_t infoscr_reqShutter, infoscr_reqAperture, infoscr_reqIso, infoscr_reqExpoComp;
 
 void infoscr_setup(uint8_t mode, bool clr)
 {
@@ -91,9 +98,9 @@ void infoscr_setup(uint8_t mode, bool clr)
 
 void infoscr_print()
 {
-    uint16_t expomode = fairycam.get_exposureMode();
+    uint16_t expomode = infoscr_expomode = fairycam.get_exposureMode();
 
-    infoscr_setup(config_settings.infoview_mode, false);
+    infoscr_setup(infoscr_mode, false);
 
     // choose layout based on exposure program mode
     if (expomode == SONYALPHA_EXPOMODE_P || expomode == SONYALPHA_EXPOMODE_MovieP || expomode == SONYALPHA_EXPOMODE_IntelligentAuto || expomode == SONYALPHA_EXPOMODE_SuperiorAuto)
@@ -105,10 +112,6 @@ void infoscr_print()
         infoscr_printAperture();
         infoscr_nextPos(false);
         infoscr_printIso();
-        infoscr_nextPos(false);
-        infoscr_printFocus();
-        infoscr_nextPos(true);
-        infoscr_printExpoMode(expomode);
     }
     else if (expomode == SONYALPHA_EXPOMODE_A || expomode == SONYALPHA_EXPOMODE_MovieA)
     {
@@ -119,10 +122,7 @@ void infoscr_print()
         infoscr_printIso();
         infoscr_nextPos(false);
         infoscr_printExpoComp();
-        infoscr_nextPos(false);
-        infoscr_printFocus();
-        infoscr_nextPos(true);
-        infoscr_printExpoMode(expomode);
+        
     }
     else
     {
@@ -133,38 +133,87 @@ void infoscr_print()
         infoscr_printAperture();
         infoscr_nextPos(false);
         infoscr_printExpoComp();
-        infoscr_nextPos(false);
-        infoscr_printFocus();
-        infoscr_nextPos(true);
-        infoscr_printExpoMode(expomode);
     }
 
-    // finalize the screen
-    infoscr_clearRestOfLines();
-    gui_drawStatusBar(infoscr_backcolour == TFT_BLACK);
+    infoscr_nextPos(false);
+    infoscr_printFocus();
+    infoscr_nextPos(true);
+    infoscr_printExpoMode(expomode);
+
+    if (infoscr_editItem >= 0)
+    {
+        infoscr_printEditIndicator();
+        if (infoscr_mode == INFOSCR_PORTRAIT_BLACK || infoscr_mode == INFOSCR_PORTRAIT_WHITE)
+        {
+            infoscr_clearRestOfLines();
+        }
+    }
+    else
+    {
+        infoscr_clearRestOfLines();
+    }
+
+    gui_drawStatusBar(infoscr_backcolour == TFT_BLACK); // finalize the screen
 }
 
 void infoscr_printShutterSpeed()
 {
     bool changed_font = false;
+
     if (infoscr_mode == INFOSCR_LANDSCAPE_WHITE || infoscr_mode == INFOSCR_LANDSCAPE_BLACK) {
         M5Lcd.setTextFont(2); // landscape mode is a bit cramped for space, so make the label smaller
         changed_font = true;
     }
+
+    if (infoscr_editItem == EDITITEM_SHUTTER) {
+        M5Lcd.setTextColor(TFT_GREEN, infoscr_backcolour);
+    }
+
     M5Lcd.print("Tv ");
+
+    if (infoscr_editItem == EDITITEM_SHUTTER) {
+        M5Lcd.setTextColor(infoscr_forecolour, infoscr_backcolour);
+    }
+
     if (changed_font) {
         M5Lcd.setTextFont(4);
         changed_font = false;
     }
+
+    bool has_val = false;
     uint32_t x;
-    if (ptpcam.isOperating() && ptpcam.has_property(SONYALPHA_PROPCODE_ShutterSpeed)) {
-        gui_showVal(ptpcam.get_property(SONYALPHA_PROPCODE_ShutterSpeed), TXTFMT_SHUTTER, &M5Lcd);
+
+    if (infoscr_editItem == EDITITEM_SHUTTER && infoscr_reqTime != 0 && (millis() - infoscr_reqTime) < INFOSCR_REQ_TIME_LIMIT)
+    {
+        M5Lcd.setTextColor(TFT_YELLOW, infoscr_backcolour);
+        gui_showVal(infoscr_reqShutter, TXTFMT_SHUTTER, &M5Lcd);
+        has_val = true;
     }
-    else if (httpcam.isOperating() && (x = httpcam.get_shutterspd_32()) != 0) {
-        gui_showVal(x, TXTFMT_SHUTTER, &M5Lcd);
+    else
+    {
+        if (infoscr_editItem == EDITITEM_SHUTTER && fairycam.isOperating()) {
+            M5Lcd.setTextColor(TFT_GREEN, infoscr_backcolour);
+        }
+
+        if (ptpcam.isOperating() && ptpcam.has_property(SONYALPHA_PROPCODE_ShutterSpeed)) {
+            x = ptpcam.get_property(SONYALPHA_PROPCODE_ShutterSpeed);
+            infoscr_reqShutter = x;
+            has_val = true;
+            gui_showVal(x, TXTFMT_SHUTTER, &M5Lcd);
+        }
+        else if (httpcam.isOperating() && (x = httpcam.get_shutterspd_32()) != 0) {
+            infoscr_reqShutter = x;
+            has_val = true;
+            gui_showVal(x, TXTFMT_SHUTTER, &M5Lcd);
+        }
     }
-    else {
+
+    M5Lcd.setTextColor(infoscr_forecolour, infoscr_backcolour);
+
+    if (has_val == false)
+    {
         M5Lcd.print("?");
+        infoscr_reqShutter = -1;
     }
 }
 
@@ -175,24 +224,65 @@ void infoscr_printAperture()
         M5Lcd.setTextFont(2);
         changed_font = true;
     }
+
+    if (infoscr_editItem == EDITITEM_APERTURE) {
+        M5Lcd.setTextColor(TFT_GREEN, infoscr_backcolour);
+    }
+
     M5Lcd.print("Av ");
+
+    if (infoscr_editItem == EDITITEM_APERTURE) {
+        M5Lcd.setTextColor(infoscr_forecolour, infoscr_backcolour);
+    }
+
     if (changed_font) {
         M5Lcd.setTextFont(4);
         changed_font = false;
     }
-    uint32_t x;
+
+    uint32_t x = 0;
     float fx;
-    if (ptpcam.isOperating() && ptpcam.has_property(SONYALPHA_PROPCODE_Aperture)) {
-        x = ptpcam.get_property(SONYALPHA_PROPCODE_Aperture);
+
+    if (infoscr_editItem == EDITITEM_APERTURE && infoscr_reqTime != 0 && (millis() - infoscr_reqTime) < INFOSCR_REQ_TIME_LIMIT)
+    {
+        M5Lcd.setTextColor(TFT_YELLOW, infoscr_backcolour);
+        x = infoscr_reqAperture;
+    }
+    else
+    {
+        if (infoscr_editItem == EDITITEM_APERTURE && fairycam.isOperating()) {
+            M5Lcd.setTextColor(TFT_GREEN, infoscr_backcolour);
+        }
+
+        if (ptpcam.isOperating() && ptpcam.has_property(SONYALPHA_PROPCODE_Aperture)) {
+            x = ptpcam.get_property(SONYALPHA_PROPCODE_Aperture);
+            infoscr_reqAperture = x;
+        }
+        else if (httpcam.isOperating()) {
+            x = (uint32_t)lround(100.0f * atof(httpcam.get_aperture_str()));
+            uint32_t xr = x % 10;
+            if (xr < 5) {
+                x -= xr;
+            }
+            else if (xr >= 5) {
+                x += (10 - xr);
+            }
+            infoscr_reqAperture = x;
+        }
+    }
+
+    if (x != 0)
+    {
         fx = x;
         M5Lcd.printf("f/%0.1f", fx / 100.0f);
     }
-    else if (httpcam.isOperating()) {
-        M5Lcd.print("f/");
-        M5Lcd.print(httpcam.get_str_aperture());
-    }
-    else {
+
+    M5Lcd.setTextColor(infoscr_forecolour, infoscr_backcolour);
+
+    if (x == 0)
+    {
         M5Lcd.print("?");
+        infoscr_reqAperture = -1;
     }
 }
 
@@ -203,31 +293,72 @@ void infoscr_printIso()
         M5Lcd.setTextFont(2);
         changed_font = true;
     }
+
+    if (infoscr_editItem == EDITITEM_ISO) {
+        M5Lcd.setTextColor(TFT_GREEN, infoscr_backcolour);
+    }
+
     M5Lcd.print("ISO");
+
+    if (infoscr_editItem == EDITITEM_ISO) {
+        M5Lcd.setTextColor(infoscr_forecolour, infoscr_backcolour);
+    }
+
     if (changed_font) {
         M5Lcd.setTextFont(4);
         changed_font = false;
     }
-    uint32_t x;
-    if (ptpcam.isOperating() && ptpcam.has_property(SONYALPHA_PROPCODE_ISO)) {
-        x = ptpcam.get_property(SONYALPHA_PROPCODE_ISO);
 
+    bool has_val = false;
+    uint32_t x;
+
+    if (infoscr_editItem == EDITITEM_ISO && infoscr_reqTime != 0 && (millis() - infoscr_reqTime) < INFOSCR_REQ_TIME_LIMIT)
+    {
+        M5Lcd.setTextColor(TFT_YELLOW, infoscr_backcolour);
+        gui_showVal(infoscr_reqIso, TXTFMT_ISO, &M5Lcd);
+        has_val = true;
+    }
+    else
+    {
+        if (infoscr_editItem == EDITITEM_ISO && fairycam.isOperating()) {
+            M5Lcd.setTextColor(TFT_GREEN, infoscr_backcolour);
+        }
+
+        if (ptpcam.isOperating() && ptpcam.has_property(SONYALPHA_PROPCODE_ISO)) {
+            x = ptpcam.get_property(SONYALPHA_PROPCODE_ISO);
+            has_val = true;
+        }
+        else if (httpcam.isOperating()) {
+            char* iso_str = httpcam.get_iso_str();
+            if (iso_str[0] < '0' || iso_str[0] > '9') {
+                M5Lcd.print(" ");
+                x = 0;
+            }
+            else
+            {
+                x = atoi(iso_str);
+            }
+            has_val = true;
+        }
+    }
+
+    if (has_val)
+    {
         // the word "auto" I wanted to format in a specific way here
         if (x != 0 && x != 0xFFFFFF) {
             gui_showVal(x, TXTFMT_ISO, &M5Lcd);
         }
         else {
             M5Lcd.print(" Auto");
+            x = 0;
         }
+        infoscr_reqIso = x;
     }
-    else if (httpcam.isOperating()) {
-        char* iso_str = httpcam.get_iso_str();
-        if (iso_str[0] < '0' || iso_str[0] > '9') {
-            M5Lcd.print(" ");
-        }
-        M5Lcd.print(iso_str);
-    }
-    else {
+
+    M5Lcd.setTextColor(infoscr_forecolour, infoscr_backcolour);
+
+    if (has_val == false)
+    {
         M5Lcd.print(" ?");
     }
 }
@@ -239,20 +370,54 @@ void infoscr_printExpoComp()
         M5Lcd.setTextFont(2);
         changed_font = true;
     }
+
+    if (infoscr_editItem == EDITITEM_EXPOCOMP) {
+        M5Lcd.setTextColor(TFT_GREEN, infoscr_backcolour);
+    }
+
     M5Lcd.print("Ev ");
+
+    if (infoscr_editItem == EDITITEM_EXPOCOMP) {
+        M5Lcd.setTextColor(infoscr_forecolour, infoscr_backcolour);
+    }
+
     if (changed_font) {
         M5Lcd.setTextFont(4);
         changed_font = false;
     }
+
+    bool has_val = false;
+
     int32_t x;
     float fx;
-    if (ptpcam.isOperating() && ptpcam.has_property(SONYALPHA_PROPCODE_ExpoComp)) {
-        x = ptpcam.get_property(SONYALPHA_PROPCODE_ExpoComp);
+
+    if (infoscr_editItem == EDITITEM_EXPOCOMP && infoscr_reqTime != 0 && (millis() - infoscr_reqTime) < INFOSCR_REQ_TIME_LIMIT)
+    {
+        M5Lcd.setTextColor(TFT_YELLOW, infoscr_backcolour);
+        x = infoscr_reqExpoComp;
+        has_val = true;
     }
-    else if (httpcam.isOperating()) {
-        x = httpcam.get_expocomp();
+    else
+    {
+        if (infoscr_editItem == EDITITEM_EXPOCOMP && fairycam.isOperating()) {
+            M5Lcd.setTextColor(TFT_GREEN, infoscr_backcolour);
+        }
+
+        if (ptpcam.isOperating() && ptpcam.has_property(SONYALPHA_PROPCODE_ExpoComp)) {
+            x = ptpcam.get_property(SONYALPHA_PROPCODE_ExpoComp);
+            infoscr_reqExpoComp = x;
+            has_val = true;
+        }
+        else if (httpcam.isOperating()) {
+            x = httpcam.get_expocomp();
+            infoscr_reqExpoComp = x;
+            has_val = true;
+        }
     }
-    else {
+
+    if (has_val == false)
+    {
+        M5Lcd.setTextColor(infoscr_forecolour, infoscr_backcolour);
         M5Lcd.print("?");
         return;
     }
@@ -262,16 +427,18 @@ void infoscr_printExpoComp()
         M5Lcd.print("+");
     }
     M5Lcd.printf("%0.1f", fx / 1000.0f);
+    M5Lcd.setTextColor(infoscr_forecolour, infoscr_backcolour);
 }
 
 void infoscr_printExpoMode(uint16_t expomode)
 {
     static bool was_rec = false;
     int16_t old_y = M5Lcd.getCursorY();
-    int16_t next_y = old_y + M5Lcd.fontHeight() + INFOSCR_LINESPACE; // calculate the next line so the other line clearing functions work correctly
+    int16_t next_y = old_y; // calculate the next line so the other line clearing functions work correctly
     if (infoscr_mode == INFOSCR_PORTRAIT_WHITE || infoscr_mode == INFOSCR_PORTRAIT_BLACK) {
         // in portrait mode, the top right corner will not have room, so put this in the bottom right corner
         M5Lcd.setCursor(M5Lcd.width() - INFOSCR_CORNER_MARGIN, old_y);
+        next_y += M5Lcd.fontHeight() + INFOSCR_LINESPACE;
     }
     else {
         // in landscape mode, put this in the top right corner
@@ -509,4 +676,119 @@ void infoscr_clearRestOfLines()
     // clear the rest of the screen by simply covering up the screen until the status bar
     int16_t y = M5Lcd.getCursorY();
     M5Lcd.fillRect(0, y, M5Lcd.width(), M5Lcd.height() - y - 14, infoscr_backcolour);
+}
+
+void infoscr_printEditIndicator()
+{
+    int tilt = imu.getTilt();
+
+    // center the text
+    M5Lcd.print("    ");
+
+    if (tilt < 0) {
+        M5Lcd.setTextColor(TFT_GREEN, infoscr_backcolour);
+    }
+    else {
+        M5Lcd.setTextColor(TFT_DARKGREY, infoscr_backcolour);
+    }
+    M5Lcd.print("<<- ");
+
+    M5Lcd.setTextColor(TFT_DARKGREY, infoscr_backcolour);
+    M5Lcd.print("EDITING");
+
+    if (tilt > 0) {
+        M5Lcd.setTextColor(TFT_GREEN, infoscr_backcolour);
+    }
+    else {
+        M5Lcd.setTextColor(TFT_DARKGREY, infoscr_backcolour);
+    }
+    M5Lcd.print(" +>>");
+
+    M5Lcd.setTextFont(4);
+    M5Lcd.setTextColor(infoscr_forecolour, infoscr_backcolour);
+    M5Lcd.print(" ");
+    infoscr_blankLine(true);
+
+    if (btnBig_hasPressed())
+    {
+        btnBig_clrPressed();
+
+        if (tilt == 0) {
+            return;
+        }
+
+        infoscr_reqTime = millis();
+    }
+}
+
+void infoscr_startEdit()
+{
+    infoscr_editItem = 0; // start edit mode
+
+    // the edit tilting makes no sense in portrait mode
+    if (infoscr_mode == INFOSCR_PORTRAIT_WHITE) {
+        infoscr_mode = INFOSCR_LANDSCAPE_WHITE;
+    }
+    if (infoscr_mode == INFOSCR_PORTRAIT_BLACK) {
+        infoscr_mode = INFOSCR_LANDSCAPE_BLACK;
+    }
+
+    // do a draw before button release
+    infoscr_setup(infoscr_mode, true);
+    infoscr_print();
+
+    app_waitAllRelease();
+    while (true)
+    {
+        if (app_poll() == false) {
+            continue;
+        }
+
+        if (redraw_flag) {
+            infoscr_setup(infoscr_mode, true);
+        }
+
+        infoscr_print();
+
+        // big button is handled in infoscr_printEditIndicator(), which is inside infoscr_print()
+
+        if (btnSide_hasPressed())
+        {
+            btnSide_clrPressed();
+
+            infoscr_editItem++;
+            while (true)
+            {
+                if (infoscr_editItem == EDITITEM_APERTURE && fairycam.isOperating() && (infoscr_expomode != SONYALPHA_EXPOMODE_M && infoscr_expomode != SONYALPHA_EXPOMODE_MovieM && infoscr_expomode != SONYALPHA_EXPOMODE_A && infoscr_expomode != SONYALPHA_EXPOMODE_MovieA)) {
+                    infoscr_editItem++;
+                }
+                if (infoscr_editItem == EDITITEM_SHUTTER && fairycam.isOperating() && (infoscr_expomode != SONYALPHA_EXPOMODE_M && infoscr_expomode != SONYALPHA_EXPOMODE_MovieM && infoscr_expomode != SONYALPHA_EXPOMODE_S && infoscr_expomode != SONYALPHA_EXPOMODE_MovieS)) {
+                    infoscr_editItem++;
+                }
+                if (infoscr_editItem >= EDITITEM_END) {
+                    infoscr_editItem = 0;
+                    continue;
+                }
+                else {
+                    break;
+                }
+            }
+        }
+
+        if (btnPwr_hasPressed())
+        {
+            // btnPwr_clrPressed(); // do not clear, quit all layers
+            break;
+        }
+
+        // exit if disconnected
+        if (fairycam.isOperating() == false) {
+            break;
+        }
+
+        pwr_sleepCheck();
+        redraw_flag = false;
+    }
+
+    infoscr_editItem = -1; // disable edit mode
 }

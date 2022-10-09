@@ -285,11 +285,11 @@ FairyCfgItem::FairyCfgItem(const char* disp_name, int32_t* linked_var, int32_t v
     _val_min = val_min;
     _val_max = val_max;
     _step_size = step_size;
-    if (_fmt_flags == TXTFMT_AUTOCFG)
+    if ((_fmt_flags & TXTFMT_AUTOCFG) == TXTFMT_AUTOCFG)
     {
         _fmt_flags = 0;
         if (_val_min == 0 && _val_max == 1 && _step_size == 1) {
-            _fmt_flags |= TXTFMT_BOOL;
+            _fmt_flags = TXTFMT_BOOL;
         }
         else if (_val_min <= 1 && _val_max >= 1000 && _step_size == 1) {
             _fmt_flags |= TXTFMT_BYTENS;
@@ -463,7 +463,7 @@ void FairyCfgItem::on_checkAdjust(int8_t tilt)
         else
         {
             // flip boolean variable even if there's no tilt
-            if ((_fmt_flags & TXTFMT_BOOL) != 0) {
+            if (_fmt_flags == TXTFMT_BOOL) {
                 (*_linked_ptr) = ((*_linked_ptr) == 0) ? 1 : 0;
                 dirty = true;
             }
@@ -512,7 +512,7 @@ void FairyCfgItem::on_checkAdjust(int8_t tilt)
     }
     #endif
 
-    if (next_step != 0 && (_fmt_flags & TXTFMT_BOOL) == 0) // has pressed
+    if (next_step != 0 && _fmt_flags != TXTFMT_BOOL) // has pressed
     {
         uint32_t press_time = millis();
         uint32_t dly = btnBig_isPressed() ? 500 : 1000; // press-and-hold repeating delay

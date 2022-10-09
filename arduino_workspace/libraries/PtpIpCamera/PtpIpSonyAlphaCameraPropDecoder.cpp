@@ -192,16 +192,26 @@ void PtpIpSonyAlphaCamera::decode_properties()
 
 #define PROP_TRYPOPULATETABLE(_tbl, _propcode, _dsz, _enumcnt, _txt) do \
                 {\
-                    if ((_tbl) == NULL && propcode == (_propcode) && dsz == (_dsz) && (_enumcnt) != 0) {\
-                        (_tbl) = (uint32_t*)malloc(((_enumcnt) * dsz) + sizeof(uint32_t));\
-                        memcpy((void*)&((_tbl)[1]), (void*)&(p[i]), (_enumcnt) * dsz);\
-                        (_tbl)[0] = (_enumcnt);\
-                        dbgser_events->printf(_txt " created %u\r\n", (_enumcnt));\
+                    if (propcode == (_propcode) && dsz == (_dsz) && (_enumcnt) != 0) {\
+                        if ((_tbl) != NULL) {\
+                            if ((_enumcnt) > (_tbl)[0]) {\
+                                free((_tbl)); \
+                                (_tbl) = NULL; \
+                                dbgser_events->printf(_txt " free'd\r\n");\
+                            }\
+                        }\
+                        if ((_tbl) == NULL) {\
+                            (_tbl) = (uint32_t*)malloc(((_enumcnt) * dsz) + sizeof(uint32_t));\
+                            memcpy((void*)&((_tbl)[1]), (void*)&(p[i]), (_enumcnt) * dsz);\
+                            (_tbl)[0] = (_enumcnt);\
+                            dbgser_events->printf(_txt " created %u\r\n", (_enumcnt));\
+                        }\
                     }\
                 } while (0)\
 
                 PROP_TRYPOPULATETABLE(table_shutter_speed, SONYALPHA_PROPCODE_ShutterSpeed, 4, enumcnt, "table_shutter_speed");
                 PROP_TRYPOPULATETABLE(table_iso          , SONYALPHA_PROPCODE_ISO         , 4, enumcnt, "table_iso");
+                PROP_TRYPOPULATETABLE(table_aperture     , SONYALPHA_PROPCODE_Aperture    , 2, enumcnt, "table_aperture");
 
                 i += enumcnt * dsz;
                 dbgser_devprop_dump->printf(" [FRM ENUM %d]", enumcnt);
@@ -215,18 +225,27 @@ void PtpIpSonyAlphaCamera::decode_properties()
 
                 PROP_TRYPOPULATETABLE(table_shutter_speed, SONYALPHA_PROPCODE_ShutterSpeed, 4, enumcnt, "table_shutter_speed");
                 PROP_TRYPOPULATETABLE(table_iso          , SONYALPHA_PROPCODE_ISO         , 4, enumcnt, "table_iso");
+                PROP_TRYPOPULATETABLE(table_aperture     , SONYALPHA_PROPCODE_Aperture    , 2, enumcnt, "table_aperture");
 
                 i += enumcnt * dsz;
                 uint16_t enumcnt2 = *(uint16_t*)(&(p[i]));
                 i += 2;
                 PROP_TRYPOPULATETABLE(table_shutter_speed, SONYALPHA_PROPCODE_ShutterSpeed, 4, enumcnt2, "table_shutter_speed");
                 PROP_TRYPOPULATETABLE(table_iso          , SONYALPHA_PROPCODE_ISO         , 4, enumcnt2, "table_iso");
+                PROP_TRYPOPULATETABLE(table_aperture     , SONYALPHA_PROPCODE_Aperture    , 2, enumcnt2, "table_aperture");
                 i += enumcnt2 * dsz;
                 dbgser_devprop_dump->printf(" [FRM ENUMx2 %d]", (enumcnt + enumcnt2));
             }
         }
     }
     dbgser_devprop_dump->printf("\r\n");
+
+    // check if lens has disconnected, in which case, forget the aperture list
+    if (table_aperture != NULL && ((has_property(SONYALPHA_PROPCODE_Aperture) && (get_property(SONYALPHA_PROPCODE_Aperture) == 0 || get_property(SONYALPHA_PROPCODE_Aperture) >= 0x7FFF)) || (has_property(SONYALPHA_PROPCODE_Aperture) == false))) {
+        dbgser_devprop_change->printf("lens disconnected\r\n");
+        free(table_aperture);
+        table_aperture = NULL;
+    }
 
     databuff_idx = 0;
     check_props_time = millis();

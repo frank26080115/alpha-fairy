@@ -69,6 +69,7 @@ class PtpIpSonyAlphaCamera : public PtpIpCamera
         bool cmd_ShutterSpeedSet(int16_t numerator, int16_t denominator);
         bool cmd_ShutterSpeedSet32(uint32_t x);
         bool cmd_IsoSet(uint32_t x);
+        bool cmd_ApertureSet(uint16_t x);
         bool cmd_arb(uint32_t opcode, uint32_t propcode, uint8_t* payload, uint32_t payload_len);
 
         #ifdef PTPIP_ENABLE_STREAMING
@@ -85,6 +86,7 @@ class PtpIpSonyAlphaCamera : public PtpIpCamera
 
         uint32_t* table_shutter_speed;
         uint32_t* table_iso;
+        uint32_t* table_aperture;
 };
 
 #endif

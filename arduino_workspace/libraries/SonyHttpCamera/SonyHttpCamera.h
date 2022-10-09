@@ -140,6 +140,7 @@ class SonyHttpCamera
 
         char* tbl_shutterspd;
         char* tbl_iso;
+        char* tbl_aperture;
 
         char*    rx_buff = NULL;
         uint32_t rx_buff_idx;
@@ -192,7 +193,9 @@ class SonyHttpCamera
         static const char cmd_generic_fmt[];
         static const char cmd_generic_strparam_fmt[];
         static const char cmd_generic_strintparam_fmt[];
+        static const char cmd_generic_strfloatparam_fmt[];
         static const char cmd_generic_intparam_fmt[];
+        static const char cmd_generic_floatparam_fmt[];
         static const char cmd_zoom_fmt[];
 
         static DebuggingSerial* dbgser_important;
@@ -209,6 +212,10 @@ class SonyHttpCamera
         inline int      get_shutterspd_idx  (void) { return (tbl_shutterspd != NULL) ? get_idx_within_strtbl(tbl_shutterspd, str_shutterspd) : -1; };
         inline char*    get_iso_str         (void) { return str_iso; };
         inline int      get_iso_idx         (void) { return (tbl_iso != NULL) ? get_idx_within_strtbl(tbl_iso, str_iso) : -1; };
+        #ifdef SHCAM_EXTRA_DATA
+        inline char*    get_aperture_str    (void) { return str_aperture; };
+        inline int      get_aperture_idx    (void) { return (tbl_aperture != NULL) ? get_idx_within_strtbl(tbl_aperture, str_aperture) : -1; };
+        #endif
 
         uint32_t get_another_shutterspd(int idx, char* tgt);
 
@@ -230,6 +237,8 @@ class SonyHttpCamera
         void cmd_ShutterSpeedSetStr(char*);
         void cmd_IsoSet(uint32_t x);
         void cmd_IsoSetStr(char*);
+        void cmd_ApertureSet(float x);
+        void cmd_ApertureSetStr(char*);
         void cmd_ManualFocusMode(bool onoff, bool precheck = false);
         void cmd_ManualFocusToggle(bool onoff);
         void cmd_AutoFocus(bool onoff);

@@ -73,6 +73,13 @@ bool PtpIpSonyAlphaCamera::cmd_IsoSet(uint32_t x)
     return send_oper_req((uint32_t)SONYALPHA_OPCODE_SetControlDeviceA, &propcode, 1, (uint8_t*)&x, sizeof(uint32_t));
 }
 
+bool PtpIpSonyAlphaCamera::cmd_ApertureSet(uint16_t x)
+{
+    wait_while_busy(0, DEFAULT_BUSY_TIMEOUT, NULL);
+    uint32_t propcode = SONYALPHA_PROPCODE_Aperture;
+    return send_oper_req((uint32_t)SONYALPHA_OPCODE_SetControlDeviceA, &propcode, 1, (uint8_t*)&x, sizeof(uint16_t));
+}
+
 bool PtpIpSonyAlphaCamera::cmd_FocusPointSet(int16_t x, int16_t y)
 {
     wait_while_busy(0, DEFAULT_BUSY_TIMEOUT, NULL);

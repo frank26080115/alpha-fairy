@@ -17,21 +17,23 @@ enum
 
 enum
 {
-  TXTFMT_NONE           =      0,
-  TXTFMT_BOOL           = 0x0001,
-  TXTFMT_TIME           = 0x0002,
-  TXTFMT_BULB           = 0x0004,
-  TXTFMT_TIMEMS         = 0x0008,
-  TXTFMT_TIMELONG       = 0x0010,
-  TXTFMT_SHUTTER        = 0x0020,
-  TXTFMT_ISO            = 0x0040,
-  TXTFMT_LCDBRITE       = 0x0080,
-  TXTFMT_BYTENS         = 0x0100,
-  TXTFMT_PROTOCOL       = 0x0200,
-  TXTFMT_TRIGSRC        = 0x0400,
-  TXTFMT_TRIGACT        = 0x0800,
-  TXTFMT_PINCFG         = 0x1000,
-  TXTFMT_TALLEYLITE     = 0x2000,
+  TXTFMT_NONE           =        0,
+  TXTFMT_BASEMASK       =   0x00FF,
+  TXTFMT_BOOL           =   0x0001,
+  TXTFMT_TIME                     ,
+  TXTFMT_BULB                     ,
+  TXTFMT_TIMEMS                   ,
+  TXTFMT_TIMELONG                 ,
+  TXTFMT_SHUTTER                  ,
+  TXTFMT_ISO                      ,
+  TXTFMT_LCDBRITE                 ,
+  TXTFMT_PROTOCOL                 ,
+  TXTFMT_TRIGSRC                  ,
+  TXTFMT_TRIGACT                  ,
+  TXTFMT_PINCFG                   ,
+  TXTFMT_TALLEYLITE               ,
+  TXTFMT_BYTENS         =   0x0100,
+  TXTFMT_AUTOCFG        =   0xFF00,
   TXTFMT_ALLCAPS        = 0x010000,
   TXTFMT_SMALL          = 0x020000,
   TXTFMT_ALLLOWER       = 0x040000,
@@ -40,7 +42,6 @@ enum
   TXTFMT_ZEROINF        = 0x200000,
   TXTFMT_NEGINF         = 0x400000,
   TXTFMT_DIVHUNDRED     = 0x800000,
-  TXTFMT_AUTOCFG        = 0xFFFF,
 };
 
 enum
@@ -185,6 +186,15 @@ enum
 enum
 {
     QIKRMT_ROW_INFOSCR = 0x0F,
+};
+
+enum
+{
+    EDITITEM_SHUTTER,
+    EDITITEM_APERTURE,
+    EDITITEM_ISO,
+    EDITITEM_EXPOCOMP,
+    EDITITEM_END,
 };
 
 enum

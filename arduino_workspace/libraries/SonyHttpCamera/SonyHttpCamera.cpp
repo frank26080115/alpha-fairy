@@ -158,6 +158,17 @@ bool SonyHttpCamera::parse_event(char* data, int32_t maxlen)
         ret |= true;
     }
 
+    if (tbl_aperture == NULL) {
+        found = scan_json_for_key(rx_buff, maxlen, "fNumberCandidates", &i, &j, NULL, 0);
+        if (found) {
+            k = j - i + 3;
+            tbl_aperture = (char*)malloc(k);
+            found = scan_json_for_key(rx_buff, maxlen, "fNumberCandidates", &i, &j, (char*)tbl_aperture, k - 1);
+            dbgser_devprop_dump->printf("httpcam event key \"fNumberCandidates\" = \"%s\"\r\n", tbl_aperture);
+            ret |= true;
+        }
+    }
+
     found = scan_json_for_key(rx_buff, maxlen, "currentExposureCompensation", &i, &j, (char*)res_buff, 64);
     if (found && strlen(res_buff) > 0) {
         strcpy(str_expocomp, res_buff);
