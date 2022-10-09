@@ -35,6 +35,19 @@ class AlphaFairyCamera
         bool cmd_ManualFocusMode(bool onoff, bool precheck = false);
         bool cmd_ManualFocusToggle(bool onoff);
         bool cmd_IsoSet(uint32_t x);
+        bool cmd_ShutterSpeedSet(uint32_t x);
+        bool cmd_ApertureSet(uint32_t x);
+        bool cmd_ExpoCompSet(int32_t x);
+
+        int      getIdx_shutter (uint32_t x);
+        int      getIdx_aperture(uint32_t x);
+        int      getIdx_iso     (uint32_t x);
+        int      getIdx_expoComp(int32_t  x);
+        uint32_t getVal_shutter (int idx);
+        uint32_t getVal_aperture(int idx);
+        uint32_t getVal_iso     (int idx);
+        int32_t  getVal_expoComp(int idx);
+
         void set_debugflags(uint32_t x);
 };
 

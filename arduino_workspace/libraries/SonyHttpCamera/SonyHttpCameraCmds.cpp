@@ -169,12 +169,34 @@ void SonyHttpCamera::cmd_ApertureSet(float x)
     req_id++;
 }
 
+void SonyHttpCamera::cmd_ApertureSet32(uint32_t x)
+{
+    float fx = x;
+    fx /= 100.0;
+    cmd_ApertureSet(fx);
+}
+
 void SonyHttpCamera::cmd_ApertureSetStr(char* s)
 {
     cmd_prep();
     sprintf(cmd_buffer, cmd_generic_strparam_fmt, "setFNumber", s, req_id);
     cmd_send(cmd_buffer);
     req_id++;
+}
+
+void SonyHttpCamera::cmd_ExpoCompSetIdx(int32_t x)
+{
+    cmd_prep();
+    sprintf(cmd_buffer, cmd_generic_strintparam_fmt, "setExposureCompensation", x, req_id);
+    cmd_send(cmd_buffer);
+    req_id++;
+}
+
+void SonyHttpCamera::cmd_ExpoCompSet32(int32_t x)
+{
+    float fx = x;
+    fx /= 333.3;
+    cmd_ExpoCompSetIdx((int32_t)lround(fx));
 }
 
 void SonyHttpCamera::cmd_ManualFocusMode(bool onoff, bool precheck)

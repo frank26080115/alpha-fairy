@@ -116,6 +116,10 @@ class SonyHttpCamera
 
         uint32_t critical_error_cnt = 0;
 
+        char* tbl_shutterspd = NULL;
+        char* tbl_iso = NULL;
+        char* tbl_aperture = NULL;
+
         void borrowBuffer(char*, uint32_t);
         inline void set_ssdpTimeout(uint32_t x) { ssdp_allowed_time = x; };
 
@@ -137,10 +141,6 @@ class SonyHttpCamera
         char url_buffer[256];
         char cmd_buffer[256];
         char* liveview_url;
-
-        char* tbl_shutterspd;
-        char* tbl_iso;
-        char* tbl_aperture;
 
         char*    rx_buff = NULL;
         uint32_t rx_buff_idx;
@@ -166,6 +166,7 @@ class SonyHttpCamera
         char str_afmode[32];
         #ifdef SHCAM_EXTRA_DATA
         char str_aperture[32];
+        char str_aperture_prev[32];
         char str_expocomp[32];
         char str_expomode[32];
         int  expocomp;
@@ -238,7 +239,10 @@ class SonyHttpCamera
         void cmd_IsoSet(uint32_t x);
         void cmd_IsoSetStr(char*);
         void cmd_ApertureSet(float x);
+        void cmd_ApertureSet32(uint32_t x);
         void cmd_ApertureSetStr(char*);
+        void cmd_ExpoCompSet32(int32_t x);
+        void cmd_ExpoCompSetIdx(int32_t x);
         void cmd_ManualFocusMode(bool onoff, bool precheck = false);
         void cmd_ManualFocusToggle(bool onoff);
         void cmd_AutoFocus(bool onoff);

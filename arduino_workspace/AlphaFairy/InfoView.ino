@@ -183,10 +183,25 @@ void infoscr_printShutterSpeed()
     bool has_val = false;
     uint32_t x;
 
+    if (ptpcam.isOperating() && ptpcam.has_property(SONYALPHA_PROPCODE_ShutterSpeed)) {
+        x = ptpcam.get_property(SONYALPHA_PROPCODE_ShutterSpeed);
+        has_val = true;
+    }
+    else if (httpcam.isOperating() && (x = httpcam.get_shutterspd_32()) != 0) {
+        has_val = true;
+    }
+
     if (infoscr_editItem == EDITITEM_SHUTTER && infoscr_reqTime != 0 && (millis() - infoscr_reqTime) < INFOSCR_REQ_TIME_LIMIT)
     {
-        M5Lcd.setTextColor(TFT_YELLOW, infoscr_backcolour);
-        gui_showVal(infoscr_reqShutter, TXTFMT_SHUTTER, &M5Lcd);
+        M5Lcd.setTextColor(TFT_GREEN, infoscr_backcolour);
+        if (has_val)
+        {
+            if (x != infoscr_reqShutter)
+            {
+                M5Lcd.setTextColor(TFT_YELLOW, infoscr_backcolour);
+            }
+        }
+        x = infoscr_reqShutter;
         has_val = true;
     }
     else
@@ -194,18 +209,14 @@ void infoscr_printShutterSpeed()
         if (infoscr_editItem == EDITITEM_SHUTTER && fairycam.isOperating()) {
             M5Lcd.setTextColor(TFT_GREEN, infoscr_backcolour);
         }
+        if (has_val) {
+            infoscr_reqShutter = x;
+        }
+    }
 
-        if (ptpcam.isOperating() && ptpcam.has_property(SONYALPHA_PROPCODE_ShutterSpeed)) {
-            x = ptpcam.get_property(SONYALPHA_PROPCODE_ShutterSpeed);
-            infoscr_reqShutter = x;
-            has_val = true;
-            gui_showVal(x, TXTFMT_SHUTTER, &M5Lcd);
-        }
-        else if (httpcam.isOperating() && (x = httpcam.get_shutterspd_32()) != 0) {
-            infoscr_reqShutter = x;
-            has_val = true;
-            gui_showVal(x, TXTFMT_SHUTTER, &M5Lcd);
-        }
+    if (has_val)
+    {
+        gui_showVal(x, TXTFMT_SHUTTER, &M5Lcd);
     }
 
     M5Lcd.setTextColor(infoscr_forecolour, infoscr_backcolour);
@@ -243,36 +254,42 @@ void infoscr_printAperture()
     uint32_t x = 0;
     float fx;
 
+    if (ptpcam.isOperating() && ptpcam.has_property(SONYALPHA_PROPCODE_Aperture)) {
+        x = ptpcam.get_property(SONYALPHA_PROPCODE_Aperture);
+    }
+    else if (httpcam.isOperating()) {
+        x = (uint32_t)lround(100.0f * atof(httpcam.get_aperture_str()));
+        uint32_t xr = x % 10;
+        if (xr < 5) {
+            x -= xr;
+        }
+        else if (xr >= 5) {
+            x += (10 - xr);
+        }
+    }
+
     if (infoscr_editItem == EDITITEM_APERTURE && infoscr_reqTime != 0 && (millis() - infoscr_reqTime) < INFOSCR_REQ_TIME_LIMIT)
     {
-        M5Lcd.setTextColor(TFT_YELLOW, infoscr_backcolour);
-        x = infoscr_reqAperture;
+        if (infoscr_reqAperture != x)
+        {
+            M5Lcd.setTextColor(TFT_YELLOW, infoscr_backcolour);
+            x = infoscr_reqAperture;
+        }
+        else
+        {
+            M5Lcd.setTextColor(TFT_GREEN, infoscr_backcolour);
+        }
     }
     else
     {
         if (infoscr_editItem == EDITITEM_APERTURE && fairycam.isOperating()) {
             M5Lcd.setTextColor(TFT_GREEN, infoscr_backcolour);
         }
-
-        if (ptpcam.isOperating() && ptpcam.has_property(SONYALPHA_PROPCODE_Aperture)) {
-            x = ptpcam.get_property(SONYALPHA_PROPCODE_Aperture);
-            infoscr_reqAperture = x;
-        }
-        else if (httpcam.isOperating()) {
-            x = (uint32_t)lround(100.0f * atof(httpcam.get_aperture_str()));
-            uint32_t xr = x % 10;
-            if (xr < 5) {
-                x -= xr;
-            }
-            else if (xr >= 5) {
-                x += (10 - xr);
-            }
-            infoscr_reqAperture = x;
-        }
     }
 
     if (x != 0)
     {
+        infoscr_reqAperture = x;
         fx = x;
         M5Lcd.printf("f/%0.1f", fx / 100.0f);
     }
@@ -312,10 +329,30 @@ void infoscr_printIso()
     bool has_val = false;
     uint32_t x;
 
+    if (ptpcam.isOperating() && ptpcam.has_property(SONYALPHA_PROPCODE_ISO)) {
+        x = ptpcam.get_property(SONYALPHA_PROPCODE_ISO);
+        has_val = true;
+    }
+    else if (httpcam.isOperating()) {
+        char* iso_str = httpcam.get_iso_str();
+        if (iso_str[0] < '0' || iso_str[0] > '9') {
+            M5Lcd.print(" ");
+            x = 0;
+        }
+        else
+        {
+            x = atoi(iso_str);
+        }
+        has_val = true;
+    }
+
     if (infoscr_editItem == EDITITEM_ISO && infoscr_reqTime != 0 && (millis() - infoscr_reqTime) < INFOSCR_REQ_TIME_LIMIT)
     {
-        M5Lcd.setTextColor(TFT_YELLOW, infoscr_backcolour);
-        gui_showVal(infoscr_reqIso, TXTFMT_ISO, &M5Lcd);
+        M5Lcd.setTextColor(TFT_GREEN, infoscr_backcolour);
+        if (has_val && x != infoscr_reqIso) {
+            M5Lcd.setTextColor(TFT_YELLOW, infoscr_backcolour);
+        }
+        x = infoscr_reqIso;
         has_val = true;
     }
     else
@@ -323,22 +360,8 @@ void infoscr_printIso()
         if (infoscr_editItem == EDITITEM_ISO && fairycam.isOperating()) {
             M5Lcd.setTextColor(TFT_GREEN, infoscr_backcolour);
         }
-
-        if (ptpcam.isOperating() && ptpcam.has_property(SONYALPHA_PROPCODE_ISO)) {
-            x = ptpcam.get_property(SONYALPHA_PROPCODE_ISO);
-            has_val = true;
-        }
-        else if (httpcam.isOperating()) {
-            char* iso_str = httpcam.get_iso_str();
-            if (iso_str[0] < '0' || iso_str[0] > '9') {
-                M5Lcd.print(" ");
-                x = 0;
-            }
-            else
-            {
-                x = atoi(iso_str);
-            }
-            has_val = true;
+        if (has_val) {
+            infoscr_reqIso = x;
         }
     }
 
@@ -391,9 +414,21 @@ void infoscr_printExpoComp()
     int32_t x;
     float fx;
 
+    if (ptpcam.isOperating() && ptpcam.has_property(SONYALPHA_PROPCODE_ExpoComp)) {
+        x = ptpcam.get_property(SONYALPHA_PROPCODE_ExpoComp);
+        has_val = true;
+    }
+    else if (httpcam.isOperating()) {
+        x = httpcam.get_expocomp();
+        has_val = true;
+    }
+
     if (infoscr_editItem == EDITITEM_EXPOCOMP && infoscr_reqTime != 0 && (millis() - infoscr_reqTime) < INFOSCR_REQ_TIME_LIMIT)
     {
-        M5Lcd.setTextColor(TFT_YELLOW, infoscr_backcolour);
+        M5Lcd.setTextColor(TFT_GREEN, infoscr_backcolour);
+        if (has_val && x != infoscr_reqExpoComp) {
+            M5Lcd.setTextColor(TFT_YELLOW, infoscr_backcolour);
+        }
         x = infoscr_reqExpoComp;
         has_val = true;
     }
@@ -402,16 +437,8 @@ void infoscr_printExpoComp()
         if (infoscr_editItem == EDITITEM_EXPOCOMP && fairycam.isOperating()) {
             M5Lcd.setTextColor(TFT_GREEN, infoscr_backcolour);
         }
-
-        if (ptpcam.isOperating() && ptpcam.has_property(SONYALPHA_PROPCODE_ExpoComp)) {
-            x = ptpcam.get_property(SONYALPHA_PROPCODE_ExpoComp);
+        if (has_val) {
             infoscr_reqExpoComp = x;
-            has_val = true;
-        }
-        else if (httpcam.isOperating()) {
-            x = httpcam.get_expocomp();
-            infoscr_reqExpoComp = x;
-            has_val = true;
         }
     }
 
@@ -678,6 +705,63 @@ void infoscr_clearRestOfLines()
     M5Lcd.fillRect(0, y, M5Lcd.width(), M5Lcd.height() - y - 14, infoscr_backcolour);
 }
 
+void infoscr_changeVal(int8_t tilt)
+{
+    if (tilt == 0 || fairycam.isOperating() == false) {
+        return;
+    }
+    int cur_idx, next_idx;
+    uint32_t x;
+    int32_t sx;
+    switch (infoscr_editItem)
+    {
+        case EDITITEM_SHUTTER:
+            cur_idx = fairycam.getIdx_shutter(infoscr_reqShutter);
+            if (cur_idx < 0) {
+                break;
+            }
+            next_idx = cur_idx + (tilt > 0 ? 1 : -1);
+            x = fairycam.getVal_shutter(next_idx);
+            fairycam.cmd_ShutterSpeedSet(x);
+            infoscr_reqShutter = x;
+            infoscr_reqTime = millis();
+            break;
+        case EDITITEM_APERTURE:
+            cur_idx = fairycam.getIdx_aperture(infoscr_reqAperture);
+            if (cur_idx < 0) {
+                break;
+            }
+            next_idx = cur_idx + (tilt > 0 ? 1 : -1);
+            x = fairycam.getVal_aperture(next_idx);
+            fairycam.cmd_ApertureSet(x);
+            infoscr_reqAperture = x;
+            infoscr_reqTime = millis();
+            break;
+        case EDITITEM_ISO:
+            cur_idx = fairycam.getIdx_iso(infoscr_reqIso);
+            if (cur_idx < 0) {
+                break;
+            }
+            next_idx = cur_idx + (tilt > 0 ? 1 : -1);
+            x = fairycam.getVal_iso(next_idx);
+            fairycam.cmd_IsoSet(x);
+            infoscr_reqIso = x;
+            infoscr_reqTime = millis();
+            break;
+        case EDITITEM_EXPOCOMP:
+            cur_idx = fairycam.getIdx_expoComp(infoscr_reqExpoComp);
+            if (cur_idx < 0) {
+                break;
+            }
+            next_idx = cur_idx + (tilt > 0 ? 1 : -1);
+            sx = fairycam.getVal_expoComp(next_idx);
+            fairycam.cmd_ExpoCompSet(sx);
+            infoscr_reqExpoComp = sx;
+            infoscr_reqTime = millis();
+            break;
+    }
+}
+
 void infoscr_printEditIndicator()
 {
     int tilt = imu.getTilt();
@@ -717,7 +801,7 @@ void infoscr_printEditIndicator()
             return;
         }
 
-        infoscr_reqTime = millis();
+        infoscr_changeVal(tilt);
     }
 }
 

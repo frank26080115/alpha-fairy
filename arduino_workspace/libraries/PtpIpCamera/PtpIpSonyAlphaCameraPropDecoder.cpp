@@ -212,6 +212,7 @@ void PtpIpSonyAlphaCamera::decode_properties()
                 PROP_TRYPOPULATETABLE(table_shutter_speed, SONYALPHA_PROPCODE_ShutterSpeed, 4, enumcnt, "table_shutter_speed");
                 PROP_TRYPOPULATETABLE(table_iso          , SONYALPHA_PROPCODE_ISO         , 4, enumcnt, "table_iso");
                 PROP_TRYPOPULATETABLE(table_aperture     , SONYALPHA_PROPCODE_Aperture    , 2, enumcnt, "table_aperture");
+                PROP_TRYPOPULATETABLE(table_aperture     , SONYALPHA_PROPCODE_Aperture    , 4, enumcnt, "table_aperture");
 
                 i += enumcnt * dsz;
                 dbgser_devprop_dump->printf(" [FRM ENUM %d]", enumcnt);
@@ -226,6 +227,7 @@ void PtpIpSonyAlphaCamera::decode_properties()
                 PROP_TRYPOPULATETABLE(table_shutter_speed, SONYALPHA_PROPCODE_ShutterSpeed, 4, enumcnt, "table_shutter_speed");
                 PROP_TRYPOPULATETABLE(table_iso          , SONYALPHA_PROPCODE_ISO         , 4, enumcnt, "table_iso");
                 PROP_TRYPOPULATETABLE(table_aperture     , SONYALPHA_PROPCODE_Aperture    , 2, enumcnt, "table_aperture");
+                PROP_TRYPOPULATETABLE(table_aperture     , SONYALPHA_PROPCODE_Aperture    , 4, enumcnt, "table_aperture");
 
                 i += enumcnt * dsz;
                 uint16_t enumcnt2 = *(uint16_t*)(&(p[i]));
@@ -233,6 +235,7 @@ void PtpIpSonyAlphaCamera::decode_properties()
                 PROP_TRYPOPULATETABLE(table_shutter_speed, SONYALPHA_PROPCODE_ShutterSpeed, 4, enumcnt2, "table_shutter_speed");
                 PROP_TRYPOPULATETABLE(table_iso          , SONYALPHA_PROPCODE_ISO         , 4, enumcnt2, "table_iso");
                 PROP_TRYPOPULATETABLE(table_aperture     , SONYALPHA_PROPCODE_Aperture    , 2, enumcnt2, "table_aperture");
+                PROP_TRYPOPULATETABLE(table_aperture     , SONYALPHA_PROPCODE_Aperture    , 4, enumcnt2, "table_aperture");
                 i += enumcnt2 * dsz;
                 dbgser_devprop_dump->printf(" [FRM ENUMx2 %d]", (enumcnt + enumcnt2));
             }
