@@ -41,7 +41,7 @@ install(new FairyCfgItem("MF return"              , (int32_t*)&(config_settings.
 install(new FairyCfgItem("9-pt dist"              , (int32_t*)&(config_settings.nine_point_dist        ),    0,  240,    10, TXTFMT_BYTENS   ));
 install(new FairyCfgItem("Tv step size"           , (int32_t*)&(config_settings.shutter_speed_step_cnt ),    1,    9,     1, TXTFMT_BYTENS   ));
 install(new FairyCfgItem("Tv step delay"          , (int32_t*)&(config_settings.shutter_step_time_ms   ),    0, 5000,    10, TXTFMT_BYTENS   ));
-install(new FairyCfgItem("Tally Light en"         , (int32_t*)&(config_settings.tallylite              ),    0,    1,     1, TXTFMT_BOOL     ));
+install(new FairyCfgItem("Tally Light en"         , (int32_t*)&(config_settings.tallylite              ),    0,    3,     1, TXTFMT_TALLEYLITE));
 install(new FairyCfgItem("power save time (s)"    , (int32_t*)&(config_settings.pwr_save_secs          ),    0, 1000,    10, TXTFMT_BYTENS | TXTFMT_ZEROINF));
 install(new PageLcdBrightness("LCD bright"        , (int32_t*)&(config_settings.lcd_brightness         ),    7,   12,     1, TXTFMT_LCDBRITE ));
 install(new FairyCfgItem("LCD dim time (s)"       , (int32_t*)&(config_settings.lcd_dim_secs           ),    0, 1000,     1, TXTFMT_BYTENS | TXTFMT_ZEROINF));

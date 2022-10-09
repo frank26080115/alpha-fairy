@@ -56,7 +56,7 @@ void settings_default() {
   config_settings.fenc_multi = 1;
   config_settings.fenc_large = 10;
 
-  config_settings.tallylite = 1;
+  config_settings.tallylite = TALLYLITE_SCREEN;
   config_settings.infoview_mode = 0;
 
   #ifdef ENABLE_BUILD_LEPTON

@@ -31,6 +31,7 @@ enum
   TXTFMT_TRIGSRC        = 0x0400,
   TXTFMT_TRIGACT        = 0x0800,
   TXTFMT_PINCFG         = 0x1000,
+  TXTFMT_TALLEYLITE     = 0x2000,
   TXTFMT_ALLCAPS        = 0x010000,
   TXTFMT_SMALL          = 0x020000,
   TXTFMT_ALLLOWER       = 0x040000,
@@ -184,6 +185,14 @@ enum
 enum
 {
     QIKRMT_ROW_INFOSCR = 0x0F,
+};
+
+enum
+{
+    TALLYLITE_OFF,
+    TALLYLITE_SCREEN,
+    TALLYLITE_BOTH,
+    TALLYLITE_LED,
 };
 
 #endif

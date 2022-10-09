@@ -233,6 +233,20 @@ void gui_showVal(int32_t x, uint32_t txtfmt, Print* printer)
             }
         }
     }
+    else if ((txtfmt & TXTFMT_TALLEYLITE) != 0) {
+        if (x == TALLYLITE_OFF) {
+            i += sprintf(&(str[i]), "OFF");
+        }
+        else if (x == TALLYLITE_SCREEN) {
+            i += sprintf(&(str[i]), "SCREEN");
+        }
+        else if (x == TALLYLITE_LED) {
+            i += sprintf(&(str[i]), "LED");
+        }
+        else if (x == TALLYLITE_BOTH) {
+            i += sprintf(&(str[i]), "BOTH");
+        }
+    }
     else if ((txtfmt & TXTFMT_DIVHUNDRED) != 0) {
         float xx = x;
         xx /= 100.0;

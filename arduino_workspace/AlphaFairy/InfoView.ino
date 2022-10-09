@@ -45,12 +45,15 @@ void infoscr_setup(uint8_t mode, bool clr)
     };
 
     // if a video recording is active, change everything to use a red background
-    if (config_settings.tallylite != 0 && fairycam.isOperating() && fairycam.is_movierecording()) {
+    if (config_settings.tallylite != TALLYLITE_OFF && fairycam.isOperating() && fairycam.is_movierecording()) {
         infoscr_forecolour = TFT_WHITE - (TFT_BLUE / 4) - ((TFT_RED / 4) & TFT_RED);
         infoscr_backcolour = TFT_RED;
         pwr_tick(true); // keep backlight on
         if (prev_movie == false) {
             clr = true; // a full screen refresh is required
+            if (config_settings.tallylite != TALLYLITE_SCREEN) {
+                tallylite_ledOn();
+            }
         }
         prev_movie = true;
     }
@@ -59,6 +62,7 @@ void infoscr_setup(uint8_t mode, bool clr)
             clr = true; // a full screen refresh is required
         }
         prev_movie = false;
+        tallylite_ledOff();
     }
 
     M5Lcd.highlight(true);
