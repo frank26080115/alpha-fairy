@@ -314,6 +314,15 @@ uint32_t parse_shutter_speed_str(char* s)
         x |= 0x10000;
         return x;
     }
+    else
+    {
+        double f = atof(s);
+        f *= 10;
+        int fi = lround(f);
+        fi <<= 16;
+        fi |= 10;
+        return fi;
+    }
     return 0;
 }
 

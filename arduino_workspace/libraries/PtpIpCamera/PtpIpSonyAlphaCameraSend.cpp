@@ -6,7 +6,7 @@ bool PtpIpSonyAlphaCamera::cmd_AutoFocus(bool onoff)
 {
     wait_while_busy(0, DEFAULT_BUSY_TIMEOUT, NULL);
     uint32_t propcode = SONYALPHA_PROPCODE_AutoFocus;
-    uint8_t data[] = { onoff ? 2 : 1, 0 };
+    uint8_t data[] = { onoff ? (uint8_t)2 : (uint8_t)1, (uint8_t)0 };
     return send_oper_req((uint32_t)SONYALPHA_OPCODE_SetControlDeviceB, &propcode, 1, (uint8_t*)data, 2);
 }
 
@@ -14,7 +14,7 @@ bool PtpIpSonyAlphaCamera::cmd_Shutter(bool openclose)
 {
     wait_while_busy(0, DEFAULT_BUSY_TIMEOUT, NULL);
     uint32_t propcode = SONYALPHA_PROPCODE_Capture;
-    uint8_t data[] = { openclose ? 2 : 1, 0 };
+    uint8_t data[] = { openclose ? (uint8_t)2 : (uint8_t)1, (uint8_t)0 };
     return send_oper_req((uint32_t)SONYALPHA_OPCODE_SetControlDeviceB, &propcode, 1, (uint8_t*)data, 2);
 }
 
@@ -73,6 +73,24 @@ bool PtpIpSonyAlphaCamera::cmd_IsoSet(uint32_t x)
     return send_oper_req((uint32_t)SONYALPHA_OPCODE_SetControlDeviceA, &propcode, 1, (uint8_t*)&x, sizeof(uint32_t));
 }
 
+bool PtpIpSonyAlphaCamera::cmd_ApertureSet(uint16_t x)
+{
+    wait_while_busy(0, DEFAULT_BUSY_TIMEOUT, NULL);
+    uint32_t propcode = SONYALPHA_PROPCODE_Aperture;
+    return send_oper_req((uint32_t)SONYALPHA_OPCODE_SetControlDeviceA, &propcode, 1, (uint8_t*)&x, sizeof(uint16_t));
+}
+
+bool PtpIpSonyAlphaCamera::cmd_ExpoCompSet(int32_t x)
+{
+    float fx = x;
+    fx /= 100.0;
+    int32_t y = (int32_t)lround(fx);
+    y *= 100;
+    wait_while_busy(0, DEFAULT_BUSY_TIMEOUT, NULL);
+    uint32_t propcode = SONYALPHA_PROPCODE_ExpoComp;
+    return send_oper_req((uint32_t)SONYALPHA_OPCODE_SetControlDeviceA, &propcode, 1, (uint8_t*)&y, sizeof(int32_t));
+}
+
 bool PtpIpSonyAlphaCamera::cmd_FocusPointSet(int16_t x, int16_t y)
 {
     wait_while_busy(0, DEFAULT_BUSY_TIMEOUT, NULL);
@@ -104,7 +122,7 @@ bool PtpIpSonyAlphaCamera::cmd_MovieRecord(bool onoff)
     }
     wait_while_busy(0, DEFAULT_BUSY_TIMEOUT, NULL);
     uint32_t propcode = SONYALPHA_PROPCODE_Movie;
-    uint8_t data[] = { onoff ? 2 : 1, 0 };
+    uint8_t data[] = { onoff ? (uint8_t)2 : (uint8_t)1, (uint8_t)0 };
     return send_oper_req((uint32_t)SONYALPHA_OPCODE_SetControlDeviceB, &propcode, 1, (uint8_t*)data, 2);
 }
 
@@ -125,7 +143,7 @@ bool PtpIpSonyAlphaCamera::cmd_ManualFocusMode(bool onoff, bool precheck)
     }
     wait_while_busy(0, DEFAULT_BUSY_TIMEOUT, NULL);
     uint32_t propcode = SONYALPHA_PROPCODE_ManualFocusMode;
-    uint8_t data[] = { onoff ? 2 : 1, 0 };
+    uint8_t data[] = { onoff ? (uint8_t)2 : (uint8_t)1, (uint8_t)0 };
     return send_oper_req((uint32_t)SONYALPHA_OPCODE_SetControlDeviceB, &propcode, 1, (uint8_t*)data, 2);
 }
 

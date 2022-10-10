@@ -57,7 +57,7 @@ void settings_default() {
   config_settings.fenc_large = 10;
 
   config_settings.tallylite = TALLYLITE_SCREEN;
-  config_settings.infoview_mode = 0;
+  config_settings.infoscr_mode = INFOSCR_LANDSCAPE_BLACK;
 
   #ifdef ENABLE_BUILD_LEPTON
   config_settings.pin_shutter = PINCFG_NONE;

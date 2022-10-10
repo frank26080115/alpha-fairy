@@ -109,7 +109,7 @@ void qikrmt_task(bool freeze_row)
             if (qikrmt_row_prev != qikrmt_row || redraw_flag)
             {
                 // just entered, or needs a clearing
-                infoscr_setup(config_settings.infoview_mode, true);
+                infoscr_setup(infoscr_mode, true);
             }
             infoscr_print();
             tallylite_enable = false; // disable talley light because infoscr implements its own talley light
@@ -172,6 +172,7 @@ class AppQuickRemote : public FairyMenuItem
     public:
         AppQuickRemote() : FairyMenuItem("/qikrmt_faded.png") // main image is the faded version, the loop will draw the active version when required
         {
+            _can_quickEnter = true;
             reset();
         };
 
@@ -189,7 +190,8 @@ class AppQuickRemote : public FairyMenuItem
         virtual bool on_execute(void)
         {
             reset();
-            set_redraw();
+            M5Lcd.drawPngFile(SPIFFS, "/qikrmt_active.png", 0, 0);
+            redraw_flag = false;
             app_waitAllRelease();
 
             while (true)
@@ -272,11 +274,35 @@ class AppQuickRemote : public FairyMenuItem
                     }
                     else if (qikrmt_row == QIKRMT_ROW_INFOSCR)
                     {
-                        // cycle through display mode and save the user preference
-                        config_settings.infoview_mode++;
-                        config_settings.infoview_mode %= INFOSCR_END;
-                        redraw_flag = true;
-                        settings_saveLater();
+                        bool toCycle = true;
+                        qikrmt_imuState = QIKRMTIMU_LOCKED;
+
+                        if (fairycam.isOperating())
+                        {
+                            while (btnBig_isPressed())
+                            {
+                                app_poll();
+                                if (btnSide_hasPressed())
+                                {
+                                    toCycle = false;
+                                    btnSide_clrPressed();
+                                    infoscr_startEdit();
+                                    qikrmt_imuState = QIKRMTIMU_FREE;
+                                    qikrmt_row = 0;
+                                    redraw_flag = true;
+                                }
+                            }
+                        }
+
+                        if (toCycle)
+                        {
+                            // cycle through display mode and save the user preference
+                            infoscr_mode++;
+                            infoscr_mode %= INFOSCR_END;
+                            config_settings.infoscr_mode = infoscr_mode;
+                            settings_saveLater();
+                            redraw_flag = true;
+                        }
                     }
                 }
 

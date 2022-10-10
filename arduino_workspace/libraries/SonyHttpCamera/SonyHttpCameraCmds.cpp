@@ -1,10 +1,12 @@
 #include "SonyHttpCamera.h"
 
-const char SonyHttpCamera::cmd_generic_fmt[]               = "{\"method\": \"%s\", \"params\": [], \"id\": %u, \"version\": \"1.0\"}";
-const char SonyHttpCamera::cmd_generic_strparam_fmt[]      = "{\"method\": \"%s\", \"params\": [\"%s\"], \"id\": %u, \"version\": \"1.0\"}";
-const char SonyHttpCamera::cmd_generic_strintparam_fmt[]   = "{\"method\": \"%s\", \"params\": [\"%u\"], \"id\": %u, \"version\": \"1.0\"}";
-const char SonyHttpCamera::cmd_generic_intparam_fmt[]      = "{\"method\": \"%s\", \"params\": [%u], \"id\": %u, \"version\": \"1.0\"}";
-const char SonyHttpCamera::cmd_zoom_fmt[]                  = "{\"method\": \"actZoom\", \"params\": [\"%s\",\"%s\"], \"id\": %u, \"version\": \"1.0\"}";
+const char SonyHttpCamera::cmd_generic_fmt[]               = "{ \"method\": \"%s\", \"params\": [], \"id\": %u, \"version\": \"1.0\" }";
+const char SonyHttpCamera::cmd_generic_strparam_fmt[]      = "{ \"method\": \"%s\", \"params\": [\"%s\"], \"id\": %u, \"version\": \"1.0\" }";
+const char SonyHttpCamera::cmd_generic_strintparam_fmt[]   = "{ \"method\": \"%s\", \"params\": [\"%d\"], \"id\": %u, \"version\": \"1.0\" }";
+const char SonyHttpCamera::cmd_generic_strfloatparam_fmt[] = "{ \"method\": \"%s\", \"params\": [\"%0.1f\"], \"id\": %u, \"version\": \"1.0\" }";
+const char SonyHttpCamera::cmd_generic_intparam_fmt[]      = "{ \"method\": \"%s\", \"params\": [%d], \"id\": %u, \"version\": \"1.0\" }";
+const char SonyHttpCamera::cmd_generic_floatparam_fmt[]    = "{ \"method\": \"%s\", \"params\": [%0.1f], \"id\": %u, \"version\": \"1.0\" }";
+const char SonyHttpCamera::cmd_zoom_fmt[]                  = "{ \"method\": \"actZoom\", \"params\": [\"%s\",\"%s\"], \"id\": %u, \"version\": \"1.0\" }";
 
 void SonyHttpCamera::cmd_prep(void)
 {
@@ -20,6 +22,17 @@ bool SonyHttpCamera::cmd_send(char* cmd, char* alt_url, bool callend)
     bool success = last_http_resp_code == 200;
     http_content_len = httpclient.getSize();
     if (callend) {
+        #if 0
+        WiFiClient* cli = httpclient.getStreamPtr();
+        if (cli != NULL)
+        {
+            dbgser_rx->print("cmd resp: ");
+            while (cli->available() > 0) {
+                dbgser_rx->write(cli->read());
+            }
+            dbgser_rx->println();
+        }
+        #endif
         httpclient.end();
     }
     else {
@@ -145,6 +158,11 @@ void SonyHttpCamera::cmd_ShutterSpeedSetStr(char* s)
 
 void SonyHttpCamera::cmd_IsoSet(uint32_t x)
 {
+    if (x == 0 || x == 0xFFFFFF) {
+        cmd_IsoSetStr("AUTO");
+        return;
+    }
+    x &= 0xFFFFFF;
     cmd_prep();
     sprintf(cmd_buffer, cmd_generic_strintparam_fmt, "setIsoSpeedRate", x, req_id);
     cmd_send(cmd_buffer);
@@ -157,6 +175,44 @@ void SonyHttpCamera::cmd_IsoSetStr(char* s)
     sprintf(cmd_buffer, cmd_generic_strparam_fmt, "setIsoSpeedRate", s, req_id);
     cmd_send(cmd_buffer);
     req_id++;
+}
+
+void SonyHttpCamera::cmd_ApertureSet(float x)
+{
+    cmd_prep();
+    sprintf(cmd_buffer, cmd_generic_strfloatparam_fmt, "setFNumber", x, req_id);
+    cmd_send(cmd_buffer);
+    req_id++;
+}
+
+void SonyHttpCamera::cmd_ApertureSet32(uint32_t x)
+{
+    float fx = x;
+    fx /= 100.0;
+    cmd_ApertureSet(fx);
+}
+
+void SonyHttpCamera::cmd_ApertureSetStr(char* s)
+{
+    cmd_prep();
+    sprintf(cmd_buffer, cmd_generic_strparam_fmt, "setFNumber", s, req_id);
+    cmd_send(cmd_buffer);
+    req_id++;
+}
+
+void SonyHttpCamera::cmd_ExpoCompSetIdx(int32_t x)
+{
+    cmd_prep();
+    sprintf(cmd_buffer, cmd_generic_strintparam_fmt, "setExposureCompensation", x, req_id);
+    cmd_send(cmd_buffer);
+    req_id++;
+}
+
+void SonyHttpCamera::cmd_ExpoCompSet32(int32_t x)
+{
+    float fx = x;
+    fx /= 333.3;
+    cmd_ExpoCompSetIdx((int32_t)lround(fx));
 }
 
 void SonyHttpCamera::cmd_ManualFocusMode(bool onoff, bool precheck)

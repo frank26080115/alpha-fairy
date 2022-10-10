@@ -203,6 +203,13 @@ class AppAutoConnect : public FairyMenuItem
             }
 
             all_done_exit:
+
+            if (result_code > AUTOCONNRES_QUIT)
+            {
+                FairySubmenu* p = dynamic_cast<FairySubmenu*>((FairySubmenu*)get_parent());
+                p->rewind();
+            }
+
             dbg_ser.printf("autoconnect exiting function\r\n");
             app_waitAllRelease();
             autoconnect_active = false;

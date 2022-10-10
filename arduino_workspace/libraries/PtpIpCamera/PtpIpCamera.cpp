@@ -38,7 +38,7 @@ PtpIpCamera::PtpIpCamera(char* name) {
     #endif
     dbgser_tx->enabled = false;
     dbgser_devprop_dump->  enabled = false;
-    dbgser_devprop_change->enabled = false;
+    dbgser_devprop_change->enabled = true;
 }
 
 void PtpIpCamera::begin(uint32_t ip, uint32_t wait) {

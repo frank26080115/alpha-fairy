@@ -12,6 +12,7 @@ SonyHttpCamera::SonyHttpCamera()
 {
     tbl_iso = NULL;
     tbl_shutterspd = NULL;
+    tbl_aperture = NULL;
 
     dbgser_important       = new DebuggingSerial(&Serial);
     dbgser_states          = new DebuggingSerial(&Serial);
@@ -70,14 +71,22 @@ void SonyHttpCamera::begin(uint32_t ip, WiFiUDP* sock)
     zoom_time = 0;
     poll_delay = 500;
 
-    #if 0
-    if (tbl_iso != NULL) {
-        free(tbl_iso);
+    if (state != SHCAMSTATE_FORBIDDEN && ip != 0)
+    {
+        if (tbl_iso != NULL) {
+            free(tbl_iso);
+            tbl_iso = NULL;
+        }
+        if (tbl_shutterspd != NULL) {
+            free(tbl_shutterspd);
+            tbl_shutterspd = NULL;
+        }
+        if (tbl_aperture != NULL) {
+            free(tbl_aperture);
+            tbl_aperture = NULL;
+        }
+        str_aperture_prev[0] = 0;
     }
-    if (tbl_shutterspd != NULL) {
-        free(tbl_shutterspd);
-    }
-    #endif
 }
 
 bool SonyHttpCamera::parse_event(char* data, int32_t maxlen)
@@ -150,12 +159,31 @@ bool SonyHttpCamera::parse_event(char* data, int32_t maxlen)
         }
     }
 
-#ifdef SHCAM_EXTRA_DATA
+    bool aperture_changed = false;
     found = scan_json_for_key(rx_buff, maxlen, "currentFNumber", &i, &j, (char*)res_buff, 64);
     if (found && strlen(res_buff) > 0) {
         strcpy(str_aperture, res_buff);
         dbgser_devprop_dump->printf("httpcam event key \"currentFNumber\" = \"%s\"\r\n", res_buff);
         ret |= true;
+
+        if (strcmp(str_aperture, str_aperture_prev) != 0) {
+            aperture_changed = true;
+        }
+
+        strcpy(str_aperture_prev, str_aperture);
+    }
+
+    if (tbl_aperture == NULL || aperture_changed) {
+        found = scan_json_for_key(rx_buff, maxlen, "fNumberCandidates", &i, &j, NULL, 0);
+        if (found) {
+            k = j - i + 3;
+            if (tbl_aperture == NULL) {
+                tbl_aperture = (char*)malloc(k * 3);
+            }
+            found = scan_json_for_key(rx_buff, maxlen, "fNumberCandidates", &i, &j, (char*)tbl_aperture, k - 1);
+            dbgser_devprop_dump->printf("httpcam event key \"fNumberCandidates\" = \"%s\"\r\n", tbl_aperture);
+            ret |= true;
+        }
     }
 
     found = scan_json_for_key(rx_buff, maxlen, "currentExposureCompensation", &i, &j, (char*)res_buff, 64);
@@ -185,7 +213,6 @@ bool SonyHttpCamera::parse_event(char* data, int32_t maxlen)
         dbgser_devprop_dump->printf("httpcam event key \"currentExposureMode\" = \"%s\"\r\n", res_buff);
         ret |= true;
     }
-#endif
 
     found = scan_json_for_key(rx_buff, maxlen, "currentFocusMode", &i, &j, (char*)res_buff, 64);
     if (found && strlen(res_buff) > 0) {
