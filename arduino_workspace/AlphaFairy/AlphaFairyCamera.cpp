@@ -340,7 +340,7 @@ static int get_idx_in_str_tbl(char* tbl_ptr, uint32_t x, uint32_t cvt_mode)
         {
             i++;
             int k;
-            for (k = 0, dst[0] = 0; i < j && k < 31; i++)
+            for (k = 0, dst[0] = 0; i < j && k < 30; i++)
             {
                 c = tbl_ptr[i];
                 if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '+' || c == '-' || c == '.' || c == '/') // look for valid numeric characters
@@ -350,7 +350,7 @@ static int get_idx_in_str_tbl(char* tbl_ptr, uint32_t x, uint32_t cvt_mode)
                     dst[k+1] = 0;
                     k++;
                 }
-                if (c == ',') // found another comma, end of entry, go back to outer loop
+                else if (c == ',') // found another comma, end of entry, go back to outer loop
                 {
                     i--;
                     break;
@@ -549,7 +549,7 @@ int AlphaFairyCamera::getIdx_iso(uint32_t x)
         }
     }
     if (cam_http->isOperating() && cam_http->tbl_iso != NULL) {
-        return get_idx_in_str_tbl(cam_http->tbl_iso, x, SONYALPHA_PROPCODE_Aperture);
+        return get_idx_in_str_tbl(cam_http->tbl_iso, x, SONYALPHA_PROPCODE_ISO);
     }
     return -1;
 }

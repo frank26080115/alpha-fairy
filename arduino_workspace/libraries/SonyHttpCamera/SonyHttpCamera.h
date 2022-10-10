@@ -20,7 +20,6 @@
 #endif
 
 #define SHCAM_NEED_ENTER_MOVIE_MODE
-#define SHCAM_EXTRA_DATA
 
 enum
 {
@@ -164,13 +163,11 @@ class SonyHttpCamera
         char str_iso[32];
         char str_focusstatus[32];
         char str_afmode[32];
-        #ifdef SHCAM_EXTRA_DATA
         char str_aperture[32];
         char str_aperture_prev[32];
         char str_expocomp[32];
         char str_expomode[32];
         int  expocomp;
-        #endif
 
         int8_t   zoom_state;
         uint32_t zoom_time;
@@ -213,20 +210,16 @@ class SonyHttpCamera
         inline int      get_shutterspd_idx  (void) { return (tbl_shutterspd != NULL) ? get_idx_within_strtbl(tbl_shutterspd, str_shutterspd) : -1; };
         inline char*    get_iso_str         (void) { return str_iso; };
         inline int      get_iso_idx         (void) { return (tbl_iso != NULL) ? get_idx_within_strtbl(tbl_iso, str_iso) : -1; };
-        #ifdef SHCAM_EXTRA_DATA
         inline char*    get_aperture_str    (void) { return str_aperture; };
         inline int      get_aperture_idx    (void) { return (tbl_aperture != NULL) ? get_idx_within_strtbl(tbl_aperture, str_aperture) : -1; };
-        #endif
 
         uint32_t get_another_shutterspd(int idx, char* tgt);
 
-        #ifdef SHCAM_EXTRA_DATA
         inline char* get_str_afmode  (void) { return str_afmode  ; };
         inline char* get_str_aperture(void) { return str_aperture; };
         inline char* get_str_expocomp(void) { return str_expocomp; };
         inline char* get_str_expomode(void) { return str_expomode; };
         inline int   get_expocomp    (void) { return expocomp;     };
-        #endif
 
         void cmd_Shoot(void);
         void cmd_MovieRecord(bool is_start);

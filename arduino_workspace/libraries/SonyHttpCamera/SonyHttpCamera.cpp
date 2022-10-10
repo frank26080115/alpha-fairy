@@ -26,7 +26,7 @@ SonyHttpCamera::SonyHttpCamera()
     dbgser_states->   enabled = true;
     dbgser_events->   enabled = false;
     dbgser_rx->       enabled = false;
-    dbgser_tx->       enabled = true;
+    dbgser_tx->       enabled = false;
     dbgser_devprop_dump->  enabled = false;
     dbgser_devprop_change->enabled = false;
 
@@ -153,15 +153,12 @@ bool SonyHttpCamera::parse_event(char* data, int32_t maxlen)
             k = j - i + 3;
             tbl_shutterspd = (char*)malloc(k);
             found = scan_json_for_key(rx_buff, maxlen, "shutterSpeedCandidates", &i, &j, (char*)tbl_shutterspd, k - 1);
-            dbgser_devprop_dump
-            //dbgser_states
-                ->printf("httpcam event key \"shutterSpeedCandidates\" = \"%s\"\r\n", tbl_shutterspd);
+            dbgser_devprop_dump->printf("httpcam event key \"shutterSpeedCandidates\" = \"%s\"\r\n", tbl_shutterspd);
             ret |= true;
             event_found_flag |= (1 << 5);
         }
     }
 
-#ifdef SHCAM_EXTRA_DATA
     bool aperture_changed = false;
     found = scan_json_for_key(rx_buff, maxlen, "currentFNumber", &i, &j, (char*)res_buff, 64);
     if (found && strlen(res_buff) > 0) {
@@ -216,7 +213,6 @@ bool SonyHttpCamera::parse_event(char* data, int32_t maxlen)
         dbgser_devprop_dump->printf("httpcam event key \"currentExposureMode\" = \"%s\"\r\n", res_buff);
         ret |= true;
     }
-#endif
 
     found = scan_json_for_key(rx_buff, maxlen, "currentFocusMode", &i, &j, (char*)res_buff, 64);
     if (found && strlen(res_buff) > 0) {

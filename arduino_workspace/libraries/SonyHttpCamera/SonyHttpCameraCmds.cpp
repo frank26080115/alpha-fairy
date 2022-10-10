@@ -22,6 +22,17 @@ bool SonyHttpCamera::cmd_send(char* cmd, char* alt_url, bool callend)
     bool success = last_http_resp_code == 200;
     http_content_len = httpclient.getSize();
     if (callend) {
+        #if 0
+        WiFiClient* cli = httpclient.getStreamPtr();
+        if (cli != NULL)
+        {
+            dbgser_rx->print("cmd resp: ");
+            while (cli->available() > 0) {
+                dbgser_rx->write(cli->read());
+            }
+            dbgser_rx->println();
+        }
+        #endif
         httpclient.end();
     }
     else {
@@ -148,7 +159,7 @@ void SonyHttpCamera::cmd_ShutterSpeedSetStr(char* s)
 void SonyHttpCamera::cmd_IsoSet(uint32_t x)
 {
     if (x == 0 || x == 0xFFFFFF) {
-        cmd_IsoSetStr("Auto");
+        cmd_IsoSetStr("AUTO");
         return;
     }
     x &= 0xFFFFFF;
