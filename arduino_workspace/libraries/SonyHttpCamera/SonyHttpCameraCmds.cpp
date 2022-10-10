@@ -1,12 +1,12 @@
 #include "SonyHttpCamera.h"
 
-const char SonyHttpCamera::cmd_generic_fmt[]               = "{\"method\": \"%s\", \"params\": [], \"id\": %u, \"version\": \"1.0\"}";
-const char SonyHttpCamera::cmd_generic_strparam_fmt[]      = "{\"method\": \"%s\", \"params\": [\"%s\"], \"id\": %u, \"version\": \"1.0\"}";
-const char SonyHttpCamera::cmd_generic_strintparam_fmt[]   = "{\"method\": \"%s\", \"params\": [\"%d\"], \"id\": %u, \"version\": \"1.0\"}";
-const char SonyHttpCamera::cmd_generic_strfloatparam_fmt[] = "{\"method\": \"%s\", \"params\": [\"%0.1f\"], \"id\": %u, \"version\": \"1.0\"}";
-const char SonyHttpCamera::cmd_generic_intparam_fmt[]      = "{\"method\": \"%s\", \"params\": [%d], \"id\": %u, \"version\": \"1.0\"}";
-const char SonyHttpCamera::cmd_generic_floatparam_fmt[]    = "{\"method\": \"%s\", \"params\": [%0.1f], \"id\": %u, \"version\": \"1.0\"}";
-const char SonyHttpCamera::cmd_zoom_fmt[]                  = "{\"method\": \"actZoom\", \"params\": [\"%s\",\"%s\"], \"id\": %u, \"version\": \"1.0\"}";
+const char SonyHttpCamera::cmd_generic_fmt[]               = "{ \"method\": \"%s\", \"params\": [], \"id\": %u, \"version\": \"1.0\" }";
+const char SonyHttpCamera::cmd_generic_strparam_fmt[]      = "{ \"method\": \"%s\", \"params\": [\"%s\"], \"id\": %u, \"version\": \"1.0\" }";
+const char SonyHttpCamera::cmd_generic_strintparam_fmt[]   = "{ \"method\": \"%s\", \"params\": [\"%d\"], \"id\": %u, \"version\": \"1.0\" }";
+const char SonyHttpCamera::cmd_generic_strfloatparam_fmt[] = "{ \"method\": \"%s\", \"params\": [\"%0.1f\"], \"id\": %u, \"version\": \"1.0\" }";
+const char SonyHttpCamera::cmd_generic_intparam_fmt[]      = "{ \"method\": \"%s\", \"params\": [%d], \"id\": %u, \"version\": \"1.0\" }";
+const char SonyHttpCamera::cmd_generic_floatparam_fmt[]    = "{ \"method\": \"%s\", \"params\": [%0.1f], \"id\": %u, \"version\": \"1.0\" }";
+const char SonyHttpCamera::cmd_zoom_fmt[]                  = "{ \"method\": \"actZoom\", \"params\": [\"%s\",\"%s\"], \"id\": %u, \"version\": \"1.0\" }";
 
 void SonyHttpCamera::cmd_prep(void)
 {
@@ -147,6 +147,11 @@ void SonyHttpCamera::cmd_ShutterSpeedSetStr(char* s)
 
 void SonyHttpCamera::cmd_IsoSet(uint32_t x)
 {
+    if (x == 0 || x == 0xFFFFFF) {
+        cmd_IsoSetStr("Auto");
+        return;
+    }
+    x &= 0xFFFFFF;
     cmd_prep();
     sprintf(cmd_buffer, cmd_generic_strintparam_fmt, "setIsoSpeedRate", x, req_id);
     cmd_send(cmd_buffer);

@@ -266,7 +266,7 @@ bool AlphaFairyCamera::cmd_ShutterSpeedSet(uint32_t x)
             if (r)
             {
                 int slen = strlen(sbuff);
-                if (sbuff[0] == '1' && sbuff[0] == '/') {
+                if (sbuff[0] == '1' && sbuff[1] == '/') {
                     // do nothing
                 }
                 else if (sbuff[0] >= '0' && sbuff[0] <= '9') {
@@ -317,7 +317,7 @@ void AlphaFairyCamera::set_debugflags(uint32_t x)
     }
 }
 
-static int get_idx_in_str_tbl(char* tbl_prt, uint32_t x, uint32_t cvt_mode)
+static int get_idx_in_str_tbl(char* tbl_ptr, uint32_t x, uint32_t cvt_mode)
 {
     uint32_t oricomp = x;
     if (cvt_mode == SONYALPHA_PROPCODE_ShutterSpeed) {
@@ -332,8 +332,7 @@ static int get_idx_in_str_tbl(char* tbl_prt, uint32_t x, uint32_t cvt_mode)
     int has_min = -1;
     uint32_t min_dist;
 
-    char* tbl_ptr;
-    char  dst[32];
+    char dst[32];
     int i, j = strlen(tbl_ptr);
     for (i = 0; i < j; i++) {
         char c = tbl_ptr[i];
@@ -344,7 +343,7 @@ static int get_idx_in_str_tbl(char* tbl_prt, uint32_t x, uint32_t cvt_mode)
             for (k = 0, dst[0] = 0; i < j && k < 31; i++)
             {
                 c = tbl_ptr[i];
-                if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '+' || c == '-' || c == '.') // look for valid numeric characters
+                if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '+' || c == '-' || c == '.' || c == '/') // look for valid numeric characters
                 {
                     // record valid character into string
                     dst[k] = c;
@@ -437,10 +436,14 @@ static bool get_str_at_tbl_idx(char* tbl, int idx, char* dst)
             for (k = 0; k < 30 && i < j; i++)
             {
                 c = tbl[i];
-                if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '+' || c == '-' || c == '.') {
+                if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '+' || c == '-' || c == '.' || c == '/') {
                     dst[k] = c;
                     dst[k + 1] = 0;
                     k++;
+                }
+                else if (c == ',')
+                {
+                    break;
                 }
             }
             if (k > 0)
@@ -559,6 +562,7 @@ int AlphaFairyCamera::getIdx_expoComp(int32_t x)
 
 uint32_t AlphaFairyCamera::getVal_shutter(int idx)
 {
+    idx = idx < 0 ? 0 : idx;
     if (cam_ptp->isOperating() && cam_ptp->table_shutter_speed != NULL) {
         uint32_t* tbl = (uint32_t*)&(cam_ptp->table_shutter_speed[1]);
         if (idx >= cam_ptp->table_shutter_speed[0]) {
@@ -582,6 +586,7 @@ uint32_t AlphaFairyCamera::getVal_shutter(int idx)
 
 uint32_t AlphaFairyCamera::getVal_aperture(int idx)
 {
+    idx = idx < 0 ? 0 : idx;
     if (cam_ptp->isOperating() && cam_ptp->table_aperture != NULL) {
         uint16_t* tbl = (uint16_t*)&(cam_ptp->table_aperture[1]);
         if (idx >= cam_ptp->table_aperture[0]) {
@@ -605,6 +610,7 @@ uint32_t AlphaFairyCamera::getVal_aperture(int idx)
 
 uint32_t AlphaFairyCamera::getVal_iso(int idx)
 {
+    idx = idx < 0 ? 0 : idx;
     if (cam_ptp->isOperating() && cam_ptp->table_iso != NULL) {
         uint32_t* tbl = (uint32_t*)&(cam_ptp->table_iso[1]);
         if (idx >= cam_ptp->table_iso[0]) {

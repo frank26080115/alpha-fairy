@@ -750,9 +750,6 @@ void infoscr_changeVal(int8_t tilt)
             break;
         case EDITITEM_EXPOCOMP:
             cur_idx = fairycam.getIdx_expoComp(infoscr_reqExpoComp);
-            if (cur_idx < 0) {
-                break;
-            }
             next_idx = cur_idx + (tilt > 0 ? 1 : -1);
             sx = fairycam.getVal_expoComp(next_idx);
             fairycam.cmd_ExpoCompSet(sx);
@@ -861,7 +858,7 @@ void infoscr_startEdit()
 
         if (btnPwr_hasPressed())
         {
-            // btnPwr_clrPressed(); // do not clear, quit all layers
+            btnPwr_clrPressed();
             break;
         }
 

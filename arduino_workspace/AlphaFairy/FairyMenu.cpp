@@ -51,27 +51,57 @@ FairySubmenu::FairySubmenu(const char* img_fname, uint16_t id) : FairyMenuItem(i
 
 bool FairySubmenu::on_execute(void)
 {
+    uint32_t t = millis();
     cpufreq_boost();
     rewind();
     imu.resetSpin();
     FairyMenuItem* itm = (FairyMenuItem*)cur_node->item;
-    itm->on_navTo();
-    app_waitAllRelease();
-    do
-    {
-        if (app_poll()) // true if low priority tasks can execute
-        {
-            tallylite_task();
+    itm->on_navTo(); // this does a redraw
 
-            if (task()) // true if user wants to exit out of submenu
+    bool run_normally = true;
+
+    if (itm->get_quickEnter())
+    {
+        while (btnBig_isPressed()) // must hold button
+        {
+            app_poll();
+            if ((millis() - t) > 1000) // must hold button for this long
             {
-                itm->on_navOut();
+                run_normally = false;
                 break;
             }
-            pwr_sleepCheck();
         }
-    } 
-    while (true);
+
+        if (run_normally == false) // quick enter has triggered
+        {
+            sprites->unload_all();
+            itm->on_execute();
+            sprites->unload_all();
+            itm->on_navOut(); // direct exit anyways
+        }
+    }
+
+    if (run_normally)
+    {
+        app_waitAllRelease();
+
+        do
+        {
+            if (app_poll()) // true if low priority tasks can execute
+            {
+                tallylite_task();
+
+                if (task()) // true if user wants to exit out of submenu
+                {
+                    itm->on_navOut();
+                    break;
+                }
+                pwr_sleepCheck();
+            }
+        } 
+        while (true);
+    }
+
     // user exit
     set_redraw();
     return false;

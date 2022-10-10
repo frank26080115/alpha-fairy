@@ -62,9 +62,14 @@ class FairyMenuItem : public FairyItem
         inline  int16_t  get_mainImage_X  (void) { return _main_img_x; };
         inline  int16_t  get_mainImage_Y  (void) { return _main_img_y; };
 
+        inline  void     set_quickEnter   (bool x) { _can_quickEnter = x; };
+        inline  bool     get_quickEnter   (void)   { return _can_quickEnter; };
+
     protected:
         char* _main_img;
         int16_t _main_img_x = 0, _main_img_y = 0;
+
+        bool _can_quickEnter = false;
 
         bool must_be_connected(void); // convenient to show the "connecting..." animation when required // returns true if connected, false if disconnected
         bool must_be_ptp(void);       // convenient to show the "unsupported camera" error screen, also uses must_be_connected // returns true if connected and supported, false if otherwise unable to operate

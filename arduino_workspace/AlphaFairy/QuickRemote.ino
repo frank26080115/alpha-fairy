@@ -172,6 +172,7 @@ class AppQuickRemote : public FairyMenuItem
     public:
         AppQuickRemote() : FairyMenuItem("/qikrmt_faded.png") // main image is the faded version, the loop will draw the active version when required
         {
+            _can_quickEnter = true;
             reset();
         };
 
@@ -189,7 +190,8 @@ class AppQuickRemote : public FairyMenuItem
         virtual bool on_execute(void)
         {
             reset();
-            set_redraw();
+            M5Lcd.drawPngFile(SPIFFS, "/qikrmt_active.png", 0, 0);
+            redraw_flag = false;
             app_waitAllRelease();
 
             while (true)
@@ -285,6 +287,8 @@ class AppQuickRemote : public FairyMenuItem
                                     toCycle = false;
                                     btnSide_clrPressed();
                                     infoscr_startEdit();
+                                    qikrmt_imuState = QIKRMTIMU_FREE;
+                                    qikrmt_row = 0;
                                     redraw_flag = true;
                                 }
                             }
