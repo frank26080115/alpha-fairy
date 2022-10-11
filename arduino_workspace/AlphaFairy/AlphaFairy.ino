@@ -21,11 +21,13 @@
 PtpIpSonyAlphaCamera ptpcam((char*)"ALPHA-FAIRY", NULL);
 SonyHttpCamera       httpcam;
 AlphaFairyCamera     fairycam(&ptpcam, &httpcam);
-DebuggingSerial      dbg_ser(&Serial);
 
-#if defined(SERDBG_DISABLE) && !defined(DISABLE_ALL_MSG)
-#error serial port disabled via library but messages are enabled
+#ifdef DISABLE_ALL_MSG
+DebuggingSerialDisabled
+#else
+DebuggingSerial
 #endif
+                        dbg_ser(&Serial);
 
 uint32_t gpio_time = 0; // keeps track of the GPIO shutter activation time so it doesn't get stuck
 
@@ -270,6 +272,73 @@ class AppAboutMe : public FairyMenuItem
         AppAboutMe() : FairyMenuItem("/about.png")
         {
         };
+
+        virtual bool on_execute(void)
+        {
+            int loop_cnt = 0;
+            int16_t ystart = 110;
+            M5Lcd.fillRect(0, ystart, M5Lcd.width(), M5Lcd.height() - ystart - 14, TFT_WHITE);
+            do
+            {
+                gui_startMenuPrint();
+                M5Lcd.setCursor(SUBMENU_X_OFFSET, ystart);
+                #ifndef ENABLE_BUILD_LEPTON
+                M5Lcd.print("Build");
+                ystart += M5Lcd.fontHeight() + 2;
+                M5Lcd.setCursor(SUBMENU_X_OFFSET, ystart);
+                #endif
+                M5Lcd.printf("V %s", ALFY_VERSION); // found in alfy_conf.h , please change with every new build
+                ystart += M5Lcd.fontHeight() + 2;
+                M5Lcd.setCursor(SUBMENU_X_OFFSET, ystart);
+                M5Lcd.setTextFont(2);
+                #ifdef ENABLE_BUILD_LEPTON
+                M5Lcd.print("LEPTON");
+                ystart += M5Lcd.fontHeight() + 2;
+                M5Lcd.setCursor(SUBMENU_X_OFFSET, ystart);
+                #endif
+                M5Lcd.print("Debug ");
+                #ifdef DISABLE_ALL_MSG
+                    M5Lcd.print("OFF");
+                #else
+                    M5Lcd.print("ON");
+                #endif
+                ystart += M5Lcd.fontHeight() + 2;
+                M5Lcd.setCursor(SUBMENU_X_OFFSET, ystart);
+                M5Lcd.print("CMD-line ");
+                #ifdef DISABLE_ALL_MSG
+                    M5Lcd.print("OFF");
+                #else
+                    M5Lcd.print("ON");
+                #endif
+                ystart += M5Lcd.fontHeight() + 2;
+                M5Lcd.setCursor(SUBMENU_X_OFFSET, ystart);
+                #ifdef DISABLE_POWER_SAVE
+                    M5Lcd.print("PWR-save OFF");
+                    ystart += M5Lcd.fontHeight() + 2;
+                    M5Lcd.setCursor(SUBMENU_X_OFFSET, ystart);
+                #endif
+                #ifdef DISABLE_STATUS_BAR
+                    M5Lcd.print("STS-bar OFF");
+                    ystart += M5Lcd.fontHeight() + 2;
+                    M5Lcd.setCursor(SUBMENU_X_OFFSET, ystart);
+                #endif
+
+                // if the screen overflows, try redrawing everything but full-screen
+                if (ystart >= M5Lcd.height() - 16) {
+                    ystart = 0;
+                    M5Lcd.fillRect(0, ystart, M5Lcd.width(), M5Lcd.height() - ystart - 14, TFT_WHITE);
+                    ystart = SUBMENU_Y_OFFSET;
+                    continue;
+                }
+                else
+                {
+                    break;
+                }
+            }
+            while ((loop_cnt++) <= 2);
+            app_waitAllRelease();
+            return false;
+        };
 };
 
 void setup_aboutme(void)
@@ -293,6 +362,12 @@ void spiffs_init(void)
         // single file is a sufficient check.
         fail = 2;
     }
+    else if (!SPIFFS.exists("/chk0.txt"))
+    {
+        // use this file to make sure the version matches the files
+        // change the file name when files are updated
+        fail = 3;
+    }
 
     // If there was any issue finding the images, give the user a helpful message
     if (fail != 0)
@@ -303,12 +378,22 @@ void spiffs_init(void)
         M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);
         M5Lcd.printf("ERROR!!!");
         M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET + 25);
-        M5Lcd.printf("Image Files Missing");
+        if (fail != 3) {
+            M5Lcd.printf("Image Files Missing");
+        }
+        else {
+            M5Lcd.printf("Files out-of-date");
+        }
         M5Lcd.setTextFont(2);
         M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET + 50);
         M5Lcd.printf("Please use the Arduino IDE");
         M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET + 68);
-        M5Lcd.printf("to upload the missing files");
+        if (fail != 3) {
+            M5Lcd.printf("to upload the missing files");
+        }
+        else {
+            M5Lcd.printf("to upload the new files");
+        }
 
         // We should still let the user power off... No sense killing the battery.
         while (true)

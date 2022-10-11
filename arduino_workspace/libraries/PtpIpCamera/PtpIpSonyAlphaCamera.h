@@ -66,11 +66,11 @@ class PtpIpSonyAlphaCamera : public PtpIpCamera
         bool cmd_ManualFocusMode(bool onoff, bool precheck = false);
         bool cmd_ManualFocusToggle(bool onoff);
         bool cmd_ShutterSpeedStep(int8_t step);
-        bool cmd_ShutterSpeedSet(int16_t numerator, int16_t denominator);
-        bool cmd_ShutterSpeedSet32(uint32_t x);
-        bool cmd_IsoSet(uint32_t x);
-        bool cmd_ApertureSet(uint16_t x);
-        bool cmd_ExpoCompSet(int32_t x);
+        //bool cmd_ShutterSpeedSet(int16_t numerator, int16_t denominator); // disabled, unfriendly API
+        bool cmd_ShutterSpeedSet32(uint32_t x);  // input parameter expects a 16 bit numerator and 16 bit denominator, and must be an exact match for an item from the corresponding enum list
+        bool cmd_IsoSet(uint32_t x);             // input parameter expects value to be a positive integer, and must be an exact match for an item from the corresponding enum list, meaning the "double bar" flag must exist for some items
+        bool cmd_ApertureSet(uint16_t x);        // input parameter expects value to be x * 1000 where x is the f/num, must be an exact match for an item from the corresponding enum list
+        bool cmd_ExpoCompSet(int32_t x);         // input parameter expects value to be x * 1000 where x is stops of light, but with 2nd decimal place 0, example: +1.7 ev must be specified as 1700, 1666 should be rounded to 1700
         bool cmd_arb(uint32_t opcode, uint32_t propcode, uint8_t* payload, uint32_t payload_len);
 
         #ifdef PTPIP_ENABLE_STREAMING

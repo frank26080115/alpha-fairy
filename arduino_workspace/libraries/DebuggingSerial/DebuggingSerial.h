@@ -9,8 +9,6 @@ so that an application can put print statements everywhere without messy conditi
 #include <Arduino.h>
 #include <HardwareSerial.h>
 
-#define SERDBG_DISABLE
-
 class DebuggingSerial : public HardwareSerial
 {
     public:
@@ -19,7 +17,18 @@ class DebuggingSerial : public HardwareSerial
         // override the functions that HardwareSerial have that calls a real UART function
         size_t write(uint8_t c);
         size_t write(const uint8_t *buffer, size_t size);
-        #ifdef SERDBG_DISABLE
+    protected:
+        HardwareSerial* ser_obj;
+};
+
+class DebuggingSerialDisabled : public HardwareSerial
+{
+    public:
+        DebuggingSerialDisabled(HardwareSerial* s);
+        bool enabled;
+        // override the functions that HardwareSerial have that calls a real UART function
+        size_t write(uint8_t c);
+        size_t write(const uint8_t *buffer, size_t size);
         size_t printf(const char * format, ...)  __attribute__ ((format (printf, 2, 3)));
         size_t print(const __FlashStringHelper *);
         size_t print(const String &);
@@ -50,7 +59,6 @@ class DebuggingSerial : public HardwareSerial
         size_t println(const Printable&);
         size_t println(struct tm * timeinfo, const char * format = NULL);
         size_t println(void);
-        #endif
     protected:
         HardwareSerial* ser_obj;
 };
