@@ -4,7 +4,7 @@
 class AppFocusStack : public FairyMenuItem
 {
     public:
-        AppFocusStack() : FairyMenuItem("/focusstack_far_2.png")
+        AppFocusStack() : FairyMenuItem("/focusstack.png")
         {
             _speed = 3;
         };
