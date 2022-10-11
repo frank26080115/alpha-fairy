@@ -24,8 +24,7 @@ The fun part about this project for me is to create a usable user interface on a
 
 ![](doc/img/features_family_photo.png)
 
- * Remote Shutter (with optional timer)
- * Remote Movie Record
+ * Remote Shutter (with optional timer), Movie Record, Settings View/Adjust
  * Focus Stack
    * takes consecutive photos as the focus is slowly shifted, this is a technique used in macro photography and some other camera brands offer this in-camera (but not Sony)
  * Focus 9-Point

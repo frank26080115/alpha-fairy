@@ -6,6 +6,12 @@
 
 This project is not a product, it is my experiment. Some of the features I've implemented are purely for fun and are gimmicks. Some of them may not work all of the time, and have camera compatibility issues.
 
+## Map of All Menu Items
+
+[Click to zoom in](https://raw.githubusercontent.com/frank26080115/alpha-fairy/main/doc/img/menu_map.svg)
+
+![https://raw.githubusercontent.com/frank26080115/alpha-fairy/main/doc/img/menu_map.svg](doc/img/menu_map_lq.jpg)
+
 ## Quick Remote
 
 ![](doc/img/quickremote_demo.webp)
@@ -67,6 +73,10 @@ This is a simple camera settings display. (inspired by cameras that actually hav
 ![](doc/img/virtual-top-panel.jpg)
 
 It is activated by using the Quick-Remote feature, but tilting forward to the extreme. Pressing the side-button will lock it into this mode once this mode is displayed. Pressing the big-button will cycle through 4 display styles (landscape vs portrait, black vs white).
+
+Pressing-and-holding the big button, then pressing the side button while the big button is still held, will activate **EDIT-MODE**. This mode is where the user can change the shutter speed, aperture, ISO, or exposure compensation.
+
+In edit-mode, pressing the side button will select an item to edit, tilting the remote left or right will determine the direction of the edit, and pressing the big button will perform the edit.
 
 ## Focus Pull
 
