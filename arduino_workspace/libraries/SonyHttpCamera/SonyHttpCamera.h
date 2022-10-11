@@ -228,14 +228,16 @@ class SonyHttpCamera
         void cmd_ZoomStop(void);
         void cmd_FocusPointSet16(int16_t x, int16_t y);
         void cmd_FocusPointSetF(float x, float y);
-        void cmd_ShutterSpeedSetStr(char*);
-        void cmd_IsoSet(uint32_t x);
-        void cmd_IsoSetStr(char*);
-        void cmd_ApertureSet(float x);
-        void cmd_ApertureSet32(uint32_t x);
-        void cmd_ApertureSetStr(char*);
-        void cmd_ExpoCompSet32(int32_t x);
-        void cmd_ExpoCompSetIdx(int32_t x);
+
+        void cmd_ShutterSpeedSetStr(char*); // input parameter must match string from "shutterSpeedCandidates"
+        void cmd_IsoSet(uint32_t x);        // input parameter must match format from PTP mode
+        void cmd_IsoSetStr(char*);          // input parameter must match string from "isoSpeedRateCandidates"
+        void cmd_ApertureSet(float x);      // input parameter must match string from "fNumberCandidates" after string formatting with "%0.1f"
+        void cmd_ApertureSet32(uint32_t x); // input parameter must match format from PTP mode
+        void cmd_ApertureSetStr(char*);     // input parameter must match string from "fNumberCandidates"
+        void cmd_ExpoCompSet32(int32_t x);  // input parameter must match format from PTP mode
+        void cmd_ExpoCompSetIdx(int32_t x); // input parameter is a signed integer number, each step represents 1/3 of a stop
+
         void cmd_ManualFocusMode(bool onoff, bool precheck = false);
         void cmd_ManualFocusToggle(bool onoff);
         void cmd_AutoFocus(bool onoff);

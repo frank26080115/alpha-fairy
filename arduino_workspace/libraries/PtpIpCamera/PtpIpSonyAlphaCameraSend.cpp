@@ -32,6 +32,7 @@ bool PtpIpSonyAlphaCamera::cmd_ZoomStep(int16_t step)
     return send_oper_req((uint32_t)SONYALPHA_OPCODE_SetControlDeviceB, &propcode, 1, (uint8_t*)&step, 2);
 }
 
+#if 0 // disabled, unfriendly API
 bool PtpIpSonyAlphaCamera::cmd_ShutterSpeedSet(int16_t numerator, int16_t denominator)
 {
     wait_while_busy(0, DEFAULT_BUSY_TIMEOUT, NULL);
@@ -39,6 +40,7 @@ bool PtpIpSonyAlphaCamera::cmd_ShutterSpeedSet(int16_t numerator, int16_t denomi
     int16_t data[] = {denominator, numerator};
     return send_oper_req((uint32_t)SONYALPHA_OPCODE_SetControlDeviceA, &propcode, 1, (uint8_t*)data, sizeof(int16_t) * 2);
 }
+#endif
 
 bool PtpIpSonyAlphaCamera::cmd_ShutterSpeedSet32(uint32_t x)
 {
@@ -82,10 +84,13 @@ bool PtpIpSonyAlphaCamera::cmd_ApertureSet(uint16_t x)
 
 bool PtpIpSonyAlphaCamera::cmd_ExpoCompSet(int32_t x)
 {
+    // command parameter must be one of the values from the enum list
+    // which just means some rounding is needed, just in case
     float fx = x;
     fx /= 100.0;
     int32_t y = (int32_t)lround(fx);
     y *= 100;
+
     wait_while_busy(0, DEFAULT_BUSY_TIMEOUT, NULL);
     uint32_t propcode = SONYALPHA_PROPCODE_ExpoComp;
     return send_oper_req((uint32_t)SONYALPHA_OPCODE_SetControlDeviceA, &propcode, 1, (uint8_t*)&y, sizeof(int32_t));

@@ -789,17 +789,6 @@ void infoscr_printEditIndicator()
     M5Lcd.setTextColor(infoscr_forecolour, infoscr_backcolour);
     M5Lcd.print(" ");
     infoscr_blankLine(true);
-
-    if (btnBig_hasPressed())
-    {
-        btnBig_clrPressed();
-
-        if (tilt == 0) {
-            return;
-        }
-
-        infoscr_changeVal(tilt);
-    }
 }
 
 void infoscr_startEdit()
@@ -831,7 +820,97 @@ void infoscr_startEdit()
 
         infoscr_print();
 
-        // big button is handled in infoscr_printEditIndicator(), which is inside infoscr_print()
+        
+        if (btnBig_hasPressed())
+        {
+            uint32_t t = millis();
+            volatile uint32_t tspan = 700;
+            btnBig_clrPressed();
+
+            int8_t tilt = imu.getTilt();
+
+            if (tilt != 0)
+            {
+                infoscr_changeVal(tilt);
+                infoscr_print();
+
+                // press and hold to repeatedly change
+                while (btnBig_isPressed())
+                {
+                    if (app_poll() == false) {
+                        continue;
+                    }
+
+                    int8_t tilt2 = imu.getTilt();
+                    if (tilt2 != tilt) { // tilt changed, make sure indicator updates
+                        redraw_flag = true;
+                    }
+                    if (redraw_flag) {
+                        infoscr_setup(infoscr_mode, true);
+                        infoscr_print();
+                    }
+
+                    if (tilt2 != 0)
+                    {
+                        uint32_t t2 = millis();
+                        uint32_t dt = t2 - t;
+                        if (dt >= tspan) // time to perform a tick
+                        {
+                            t = t2;
+                            if (tspan > 200) { // can still accelerate repetition
+                                tspan *= 3;
+                                tspan /= 4;
+                            }
+                            infoscr_changeVal(tilt2);
+                            infoscr_print();
+                        }
+                    }
+                    else
+                    {
+                        // no tilt, cancel acceleration but make sure next change is immediate`
+                        t = 0;
+                        tspan = 700;
+                    }
+                    tilt = tilt2;
+
+                    // ignore side button presses
+                    if (btnSide_hasPressed()) {
+                        btnSide_clrPressed();
+                    }
+                    // quit via pwr button
+                    if (btnPwr_hasPressed()) {
+                        // do not clear, quit out on next check
+                        break;
+                    }
+                }
+            }
+            btnBig_clrPressed();
+            imu.resetSpin();
+        }
+
+        #ifdef ENABLE_BUILD_LEPTON
+        {
+            bool enc_btn = false;
+            int16_t enc_inc = 0;
+            int16_t enc_rem;
+            lepton_encRead(&enc_btn, &enc_inc, &enc_rem);
+            if (enc_inc != 0)
+            {
+                infoscr_changeVal(enc_inc);
+                infoscr_print();
+            }
+        }
+        #endif
+
+        if (imu.getSpin() != 0)
+        {
+            // spin counterclockwise to exit edit mode
+            if (imu.getSpin() < 0) {
+                imu.resetSpin();
+                break;
+            }
+            imu.resetSpin();
+        }
 
         if (btnSide_hasPressed())
         {

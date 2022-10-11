@@ -39,6 +39,16 @@ The first property packet decoder I wrote worked on an older A6600 camera, it co
 
 There isn't any indicator if a camera model used the older property packet format or the newer one, so supporting additional camera models is difficult and requires additional packet sniffing.
 
+The newer packet format seems to include multiple enum lists for each property, instead of the older way of including just one enum list. I don't know why there are two lists, it could be one list each for photo mode and movie mode, or it could be a list with items that are enabled and another list with all possible items so that a GUI can grey-out some items. I did not put the effort into investigating this further, and my code simply keeps track of the size of the list, and copies the list when a new list is longer than the remembered list.
+
+These lists (available options) can change during run-time, according to:
+
+ * mechanical vs electronic shutter
+ * whether or not BULB mode is available
+ * ISO range specified by the user
+ * movie vs photo mode
+ * what apertures are available on the attached lens
+
 To help myself understand more of the unknown individual property items, I experimented with code that monitored each individual property for changes. I monitored these changes as I played around with my camera. This allowed me to fill in the gaps that my other resources lacked.
 
 ## Other Gotchas

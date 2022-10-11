@@ -32,11 +32,18 @@
 extern PtpIpSonyAlphaCamera ptpcam;
 extern SonyHttpCamera       httpcam;
 extern AlphaFairyCamera     fairycam;
-extern DebuggingSerial      dbg_ser;
 extern SerialCmdLine        cmdline;
 extern configsettings_t     config_settings;
 extern AlphaFairyImu        imu;
 extern SpriteMgr* sprites;
+
+extern
+#ifdef DISABLE_ALL_MSG
+    DebuggingSerialDisabled
+#else
+    DebuggingSerial
+#endif
+                            dbg_ser;
 
 extern bool app_poll(void);
 

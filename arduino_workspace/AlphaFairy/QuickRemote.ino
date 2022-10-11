@@ -24,11 +24,20 @@ void qikrmt_task(bool freeze_row)
     {
         btn_down_time = millis();
         btnSide_clrPressed();
-        if (qikrmt_imuState == QIKRMTIMU_LOCKED) {
-            qikrmt_imuState = QIKRMTIMU_FREE;
+        if (qikrmt_row != QIKRMT_ROW_INFOSCR) 
+        {
+            if (qikrmt_imuState == QIKRMTIMU_LOCKED) {
+                qikrmt_imuState = QIKRMTIMU_FREE;
+            }
+            else {
+                qikrmt_imuState = QIKRMTIMU_LOCKED;
+            }
         }
-        else {
-            qikrmt_imuState = QIKRMTIMU_LOCKED;
+        else
+        {
+            // quickly return from info screen, immediately allow user choice
+            qikrmt_imuState = QIKRMTIMU_FREE;
+            qikrmt_row = 0;
         }
     }
     // holding down the side button means the unlock is only temporary
@@ -45,6 +54,31 @@ void qikrmt_task(bool freeze_row)
         if (qikrmt_imuState == QIKRMTIMU_FREE_TEMP) {
             qikrmt_imuState = QIKRMTIMU_LOCKED;
         }
+    }
+
+    if (imu.getSpin() != 0)
+    {
+        // use spin to go into info screen
+        if (qikrmt_row != QIKRMT_ROW_INFOSCR) {
+            qikrmt_row = QIKRMT_ROW_INFOSCR;
+            tallylite_enable = false;
+            qikrmt_imuState = QIKRMTIMU_LOCKED;
+        }
+        else if (qikrmt_imuState == QIKRMTIMU_LOCKED && imu.getSpin() < 0)
+        {
+            // use spin to get out of info screen only with counterclockwise rotation
+            qikrmt_row = 0;
+            qikrmt_imuState = QIKRMTIMU_FREE;
+        }
+        else if (qikrmt_imuState == QIKRMTIMU_LOCKED && imu.getSpin() > 0)
+        {
+            // clockwise spin enteres edit mode
+            infoscr_startEdit();
+            qikrmt_imuState = QIKRMTIMU_FREE;
+            qikrmt_row = 0;
+        }
+        redraw_flag = true;
+        imu.resetSpin();
     }
 
     if (qikrmt_imuState == QIKRMTIMU_FREE || qikrmt_imuState == QIKRMTIMU_FREE_TEMP)
@@ -290,6 +324,7 @@ class AppQuickRemote : public FairyMenuItem
                                     qikrmt_imuState = QIKRMTIMU_FREE;
                                     qikrmt_row = 0;
                                     redraw_flag = true;
+                                    imu.resetSpin();
                                 }
                             }
                         }
