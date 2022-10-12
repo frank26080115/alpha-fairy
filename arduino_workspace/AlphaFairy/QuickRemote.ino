@@ -35,9 +35,14 @@ void qikrmt_task(bool freeze_row)
         }
         else
         {
-            // quickly return from info screen, immediately allow user choice
-            qikrmt_imuState = QIKRMTIMU_FREE;
-            qikrmt_row = 0;
+            if (qikrmt_imuState == QIKRMTIMU_LOCKED) {
+                // quickly return from info screen, immediately allow user choice
+                qikrmt_row = 0;
+                qikrmt_imuState = QIKRMTIMU_FREE;
+            }
+            else {
+                qikrmt_imuState = QIKRMTIMU_LOCKED;
+            }
         }
     }
     // holding down the side button means the unlock is only temporary
