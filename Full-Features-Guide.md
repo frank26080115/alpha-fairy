@@ -78,6 +78,8 @@ Pressing-and-holding the big button, then pressing the side button while the big
 
 In edit-mode, pressing the side button will select an item to edit, tilting the remote left or right will determine the direction of the edit, and pressing the big button will perform the edit.
 
+![](doc/img/tilt_cam_settings.webp)
+
 ## Focus Pull
 
 ![](doc/img/focus_pull_imu.webp)
