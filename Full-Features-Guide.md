@@ -38,6 +38,8 @@ Rotate the remote to change the time delay amount.
 
 ![](doc/img/soundtrigger.jpg)
 
+![](doc/img/pir_motion_sensor.jpg)
+
 The trigger source is configurable between: ALL (any), microphone, external input, IMU
 
 The trigger action is configurable between: photo, video, intervalometer
