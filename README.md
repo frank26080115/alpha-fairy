@@ -77,3 +77,5 @@ Battery life is a bit short. Do not use it for intervalometer purposes without a
 https://user-images.githubusercontent.com/1427911/187117478-654adc80-a0a3-48cf-8b0b-643bfd7b2884.mp4
 
 https://user-images.githubusercontent.com/1427911/187117818-dda28b7c-d5e2-45bd-96e9-6ff3c6a178e0.mp4
+
+https://user-images.githubusercontent.com/1427911/195257775-e0213d1b-5642-413e-9474-2736aee4f98b.mp4
