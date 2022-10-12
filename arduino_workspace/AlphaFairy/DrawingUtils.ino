@@ -101,7 +101,8 @@ void gui_drawTopThickLine(uint16_t thickness, uint16_t colour)
 void gui_showVal(int32_t x, uint32_t txtfmt, Print* printer)
 {
     char str[64]; int i = 0;
-    if (txtfmt == TXTFMT_BOOL) {
+    uint32_t txtfmt_masked = txtfmt & TXTFMT_BASEMASK;
+    if (txtfmt_masked == TXTFMT_BOOL) {
         if (x == 0) {
             i += sprintf(&(str[i]), "NO");
         }
@@ -109,7 +110,7 @@ void gui_showVal(int32_t x, uint32_t txtfmt, Print* printer)
             i += sprintf(&(str[i]), "YES");
         }
     }
-    else if (txtfmt == TXTFMT_BULB) {
+    else if (txtfmt_masked == TXTFMT_BULB) {
         if (x == 0) {
             // when bulb = 0, the shutter speed setting on the camera is used
             i += sprintf(&(str[i]), "(Tv)");
@@ -118,13 +119,13 @@ void gui_showVal(int32_t x, uint32_t txtfmt, Print* printer)
             gui_formatSecondsTime(x, str, false);
         }
     }
-    else if (txtfmt == TXTFMT_TIMELONG) {
+    else if (txtfmt_masked == TXTFMT_TIMELONG) {
         gui_formatSecondsTime(x, str, true);
     }
-    else if (txtfmt == TXTFMT_TIME) {
+    else if (txtfmt_masked == TXTFMT_TIME) {
         gui_formatSecondsTime(x, str, false);
     }
-    else if (txtfmt == TXTFMT_TIMEMS) {
+    else if (txtfmt_masked == TXTFMT_TIMEMS) {
         // if time is provided in milliseconds
         // print the time as usual (after calculating the whole seconds)
         x = x < 0 ? 0 : x;
@@ -134,13 +135,13 @@ void gui_showVal(int32_t x, uint32_t txtfmt, Print* printer)
         // add one decimal place
         sprintf(&(str[strlen(str)]), ".%d", tsubsec);
     }
-    else if (txtfmt == TXTFMT_SHUTTER) {
+    else if (txtfmt_masked == TXTFMT_SHUTTER) {
         gui_formatShutterSpeed(x, str);
     }
-    else if (txtfmt == TXTFMT_ISO) {
+    else if (txtfmt_masked == TXTFMT_ISO) {
         gui_formatISO(x, str);
     }
-    else if (txtfmt == TXTFMT_PROTOCOL) {
+    else if (txtfmt_masked == TXTFMT_PROTOCOL) {
         if (x == ALLOWEDPROTOCOL_ALL) {
             i += sprintf(&(str[i]), "ALL");
         }
@@ -151,7 +152,7 @@ void gui_showVal(int32_t x, uint32_t txtfmt, Print* printer)
             i += sprintf(&(str[i]), "HTTP (older)");
         }
     }
-    else if (txtfmt == TXTFMT_TRIGSRC) {
+    else if (txtfmt_masked == TXTFMT_TRIGSRC) {
         if ((txtfmt & TXTFMT_SMALL) == 0)
         {
             if (x == TRIGSRC_ALL) {
@@ -193,7 +194,7 @@ void gui_showVal(int32_t x, uint32_t txtfmt, Print* printer)
             #endif
         }
     }
-    else if (txtfmt == TXTFMT_TRIGACT) {
+    else if (txtfmt_masked == TXTFMT_TRIGACT) {
         if ((txtfmt & TXTFMT_SMALL) == 0)
         {
             if (x == TRIGACT_PHOTO) {
@@ -219,7 +220,7 @@ void gui_showVal(int32_t x, uint32_t txtfmt, Print* printer)
             }
         }
     }
-    else if (txtfmt == TXTFMT_PINCFG) {
+    else if (txtfmt_masked == TXTFMT_PINCFG) {
         if (x == PINCFG_NONE) {
             i += sprintf(&(str[i]), "none");
         }
@@ -233,7 +234,7 @@ void gui_showVal(int32_t x, uint32_t txtfmt, Print* printer)
             }
         }
     }
-    else if (txtfmt == TXTFMT_TALLEYLITE) {
+    else if (txtfmt_masked == TXTFMT_TALLEYLITE) {
         if (x == TALLYLITE_OFF) {
             i += sprintf(&(str[i]), "OFF");
         }
@@ -288,7 +289,7 @@ void gui_showVal(int32_t x, uint32_t txtfmt, Print* printer)
         }
     }
 
-    if (txtfmt == TXTFMT_LCDBRITE) {
+    if (txtfmt_masked == TXTFMT_LCDBRITE) {
         M5.Axp.ScreenBreath(x);
     }
 

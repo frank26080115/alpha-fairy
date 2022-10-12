@@ -338,8 +338,13 @@ void pwr_airplaneModeExit()
         wifiprofile_connect(config_settings.wifi_profile);
     }
     #else
-    while (true) {
-        ESP.restart();
+    if (airplane_mode)
+    {
+        M5Lcd.fillScreen(TFT_BLACK);
+        draw_borderRect(3, TFT_ORANGE);
+        while (true) {
+            ESP.restart();
+        }
     }
     #endif
     airplane_mode = false;

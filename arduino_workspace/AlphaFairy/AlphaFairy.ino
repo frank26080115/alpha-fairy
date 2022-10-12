@@ -326,7 +326,7 @@ class AppAboutMe : public FairyMenuItem
                 // if the screen overflows, try redrawing everything but full-screen
                 if (ystart >= M5Lcd.height() - 16) {
                     ystart = 0;
-                    M5Lcd.fillRect(0, ystart, M5Lcd.width(), M5Lcd.height() - ystart - 14, TFT_WHITE);
+                    M5Lcd.fillRect(0, ystart, M5Lcd.width(), M5Lcd.height() - ystart, TFT_WHITE);
                     ystart = SUBMENU_Y_OFFSET;
                     continue;
                 }

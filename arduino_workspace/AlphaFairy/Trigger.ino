@@ -186,6 +186,7 @@ void trigger_drawActionIcon(int16_t y)
     else
     {
         M5Lcd.fillRect(x, y, w, w, TFT_BLACK);
+        //M5Lcd.drawPngFile(SPIFFS, "/trap_icon.png", x, y);
     }
 }
 
@@ -326,6 +327,7 @@ class PageTriggerImuAccel : public PageTrigger
         virtual void on_navTo(void)
         {
             imutrig_accelBarPeak = 0;
+            PageTrigger::on_navTo();
         };
 };
 
@@ -344,6 +346,12 @@ class PageTriggerImuRot : public PageTrigger
         virtual bool can_navTo(void)
         {
             return trigger_source == TRIGSRC_IMU || trigger_source == TRIGSRC_ALL;
+        };
+
+        virtual void on_navTo(void)
+        {
+            imutrig_gyroBarPeak = 0;
+            PageTrigger::on_navTo();
         };
 };
 
@@ -477,6 +485,7 @@ class PageTriggerArm : public PageTrigger
                 return; // user quit
             }
             pwr_tick(true);
+            sprites->unload_all();
 
             do // this loop is for auto-retriggering
             {
@@ -564,6 +573,7 @@ class PageTriggerArm : public PageTrigger
                         return; // user quit
                     }
                     pwr_tick(true);
+                    sprites->unload_all();
                 }
 
                 t = millis();
@@ -597,6 +607,7 @@ class PageTriggerArm : public PageTrigger
                             vid_quit = true; // user quit
                         }
                         pwr_tick(true);
+                        sprites->unload_all();
                         cam_videoStop();
                         t = millis();
                     }
@@ -630,6 +641,7 @@ class PageTriggerArm : public PageTrigger
                         return;
                     }
                     pwr_tick(true);
+                    sprites->unload_all();
                 }
 
                 // quit on button press

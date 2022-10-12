@@ -298,6 +298,7 @@ bool intervalometer_func(void* ptr)
 
     } // end of for-loop
 
+    sprites->unload_all();
     redraw_flag = true; // force parent to redraw
     app_waitAllRelease();
     return false;

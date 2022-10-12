@@ -1,7 +1,7 @@
 #ifndef _ALFY_CONF_H_
 #define _ALFY_CONF_H_
 
-#define ALFY_VERSION "1.0.1" // change this with every new build
+#define ALFY_VERSION "1.0.2" // change this with every new build
 
 //#define WIFI_AP_UNIQUE_NAME
 #ifndef WIFI_AP_UNIQUE_NAME
