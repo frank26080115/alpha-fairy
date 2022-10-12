@@ -10,7 +10,7 @@ This project is not a product, it is my experiment. Some of the features I've im
 
 [Click to zoom in](https://raw.githubusercontent.com/frank26080115/alpha-fairy/main/doc/img/menu_map.png)
 
-![https://raw.githubusercontent.com/frank26080115/alpha-fairy/main/doc/img/menu_map.png](doc/img/menu_map_lq.jpg)
+[![](doc/img/menu_map_lq.jpg)](https://raw.githubusercontent.com/frank26080115/alpha-fairy/main/doc/img/menu_map.png)
 
 ## Quick Remote
 
