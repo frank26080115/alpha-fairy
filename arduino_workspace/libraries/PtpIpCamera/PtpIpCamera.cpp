@@ -616,6 +616,9 @@ bool PtpIpCamera::isKindaBusy()
             return true;
         }
     }
+    if (state >= PTPSTATE_DISCONNECT || state <= PTPSTATE_START_WAIT) {
+        return false;
+    }
     return true;
 }
 

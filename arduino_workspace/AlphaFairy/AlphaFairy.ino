@@ -94,7 +94,10 @@ void setup()
 
     #ifdef DISABLE_ALL_MSG
     dbg_ser.enabled = false;
-    ptpcam.set_debugflags(0);
+    fairycam.set_debugflags(0);
+    #endif
+    #ifdef MUTE_NETMSG_ON_BOOT
+    fairycam.set_debugflags(0);
     #endif
 
     btnAny_clrPressed();
@@ -154,6 +157,8 @@ void setup_menus()
 
 bool app_poll()
 {
+    static uint8_t busy_cnt = 0; // make sure we actually do something at least sometimes
+
     // high priority tasks
     if (airplane_mode == false)
     {
@@ -166,7 +171,7 @@ bool app_poll()
     }
 
     // do low priority tasks if the networking is not busy
-    if (ptpcam.isKindaBusy() == false || airplane_mode != false) {
+    if (ptpcam.isKindaBusy() == false || airplane_mode != false || busy_cnt > 1) {
         imu.poll();
         cmdline.task();
         fenc_task();
@@ -186,7 +191,12 @@ bool app_poll()
         cpufreq_task();
         pwr_lightSleepEnter(); // this doesn't work yet
 
+        busy_cnt = 0;
+
         return true; // can do more low priority tasks
+    }
+    else {
+        busy_cnt++;
     }
     return false; // should not do more low priority tasks
 }
