@@ -69,13 +69,13 @@ In practice, the IMU certainly did have enough precision for this input method t
 
 ## Resource Usage
 
-The built process (on August 16 2022) reports that
+The built process (on October 12 2022) reports that
 
-    Sketch uses 1131497 bytes (86%) of program storage space. Maximum is 1310720 bytes.
-    Global variables use 70936 bytes (21%) of dynamic memory, leaving 256744 bytes for local variables. Maximum is 327680 bytes.
+    Sketch uses 1174781 bytes (89%) of program storage space. Maximum is 1310720 bytes.
+    Global variables use 72512 bytes (22%) of dynamic memory, leaving 255168 bytes for local variables. Maximum is 327680 bytes.
 
 The local variable memory is further used for image sprites. It actually does not have enough memory to store every single sprite that I can come up with, so the sprite manager is constantly being unloaded.
 
-The PNG files occupy a bit less than 300kb total (I am using PngOptimizer to make sure they are totally compressed). There should be 4MB of flash memory available for files like this.
+The PNG files occupy a bit less than 440kb total (I am using PngOptimizer to make sure they are totally compressed). There should be 4MB of flash memory available for files like this.
 
-This project is written in C++, and already occupying 64% of total available memory. The M5StickC does support MicroPython, and I did initially attempt to write this whole project using MicroPython. That failed, the python code actually ran fine on my PC, but threw a out-of-memory exception as soon as it tried the first `import` statement on ESP32. The big problem is that the MicroPython port for M5StickC is horribly inefficient. [I have written an entire rant about it.](M5StickC-MicroPython-Sucks-Rant.md)
+This project is written in C++. The M5StickC does support MicroPython, and I did initially attempt to write this whole project using MicroPython. That failed, the python code actually ran fine on my PC, but threw a out-of-memory exception as soon as it tried the first `import` statement on ESP32. The big problem is that the MicroPython port for M5StickC is horribly inefficient. [I have written an entire rant about it.](M5StickC-MicroPython-Sucks-Rant.md)
