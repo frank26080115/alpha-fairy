@@ -176,3 +176,8 @@ int16_t AlphaFairyImu::getPitch()
 {
     return pitchi;
 }
+
+int16_t AlphaFairyImu::getPitchAdj()
+{
+    return pitchai;
+}

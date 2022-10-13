@@ -1,7 +1,8 @@
 #ifndef _ALFY_CONF_H_
 #define _ALFY_CONF_H_
 
-#define ALFY_VERSION "1.0.3" // change this with every new build
+#define ALFY_VERSION            "1.0.4"     // change this with every new build
+#define ALFY_VERSION_FILE_CHECK "/chk0.txt" // change this when FS files needs updating
 
 //#define WIFI_AP_UNIQUE_NAME
 #ifndef WIFI_AP_UNIQUE_NAME
@@ -36,6 +37,7 @@
 #define SUBMENU_Y_OFFSET        8
 #define MICTRIG_LEVEL_MARGIN   16
 #define GENERAL_ICON_WIDTH     60
+#define CLOCK_ANG_DIV          18
 
 #define BTN_DEBOUNCE 50
 

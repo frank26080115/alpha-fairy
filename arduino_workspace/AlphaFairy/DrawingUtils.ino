@@ -304,24 +304,13 @@ int8_t gui_drawFocusPullState(int y)
     if (y < -30) {
         return dir;
     }
-    char s = (dir < 0) ? 'n' : 'p';
-    static const char* prefix = "/fpull_";
-    static const char* suffix = ".png";
-    char fname[32];
-    int x = 0;
-    sprintf(fname, "%s%c%d%s", prefix, s, dir < 0 ? -dir : dir, suffix);
-    #if 0
-    // NOTE: using the quicker sprite drawing seems to make the IMU calculation too sensitive and jittery
-    // this code is disabled so the animation isn't jittery
-    if ((sprites->holder_flag & SPRITESHOLDER_INTERVAL) == 0) {
-        sprites->draw(fname, x, y, 135, 24);
-        sprites->holder_flag |= SPRITESHOLDER_FOCUSPULL;
-    }
-    else
-    #endif
-    {
-        M5Lcd.drawPngFile(SPIFFS, fname, x, y);
-    }
+    uint16_t pink = 0xFF3C;
+    fpull_drawOneArrowLeft ( 5 +  0, y, dir <= -3 ? TFT_RED : pink);
+    fpull_drawOneArrowLeft ( 5 + 20, y, dir <= -2 ? TFT_RED : pink);
+    fpull_drawOneArrowLeft ( 5 + 40, y, dir <= -1 ? TFT_RED : pink);
+    fpull_drawOneArrowRight(71 +  0, y, dir >=  1 ? TFT_RED : pink);
+    fpull_drawOneArrowRight(71 + 20, y, dir >=  2 ? TFT_RED : pink);
+    fpull_drawOneArrowRight(71 + 40, y, dir >=  3 ? TFT_RED : pink);
     return dir;
 }
 
@@ -369,4 +358,70 @@ void draw_borderRect(int16_t thickness, uint16_t colour)
     {
         M5Lcd.drawRect(0 + i, 0 + i, M5Lcd.width() - 1 - (i * 2), M5Lcd.height() - 1 - (i * 2), colour);
     }
+}
+
+void interval_drawTimerStart()
+{
+    //M5Lcd.drawPngFile(SPIFFS, "/timer_blank.png", M5Lcd.width() - GENERAL_ICON_WIDTH, M5Lcd.height() - GENERAL_ICON_WIDTH);
+    M5Lcd.fillRect(M5Lcd.width() - GENERAL_ICON_WIDTH, M5Lcd.height() - GENERAL_ICON_WIDTH, GENERAL_ICON_WIDTH, GENERAL_ICON_WIDTH, TFT_BLACK);
+}
+
+void interval_drawTimerLine(int16_t cx, int16_t cy, int8_t i, uint16_t colour)
+{
+    float hand = 12.0;
+
+    float ang = (-M_PI * 2.0f * (float)i) / CLOCK_ANG_DIV;
+    float nx0 = hand * sin(ang);
+    float ny0 = hand * cos(ang);
+    float nx1 = 1.8 * sin(ang + (M_PI / 2.0f));
+    float ny1 = 1.8 * cos(ang + (M_PI / 2.0f));
+    float nx2 = 1.8 * sin(ang - (M_PI / 2.0f));
+    float ny2 = 1.8 * cos(ang - (M_PI / 2.0f));
+
+    M5Lcd.fillTriangle(
+        cx + lround(nx0), cy + lround(ny0),
+        cx + lround(nx1), cy + lround(ny1),
+        cx + lround(nx2), cy + lround(ny2),
+        colour);
+}
+
+void interval_drawTimerCircle(int16_t cx, int16_t cy)
+{
+    // draws a thick circle
+    M5Lcd.drawCircle(cx, cy, 18, TFT_WHITE);
+    M5Lcd.drawCircle(cx, cy, 19, TFT_WHITE);
+    M5Lcd.drawCircle(cx, cy + 1, 18, TFT_WHITE);
+    M5Lcd.drawCircle(cx, cy - 1, 18, TFT_WHITE);
+    M5Lcd.drawCircle(cx + 1, cy, 18, TFT_WHITE);
+    M5Lcd.drawCircle(cx - 1, cy, 18, TFT_WHITE);
+    M5Lcd.drawCircle(cx + 1, cy + 1, 18, TFT_WHITE);
+    M5Lcd.drawCircle(cx - 1, cy + 1, 18, TFT_WHITE);
+    M5Lcd.drawCircle(cx + 1, cy - 1, 18, TFT_WHITE);
+    M5Lcd.drawCircle(cx - 1, cy - 1, 18, TFT_WHITE);
+}
+
+void fpull_drawOneArrowLeft(int16_t x, int16_t y, uint16_t colour)
+{
+    M5Lcd.fillTriangle(x    , y + 11, x + 11    , y + 11, x + 8     , y     , colour);
+    M5Lcd.fillTriangle(x    , y + 11, x + 11    , y + 11, x + 8 + 11, y     , colour);
+    M5Lcd.fillTriangle(x + 8, y     , x + 8 + 11, y     , x         , y + 11, colour);
+    M5Lcd.fillTriangle(x + 8, y     , x + 8 + 11, y     , x + 11    , y + 11, colour);
+
+    M5Lcd.fillTriangle(x    , y + 12, x + 11    , y + 11, x + 8     , y + 24, colour);
+    M5Lcd.fillTriangle(x    , y + 12, x + 11    , y + 11, x + 8 + 11, y + 24, colour);
+    M5Lcd.fillTriangle(x + 8, y + 24, x + 8 + 11, y + 24, x         , y + 12, colour);
+    M5Lcd.fillTriangle(x + 8, y + 24, x + 8 + 11, y + 24, x + 11    , y + 12, colour);
+}
+
+void fpull_drawOneArrowRight(int16_t x, int16_t y, uint16_t colour)
+{
+    M5Lcd.fillTriangle(x    , y     , x + 11    , y     , x + 8     , y + 11, colour);
+    M5Lcd.fillTriangle(x    , y     , x + 11    , y     , x + 11 + 8, y + 11, colour);
+    M5Lcd.fillTriangle(x + 8, y + 11, x + 11 + 8, y + 11, x         , y     , colour);
+    M5Lcd.fillTriangle(x + 8, y + 11, x + 11 + 8, y + 11, x + 11    , y     , colour);
+
+    M5Lcd.fillTriangle(x    , y + 24, x + 11    , y + 24, x + 8     , y + 12, colour);
+    M5Lcd.fillTriangle(x    , y + 24, x + 11    , y + 24, x + 11 + 8, y + 12, colour);
+    M5Lcd.fillTriangle(x + 8, y + 12, x + 11 + 8, y + 12, x         , y + 24, colour);
+    M5Lcd.fillTriangle(x + 8, y + 12, x + 11 + 8, y + 12, x + 11    , y + 24, colour);
 }

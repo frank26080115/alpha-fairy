@@ -107,16 +107,11 @@ void app_sleep(uint32_t x, bool forget_btns)
 
 int8_t imu_getFocusPull()
 {
-    int n;
-    int ang = lroundf(imu.getPitch());
+    int n = 0;
+    int ang = imu.getPitchAdj();
     int aang = (ang < 0) ? (-ang) : (ang);
-    if (aang >= 2) {
-        if (ang > 0) {
-            n = aang / 12;
-        }
-        else {
-            n = aang / 7;
-        }
+    if (aang >= 2) { // deadzone
+        n = aang / 7;
         n = n > 3 ? 3 : n;
     }
     return (ang < 0) ? (-n) : (n);

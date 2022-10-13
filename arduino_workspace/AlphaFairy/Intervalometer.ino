@@ -9,6 +9,7 @@ extern bool tallylite_enable;
 void interval_drawTimer(int8_t x)
 {
     static uint8_t i = 0;
+    uint8_t old_i = i;
     char fname[24];
     if (x < 0) { // negative arg means auto-increment
         i++;
@@ -16,18 +17,15 @@ void interval_drawTimer(int8_t x)
     else {
         i = x; // otherwise, assign
     }
-    i %= 12; // only 12 animation frames available
-    sprintf(fname, "/timer_%u.png", i);
+    i %= CLOCK_ANG_DIV;
 
-    // note: this is the fastest animation in the entire project, best to use the sprite manager
+    int16_t cx = M5Lcd.width()  - (GENERAL_ICON_WIDTH / 2);
+    int16_t cy = M5Lcd.height() - (GENERAL_ICON_WIDTH / 2) + 5;
 
-    if ((sprites->holder_flag & SPRITESHOLDER_FOCUSPULL) == 0) {
-        sprites->draw(fname, M5Lcd.width() - GENERAL_ICON_WIDTH, M5Lcd.height() - GENERAL_ICON_WIDTH, GENERAL_ICON_WIDTH, GENERAL_ICON_WIDTH);
-        sprites->holder_flag |= SPRITESHOLDER_INTERVAL;
-    }
-    else {
-        M5Lcd.drawPngFile(SPIFFS, fname, M5Lcd.width() - GENERAL_ICON_WIDTH, M5Lcd.height() - GENERAL_ICON_WIDTH);
-    }
+    interval_drawTimerLine(cx, cy, old_i, TFT_BLACK);
+    interval_drawTimerLine(cx, cy, i, TFT_WHITE);
+    interval_drawTimerCircle(cx, cy);
+    M5Lcd.fillCircle(cx, cy, 3, TFT_WHITE);
 
     if (i == 0) {
         gui_drawStatusBar(true);
@@ -192,7 +190,8 @@ bool intervalometer_func(void* ptr)
     // prep screen for drawing
     gui_startAppPrint();
     M5Lcd.fillScreen(TFT_BLACK);
-    interval_drawTimer(0); // reset the icon
+    interval_drawTimerStart();
+    interval_drawTimer(-1);
     app_waitAllRelease();
     M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);
     M5Lcd.setTextFont(4);

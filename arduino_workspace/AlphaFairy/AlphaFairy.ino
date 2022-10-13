@@ -362,7 +362,7 @@ void spiffs_init(void)
         // single file is a sufficient check.
         fail = 2;
     }
-    else if (!SPIFFS.exists("/chk0.txt"))
+    else if (!SPIFFS.exists(ALFY_VERSION_FILE_CHECK)) // defined in alfy_conf.h
     {
         // use this file to make sure the version matches the files
         // change the file name when files are updated
