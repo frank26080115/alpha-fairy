@@ -194,7 +194,7 @@ class AppRemoteShutter : public FairyMenuItem
             M5Lcd.printf("%us   ", _delay);
         }
 
-        virtual void on_navTo(void)
+        virtual void on_redraw(void)
         {
             draw_mainImage();
             draw_delay();

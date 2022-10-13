@@ -675,6 +675,7 @@ bool FairyCfgApp::task(void)
         itm->on_navOut();
         itm = (FairyCfgItem*)nav_next();
         itm->on_navTo();
+        redraw = false;
     }
 
     itm = (FairyCfgItem*)cur_node->item;
