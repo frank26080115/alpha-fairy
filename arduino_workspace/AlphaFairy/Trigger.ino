@@ -447,7 +447,6 @@ class PageTriggerArm : public PageTrigger
 
             app_waitAllRelease();
             execute();
-            sprites->unload_all();
             on_redraw();
             app_waitAllRelease();
             return false;
@@ -475,8 +474,6 @@ class PageTriggerArm : public PageTrigger
 
             M5Lcd.fillScreen(TFT_BLACK);
 
-            sprites->unload_all();
-
             // enforce minimum arming delay, gives the user a chance to run away, also the button seems to trigger the mic when pressed
             config_settings.trigger_armtime = (config_settings.trigger_armtime < 3) ? 3 : config_settings.trigger_armtime;
 
@@ -485,7 +482,6 @@ class PageTriggerArm : public PageTrigger
                 return; // user quit
             }
             pwr_tick(true);
-            sprites->unload_all();
 
             do // this loop is for auto-retriggering
             {
@@ -573,7 +569,6 @@ class PageTriggerArm : public PageTrigger
                         return; // user quit
                     }
                     pwr_tick(true);
-                    sprites->unload_all();
                 }
 
                 t = millis();
@@ -607,7 +602,6 @@ class PageTriggerArm : public PageTrigger
                             vid_quit = true; // user quit
                         }
                         pwr_tick(true);
-                        sprites->unload_all();
                         cam_videoStop();
                         t = millis();
                     }
@@ -641,7 +635,6 @@ class PageTriggerArm : public PageTrigger
                         return;
                     }
                     pwr_tick(true);
-                    sprites->unload_all();
                 }
 
                 // quit on button press
