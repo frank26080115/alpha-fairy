@@ -2,7 +2,7 @@
 
 This is an open source firmware project, it is free for anybody to download and install onto the M5StickC-Plus. I do not sell any pre-installed units, so for you to build one of these Alpha-Fairy remotes, you must follow these installation instructions.
 
-Install [Arduino IDE](https://www.arduino.cc/en/software), **version 1.8.19**, later versions will not work. Scroll down on the page until the `Legacy IDE (1.8.X)` section.
+Install [Arduino IDE](https://www.arduino.cc/en/software), please obtain **version 1.8.19**, later versions (such as v 2.x) will not work. Scroll down on the page until the `Legacy IDE (1.8.X)` section.
 
 ![](doc/img_instruct/legacy_ide.png)
 
