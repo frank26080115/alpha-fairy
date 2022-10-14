@@ -97,6 +97,7 @@ class PtpIpCamera
         inline char* donateBuffer(void) { return (char*)databuff; };
         void generate_guid(char*);
         void install_guid(char*);
+        void force_disconnect(void);
 
         void (*cb_onConnect)(void) = NULL;
         void (*cb_onCriticalError)(void) = NULL;
@@ -122,6 +123,7 @@ class PtpIpCamera
         int state;
         int substate;
         uint32_t ip_addr;
+        bool need_disconnect = false;
         #ifndef USE_ASYNC_SOCK
         WiFiClient socket_main;
         WiFiClient socket_event;

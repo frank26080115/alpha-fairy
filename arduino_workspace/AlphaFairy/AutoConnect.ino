@@ -4,6 +4,8 @@
 bool autoconnect_active = false;
 int  autoconnect_status = 0;
 
+extern bool airplane_mode;
+
 void autoconnect_poll()
 {
     yield();
@@ -26,6 +28,18 @@ class AppAutoConnect : public FairyMenuItem
     public:
         AppAutoConnect() : FairyMenuItem("/main_auto.png")
         {
+        };
+
+        // hide this item when a camera is actually connected
+        virtual bool can_navTo(void)
+        {
+            if (fairycam.isOperating()) {
+                return false;
+            }
+            if (airplane_mode) {
+                return false;
+            }
+            return FairyMenuItem::can_navTo();
         };
 
         virtual bool on_execute(void)
@@ -160,6 +174,8 @@ class AppAutoConnect : public FairyMenuItem
                 }
             }
 
+            WiFi.scanDelete();
+
             if (user_quit || result_code == AUTOCONNRES_QUIT)
             {
                 // user quit, go back to normal
@@ -204,10 +220,15 @@ class AppAutoConnect : public FairyMenuItem
 
             all_done_exit:
 
-            if (result_code > AUTOCONNRES_QUIT)
+            if (result_code >= AUTOCONNRES_FOUND_EXISTING && user_quit == false)
             {
                 FairySubmenu* p = dynamic_cast<FairySubmenu*>((FairySubmenu*)get_parent());
                 p->rewind();
+                if (result_profile != config_settings.wifi_profile) {
+                    config_settings.wifi_profile = result_profile;
+                    dbg_ser.printf("autoconnect saving profile %u\r\n", result_profile);
+                    settings_save();
+                }
             }
 
             dbg_ser.printf("autoconnect exiting function\r\n");

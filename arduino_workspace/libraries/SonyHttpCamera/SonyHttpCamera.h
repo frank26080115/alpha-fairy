@@ -92,6 +92,7 @@ class SonyHttpCamera
         inline bool      isOperating     (void) { return state >= SHCAMSTATE_READY && state < SHCAMSTATE_FAILED; };
         inline bool      canNewConnect   (void) { return state == SHCAMSTATE_NONE || state == SHCAMSTATE_FAILED || state == SHCAMSTATE_DISCONNECTED; };
         inline void      setForbidden    (void) { state = SHCAMSTATE_FORBIDDEN; }
+               void      force_disconnect(void);
 
         inline int       getPollDelay    (void)       { return poll_delay; };
         inline void      setPollDelay    (uint32_t x) { poll_delay = x; };
@@ -133,6 +134,7 @@ class SonyHttpCamera
         uint32_t wait_until;
         uint32_t start_time;
         uint32_t ssdp_allowed_time = 5;
+        bool need_disconnect = false;
 
         char friendly_name[256];
         char service_url[256];

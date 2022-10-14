@@ -65,13 +65,11 @@ void wifi_onDisconnect(uint8_t x, int reason)
 {
     NetMgr_markClientDisconnect(ptpcam.getIp());
     NetMgr_markClientDisconnect(httpcam.getIp());
+    fairycam.force_disconnect();
 
     if (x == WIFIDISCON_NORMAL)
     {
         Serial.printf("WiFi disconnected normal, reason %d\r\n", reason);
-        if (httpcam.getState() != 0) {
-            httpcam.begin(0); // this resets the forbidden flag so it can reconnect again later 
-        }
     }
     else if (x == WIFIDISCON_AUTH_ERROR)
     {
