@@ -11,6 +11,10 @@ void remote_shutter(uint8_t time_delay, bool use_gui)
 
     cpufreq_boost();
 
+    if (use_gui && time_delay <= 2) {
+        draw_borderRect(5, TFT_RED);
+    }
+
     if (fairycam.isOperating() == false || airplane_mode != false)
     {
         bool can_still_shoot = false;
@@ -38,11 +42,12 @@ void remote_shutter(uint8_t time_delay, bool use_gui)
                 tstart = millis();
                 now = tstart;
                 quit = false;
+
                 // wait the countdown time
                 while (((tdiff = ((now = millis()) - tstart)) < (time_delay * 1000))) {
                     if (app_poll()) {
-                        if (use_gui) {
-                            gui_drawVerticalDots(0, (time_delay <= 2) ? (M5Lcd.height() / 3) : 40, -1, 5, time_delay, tdiff / 1000, false, TFT_GREEN, TFT_RED);
+                        if (use_gui && time_delay > 2) {
+                            gui_drawVerticalDots(0, 40, -1, 5, time_delay, tdiff / 1000, false, TFT_GREEN, TFT_RED);
                         }
                     }
                     if (time_delay > 2)
@@ -103,8 +108,8 @@ void remote_shutter(uint8_t time_delay, bool use_gui)
         while (((tdiff = ((now = millis()) - tstart)) < (time_delay * 1000)) && fairycam.isOperating()) {
             if (app_poll()) {
                 cpufreq_boost();
-                if (use_gui) {
-                    gui_drawVerticalDots(0, (time_delay <= 2) ? (M5Lcd.height() / 3) : 40, -1, 5, time_delay, tdiff / 1000, false, TFT_GREEN, TFT_RED);
+                if (use_gui && time_delay > 2) {
+                    gui_drawVerticalDots(0, 40, -1, 5, time_delay, tdiff / 1000, false, TFT_GREEN, TFT_RED);
                 }
             }
             if (btnSide_hasPressed()) {
