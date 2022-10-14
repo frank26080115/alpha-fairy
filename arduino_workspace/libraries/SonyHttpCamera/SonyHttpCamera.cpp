@@ -36,6 +36,7 @@ SonyHttpCamera::SonyHttpCamera()
 void SonyHttpCamera::begin(uint32_t ip, WiFiUDP* sock)
 {
     uint32_t now = millis();
+    need_disconnect = false;
     ip_addr = ip;
     ssdp_udp = sock;
     init_retries = 0;
@@ -87,6 +88,11 @@ void SonyHttpCamera::begin(uint32_t ip, WiFiUDP* sock)
         }
         str_aperture_prev[0] = 0;
     }
+}
+
+void SonyHttpCamera::force_disconnect(void)
+{
+    need_disconnect = true;
 }
 
 bool SonyHttpCamera::parse_event(char* data, int32_t maxlen)
@@ -284,6 +290,7 @@ void SonyHttpCamera::get_event()
 void SonyHttpCamera::poll()
 {
     yield();
+
     if (state == SHCAMSTATE_POLLING + 1)
     {
         bool no_len = http_content_len < 0;
@@ -326,6 +333,11 @@ void SonyHttpCamera::poll()
 void SonyHttpCamera::task()
 {
     if (state == SHCAMSTATE_FORBIDDEN) {
+        return;
+    }
+
+    if (need_disconnect) {
+        begin(0);
         return;
     }
 

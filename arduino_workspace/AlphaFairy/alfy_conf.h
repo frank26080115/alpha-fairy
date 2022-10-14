@@ -1,7 +1,7 @@
 #ifndef _ALFY_CONF_H_
 #define _ALFY_CONF_H_
 
-#define ALFY_VERSION            "1.0.4"     // change this with every new build
+#define ALFY_VERSION            "1.0.5"     // change this with every new build
 #define ALFY_VERSION_FILE_CHECK "/chk0.txt" // change this when FS files needs updating
 
 //#define WIFI_AP_UNIQUE_NAME
@@ -16,6 +16,7 @@
 //#define DISABLE_POWER_SAVE
 #define DISABLE_CMD_LINE
 #define DISABLE_ALL_MSG
+#define MUTE_NETMSG_ON_BOOT
 //#define HTTP_MOCKBTNS_ENABLE
 //#define HTTP_ON_BOOT
 //#define HTTP_ENABLE_CMD_INTEFACE

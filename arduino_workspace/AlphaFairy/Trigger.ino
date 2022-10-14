@@ -447,7 +447,6 @@ class PageTriggerArm : public PageTrigger
 
             app_waitAllRelease();
             execute();
-            sprites->unload_all();
             on_redraw();
             app_waitAllRelease();
             return false;
@@ -475,8 +474,6 @@ class PageTriggerArm : public PageTrigger
 
             M5Lcd.fillScreen(TFT_BLACK);
 
-            sprites->unload_all();
-
             // enforce minimum arming delay, gives the user a chance to run away, also the button seems to trigger the mic when pressed
             config_settings.trigger_armtime = (config_settings.trigger_armtime < 3) ? 3 : config_settings.trigger_armtime;
 
@@ -485,7 +482,6 @@ class PageTriggerArm : public PageTrigger
                 return; // user quit
             }
             pwr_tick(true);
-            sprites->unload_all();
 
             do // this loop is for auto-retriggering
             {
@@ -573,7 +569,6 @@ class PageTriggerArm : public PageTrigger
                         return; // user quit
                     }
                     pwr_tick(true);
-                    sprites->unload_all();
                 }
 
                 t = millis();
@@ -607,7 +602,6 @@ class PageTriggerArm : public PageTrigger
                             vid_quit = true; // user quit
                         }
                         pwr_tick(true);
-                        sprites->unload_all();
                         cam_videoStop();
                         t = millis();
                     }
@@ -641,7 +635,6 @@ class PageTriggerArm : public PageTrigger
                         return;
                     }
                     pwr_tick(true);
-                    sprites->unload_all();
                 }
 
                 // quit on button press
@@ -658,27 +651,49 @@ class PageTriggerArm : public PageTrigger
             }
             while (config_settings.trigger_retrigger >= 0);
 
-            // put some indicator on the screen that something has happened
-            M5Lcd.fillScreen(TFT_BLACK);
-            gui_startAppPrint();
-            M5Lcd.setTextColor(TFT_RED, TFT_BLACK);
-            M5Lcd.setTextFont(4);
-            _linenum = 0;
-            M5Lcd.setCursor(_margin_x, get_y(_linenum));
-            M5Lcd.print("DONE");
-            _linenum++;
-            if (config_settings.trigger_retrigger >= 0 && trigger_action != TRIGACT_INTERVAL)
-            {
-                // show the number of triggers only if it can be more than 1
-                M5Lcd.setCursor(_margin_x, get_y(_linenum));
-                M5Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
-                M5Lcd.printf("CNT = %u", shot_cnt);
-            }
-            draw_parent_icon();
+            uint32_t done_time = millis();
+            redraw_flag = true; // forces the first iteration of the next loop to draw stuff
 
             // wait for user to acknowledge event
             while (true)
             {
+                if (redraw_flag)
+                {
+                    // put some indicator on the screen that something has happened
+                    M5Lcd.fillScreen(TFT_BLACK);
+                    gui_startAppPrint();
+                    M5Lcd.setTextColor(TFT_RED, TFT_BLACK);
+                    M5Lcd.setTextFont(4);
+                    _linenum = 0;
+                    M5Lcd.setCursor(_margin_x, get_y(_linenum));
+                    M5Lcd.print("DONE");
+                    _linenum++;
+                    if (config_settings.trigger_retrigger >= 0 && trigger_action != TRIGACT_INTERVAL)
+                    {
+                        // show the number of triggers only if it can be more than 1
+                        M5Lcd.setCursor(_margin_x, get_y(_linenum));
+                        M5Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+                        M5Lcd.printf("CNT = %u", shot_cnt);
+                        _linenum++;
+                    }
+                    draw_parent_icon();
+                    redraw_flag = false;
+                }
+
+                int line_num_2 = _linenum;
+                uint32_t dt;
+                // show how long ago the trigger happened
+                if ((dt = (millis() - done_time)) >= 2000) // been a while
+                {
+                    dt /= 1000; // convert to seconds
+                    M5Lcd.setCursor(_margin_x, get_y(line_num_2));
+                    M5Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
+                    gui_showVal(dt, dt >= (60 * 10) ? TXTFMT_TIMELONG : TXTFMT_TIME, &M5Lcd);
+                    M5Lcd.print(" ago");
+                    blank_line();
+                    line_num_2++;
+                }
+
                 app_poll();
                 pwr_tick(false);
                 gui_drawStatusBar(true);

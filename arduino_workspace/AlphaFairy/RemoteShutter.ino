@@ -7,7 +7,13 @@ void remote_shutter(uint8_t time_delay, bool use_gui)
     uint32_t tstart, now, tdiff;
     bool quit = false;
 
+    tstart = millis();
+
     cpufreq_boost();
+
+    if (use_gui && time_delay <= 2) {
+        draw_borderRect(5, TFT_RED);
+    }
 
     if (fairycam.isOperating() == false || airplane_mode != false)
     {
@@ -36,28 +42,40 @@ void remote_shutter(uint8_t time_delay, bool use_gui)
                 tstart = millis();
                 now = tstart;
                 quit = false;
+
                 // wait the countdown time
                 while (((tdiff = ((now = millis()) - tstart)) < (time_delay * 1000))) {
                     if (app_poll()) {
-                        if (time_delay > 2 && use_gui) {
+                        if (use_gui && time_delay > 2) {
                             gui_drawVerticalDots(0, 40, -1, 5, time_delay, tdiff / 1000, false, TFT_GREEN, TFT_RED);
                         }
                     }
-                    if (btnSide_hasPressed()) {
-                        quit = true;
-                        break;
+                    if (time_delay > 2)
+                    {
+                        if (btnSide_hasPressed()) {
+                            btnSide_clrPressed();
+                            quit = true;
+                            break;
+                        }
+                        if (btnPwr_hasPressed()) {
+                            btnPwr_clrPressed();
+                            quit = true;
+                            break;
+                        }
                     }
                 }
-                btnSide_clrPressed();
             }
-            dbg_ser.println("shoot");
-            //cam_shootQuickGpio();
-            cam_shootOpen();
-            tstart = millis();
-            while (((tdiff = ((now = millis()) - tstart))) < config_settings.shutter_press_time_ms || btnBig_isPressed()) {
-                app_poll();
+            if (quit == false)
+            {
+                dbg_ser.println("shoot");
+                //cam_shootQuickGpio();
+                cam_shootOpen();
+                tstart = millis();
+                while (((tdiff = ((now = millis()) - tstart))) < config_settings.shutter_press_time_ms || btnBig_isPressed()) {
+                    app_poll();
+                }
+                cam_shootClose();
             }
-            cam_shootClose();
             can_still_shoot = true;
         }
 
@@ -69,7 +87,7 @@ void remote_shutter(uint8_t time_delay, bool use_gui)
         return;
     }
 
-    bool starting_mf = fairycam.is_manuallyfocused();
+    bool starting_mf = fairycam.is_manuallyfocused() == SHCAM_FOCUSMODE_MF;
     bool starting_mf_ignore = false;
     if (httpcam.isOperating() && httpcam.is_manuallyfocused() == SHCAM_FOCUSMODE_NONE) {
         starting_mf_ignore = true;
@@ -81,7 +99,6 @@ void remote_shutter(uint8_t time_delay, bool use_gui)
         fairycam.cmd_AutoFocus(true);
     }
 
-    tstart = millis();
     now = tstart;
     quit = false;
     if (time_delay > 0)
@@ -91,22 +108,27 @@ void remote_shutter(uint8_t time_delay, bool use_gui)
         while (((tdiff = ((now = millis()) - tstart)) < (time_delay * 1000)) && fairycam.isOperating()) {
             if (app_poll()) {
                 cpufreq_boost();
-                if (time_delay > 2 && use_gui) {
-                    gui_drawVerticalDots(0, 40, -1, 5, time_delay, tdiff / 1000, false, TFT_DARKGREEN, TFT_RED);
+                if (use_gui && time_delay > 2) {
+                    gui_drawVerticalDots(0, 40, -1, 5, time_delay, tdiff / 1000, false, TFT_GREEN, TFT_RED);
                 }
             }
             if (btnSide_hasPressed()) {
+                btnSide_clrPressed();
+                quit = true;
+                break;
+            }
+            if (btnPwr_hasPressed()) {
+                btnPwr_clrPressed();
                 quit = true;
                 break;
             }
         }
-        btnSide_clrPressed();
 
         // if user cancelled
         if (quit) {
             dbg_ser.printf(" user cancelled\r\n");
             // end autofocus
-            if (starting_mf == false && starting_mf_ignore == false) {
+            if (starting_mf == false && starting_mf_ignore == false && fairycam.isOperating()) {
                 fairycam.cmd_AutoFocus(false);
             }
             app_waitAllRelease();
@@ -123,6 +145,11 @@ void remote_shutter(uint8_t time_delay, bool use_gui)
     {
         // if the camera is focused or MF, then the shutter should immediately take the picture
         ptpcam.cmd_Shoot(config_settings.shutter_press_time_ms);
+        dbg_ser.printf("rmtshutter shoot\r\n");
+    }
+    else if ((httpcam.isOperating() && httpcam.is_focused) || starting_mf)
+    {
+        httpcam.cmd_Shoot();
         dbg_ser.printf("rmtshutter shoot\r\n");
     }
     else if (btnBig_isPressed() || time_delay == 0)
@@ -147,6 +174,11 @@ void remote_shutter(uint8_t time_delay, bool use_gui)
         {
             httpcam.cmd_Shoot();
         }
+    }
+    else if (fairycam.isOperating())
+    {
+        fairycam.cmd_Shoot(config_settings.shutter_press_time_ms);
+        dbg_ser.printf("rmtshutter shoot\r\n");
     }
 
     if (starting_mf == false && starting_mf_ignore == false) {
@@ -194,7 +226,7 @@ class AppRemoteShutter : public FairyMenuItem
             M5Lcd.printf("%us   ", _delay);
         }
 
-        virtual void on_navTo(void)
+        virtual void on_redraw(void)
         {
             draw_mainImage();
             draw_delay();
@@ -210,6 +242,9 @@ class AppRemoteShutter : public FairyMenuItem
                 else if (_delay == 5) {
                     _delay = 10;
                 }
+                else {
+                    _delay = 5;
+                }
                 draw_delay();
             }
             else if (x < 0)
@@ -220,6 +255,9 @@ class AppRemoteShutter : public FairyMenuItem
                 else if (_delay == 10) {
                     _delay = 5;
                 }
+                else {
+                    _delay = 2;
+                }
                 draw_delay();
             }
         };
@@ -228,8 +266,7 @@ class AppRemoteShutter : public FairyMenuItem
         {
             cpufreq_boost();
             remote_shutter(_delay, true);
-            draw_mainImage();
-            draw_delay();
+            set_redraw();
             return false;
         };
 };

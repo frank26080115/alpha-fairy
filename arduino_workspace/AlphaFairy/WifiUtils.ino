@@ -431,7 +431,7 @@ bool wifi_newConnectOrPrompt(uint8_t profile_num, wifiprofile_t* profile, bool n
 
         // attempt connection
         NetMgr_reset();
-        wifiprofile_connect(can_save ? config_settings.wifi_profile : profile_num);
+        wifiprofile_connect((can_save && need_ask) ? config_settings.wifi_profile : profile_num);
         autoconnect_status = AUTOCONNSTS_NONE; // this variable will be set to something by the Wi-Fi callbacks
 
         // wait for connection (with an animation)

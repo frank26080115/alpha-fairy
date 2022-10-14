@@ -21,6 +21,7 @@ class AlphaFairyCamera
         char*     getCameraName   (void);
         void wait_while_busy(uint32_t min_wait, uint32_t max_wait, volatile bool* exit_signal = NULL);
         inline bool isOperating() { return cam_ptp->isOperating() || cam_http->isOperating(); };
+        void force_disconnect(void);
         bool is_movierecording(void);
         bool is_manuallyfocused(void);
         uint32_t get_exposureMode(void);

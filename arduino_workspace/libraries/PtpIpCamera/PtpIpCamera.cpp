@@ -55,6 +55,14 @@ void PtpIpCamera::begin(uint32_t ip, uint32_t wait) {
     state = PTPSTATE_START_WAIT;
     last_rx_time = millis();
     conn_wait = wait;
+    need_disconnect = false;
+}
+
+void PtpIpCamera::force_disconnect(void)
+{
+    ip_addr = 0;
+    state = 0;
+    need_disconnect = true;
 }
 
 void PtpIpCamera::task()
@@ -63,6 +71,14 @@ void PtpIpCamera::task()
     if (state == PTPSTATE_INIT) {
         return;
     }
+
+    if (need_disconnect) {
+        ip_addr = 0;
+        state = 0;
+        need_disconnect = false;
+        return;
+    }
+
     if (state == PTPSTATE_START_WAIT && (now - last_rx_time) > conn_wait) {
         reset_buffers();
         error_cnt = 0;
@@ -615,6 +631,9 @@ bool PtpIpCamera::isKindaBusy()
         else {
             return true;
         }
+    }
+    if (state >= PTPSTATE_DISCONNECT || state <= PTPSTATE_START_WAIT) {
+        return false;
     }
     return true;
 }

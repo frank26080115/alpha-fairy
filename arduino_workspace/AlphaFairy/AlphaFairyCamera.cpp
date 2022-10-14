@@ -317,6 +317,16 @@ void AlphaFairyCamera::set_debugflags(uint32_t x)
     }
 }
 
+void AlphaFairyCamera::force_disconnect(void)
+{
+    if (cam_ptp != NULL) {
+        cam_ptp->force_disconnect();
+    }
+    if (cam_http != NULL) {
+        cam_http->force_disconnect();
+    }
+}
+
 static int get_idx_in_str_tbl(char* tbl_ptr, uint32_t x, uint32_t cvt_mode)
 {
     uint32_t oricomp = x;
