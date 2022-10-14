@@ -34,7 +34,7 @@ Click "Upload" on the tool-bar
 
 # Connecting Your Camera
 
-## For PTP capable cameras (newer models)
+## For PTP capable cameras (newer models) AP mode
 
 When the AlphaFairy code is running on the M5StickC, turn on the camera.
 
@@ -54,9 +54,11 @@ From the camera menu, connect to the SSID that the AlphaFairy is broadcasting ("
 
 On the M5StickC's screen, the "no signal" icon should disappear. On the camera's screen, the `Wi-Fi` symbol should be fully white and the `-PC-` icon should be fully white.
 
-NOTE: models theoretically supported: A1, A7SM3, A9M2, A7M4A, A7RM4, A7C, A7M4
+## For PTP capable cameras (newer models) STA mode
 
-## For HTTP JSON-RPC protocol cameras (older/all models)
+There are some cameras that use PTP protocol but do not support Access-Point mode, in this case, follow the instructions below as if it was an older camera. Once connected, the protocol will be selected automatically anyways.
+
+## For HTTP JSON-RPC protocol cameras (older models)
 
 Turn on the camera, and activate the "Control from Smartphone" function. This may be implemented differently on different cameras:
 
@@ -73,11 +75,11 @@ On the Alpha-Fairy, use the Auto Connect function. A search for the camera will 
 
 Completing the connection will add the camera to the next available Wi-Fi profile slot.
 
-NOTE: this mode has less available features, but supports nearly all Sony cameras with Wi-Fi
+NOTE: this mode has less available features, but supports nearly all Sony cameras with Wi-Fi.
 
 ## Managing Multiple Cameras
 
-The Alpha-Fairy has 99 available slots for Wi-Fi profiles, each slot can be used for a different camera. Each profile may be used in AP mode (Alpha-Fairy is an access point, camera connects to the Alpha-Fairy) or STA mode (Alpha-Fairy is a station, and connects to the access point presented by the camera).
+The Alpha-Fairy has 20 available slots for Wi-Fi profiles, each slot can be used for a different camera. Each profile may be used in AP mode (Alpha-Fairy is an access point, camera connects to the Alpha-Fairy) or STA mode (Alpha-Fairy is a station, and connects to the access point presented by the camera).
 
 Slot 0 is always the default slot, AP mode, SSID: "fairywifi", password: "1234567890". This slot cannot be edited. This slot is also used for the web interface.
 
