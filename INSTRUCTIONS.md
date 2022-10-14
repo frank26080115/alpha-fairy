@@ -4,7 +4,15 @@ This is an open source firmware project, it is free for anybody to download and 
 
 Install [Arduino IDE](https://www.arduino.cc/en/software), **version 1.8.19**, later versions will not work. Scroll down on the page until the `Legacy IDE (1.8.X)` section.
 
-Download a copy of this particular GitHub repo, find the directory called "arduino_workspace". From inside Arduino IDE, use the menu bar, File->Preferences, put the path to "arduino_workspace" into "Sketchbook Location".
+![](doc/img_instruct/legacy_ide.png)
+
+Download a copy of this particular GitHub repo.
+
+![](doc/img_instruct/github_download.png)
+
+Find the directory called "arduino_workspace". From inside Arduino IDE, use the menu bar, File->Preferences, put the path to "arduino_workspace" into "Sketchbook Location".
+
+![](doc/img_instruct/sketchbook_location.png)
 
 Follow instructions to install ESP32 for Arduino IDE
  * official instructions https://docs.espressif.com/projects/arduino-esp32/en/latest/installing.html
