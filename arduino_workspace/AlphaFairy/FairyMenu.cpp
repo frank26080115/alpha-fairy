@@ -274,9 +274,17 @@ bool FairySubmenu::task(void)
         sprites->unload_all();
         bool need_exit = itm->on_execute();
         sprites->unload_all();
-        if (need_exit)
-        {
+        if (need_exit) {
             return true;
+        }
+        if (itm->get_quitOnExit()) {
+            return true;
+        }
+        if (itm->get_quitToNext()) {
+            itm->on_navOut();
+            itm = (FairyMenuItem*)nav_next();
+            itm->on_navTo();
+            imu.resetSpin();
         }
     }
     else
@@ -292,9 +300,17 @@ bool FairySubmenu::task(void)
         sprites->unload_all();
         bool need_exit = itm->on_execute();
         sprites->unload_all();
-        if (need_exit)
-        {
+        if (need_exit) {
             return true;
+        }
+        if (itm->get_quitOnExit()) {
+            return true;
+        }
+        if (itm->get_quitToNext()) {
+            itm->on_navOut();
+            itm = (FairyMenuItem*)nav_next();
+            itm->on_navTo();
+            imu.resetSpin();
         }
     }
 

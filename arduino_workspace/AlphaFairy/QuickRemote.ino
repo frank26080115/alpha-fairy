@@ -212,6 +212,7 @@ class AppQuickRemote : public FairyMenuItem
         AppQuickRemote() : FairyMenuItem("/qikrmt_faded.png") // main image is the faded version, the loop will draw the active version when required
         {
             _can_quickEnter = true;
+            _quitToNext = true;
             reset();
         };
 
@@ -356,7 +357,9 @@ class AppQuickRemote : public FairyMenuItem
                 settings_saveTask(false); // saves settings if change occurred and enough time has passed
             } // end of while loop
 
-            draw_mainImage(); // draws the faded image
+            if (_quitOnExit == false && _quitToNext == false) {
+                draw_mainImage(); // draws the faded image
+            }
 
             settings_saveTask(true); // save if needed
 
