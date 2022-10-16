@@ -10,13 +10,17 @@ Download a copy of this particular GitHub repo.
 
 ![](doc/img_instruct/github_download.png)
 
-Find the directory called "arduino_workspace". From inside Arduino IDE, use the menu bar, File->Preferences, put the path to "arduino_workspace" into "Sketchbook Location".
+Find the directory called "arduino_workspace". From inside Arduino IDE, use the menu bar, click File->Preferences, put the path to "arduino_workspace" into "Sketchbook Location".
 
 ![](doc/img_instruct/sketchbook_location.png)
 
-Follow instructions to install ESP32 for Arduino IDE
- * official instructions https://docs.espressif.com/projects/arduino-esp32/en/latest/installing.html
- * unofficial instructions https://randomnerdtutorials.com/installing-the-esp32-board-in-arduino-ide-windows-instructions/ , or https://microcontrollerslab.com/install-esp32-arduino-ide/
+Install the ESP32 toolchain. From inside Arduino IDE, use the menu bar, click File->Preferences. The "Additional Boards Manager URLS" text box needs to be filled with "https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json", then click "OK".
+
+![](doc/img_instruct/board_manager_url.png)
+
+Then use the board manager to install the ESP32 toolchain. From inside Arduino IDE, use the menu bar, click Tools->Boards->Board Manager. Inside the board manager, search for "ESP32" and install the toolchain. (version 2.0.5 is fine)
+
+![](doc/img_instruct/board_manager_install.png)
 
 Connect the M5StickC-Plus to the computer, follow instructions to install the FTDI driver (if required): https://docs.m5stack.com/en/quick_start/m5stickc_plus/arduino (this may also contain instructions for steps I've already listed)
 
@@ -38,7 +42,7 @@ Upload the image files: Tools->"ESP32 Sketch Data Upload"
 
 ![](doc/img_instruct/sketch_data_upload.png)
 
-(if the "ESP32 Sketch Data Upload" is missing, follow the instructions at https://github.com/me-no-dev/arduino-esp32fs-plugin to install the plugin)
+(if the "ESP32 Sketch Data Upload" is missing, follow the instructions at https://github.com/me-no-dev/arduino-esp32fs-plugin to install the plugin, which also requires you to restart the Arduino IDE)
 
 Click "Upload" on the tool-bar
 
