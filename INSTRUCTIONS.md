@@ -16,7 +16,7 @@ Find the directory called "arduino_workspace". From inside Arduino IDE, use the 
 
 Follow instructions to install ESP32 for Arduino IDE
  * official instructions https://docs.espressif.com/projects/arduino-esp32/en/latest/installing.html
- * unofficial instructions https://randomnerdtutorials.com/installing-the-esp32-board-in-arduino-ide-windows-instructions/ , https://microcontrollerslab.com/install-esp32-arduino-ide/
+ * unofficial instructions https://randomnerdtutorials.com/installing-the-esp32-board-in-arduino-ide-windows-instructions/ , or https://microcontrollerslab.com/install-esp32-arduino-ide/
 
 Connect the M5StickC-Plus to the computer, follow instructions to install the FTDI driver (if required): https://docs.m5stack.com/en/quick_start/m5stickc_plus/arduino (this may also contain instructions for steps I've already listed)
 
@@ -24,13 +24,25 @@ Close the Arduino IDE and open it again.
 
 Open Arduino IDE, from the menu bar, select the correct board: Tools->Boards->ESP32 Boards->M5StickC
 
+![](doc/img_instruct/select_board.png)
+
 Select the correct serial port: Tools->Port->(select the option that matches the M5StickC)
 
-Using Arduino IDE, open the file at "arduino_workspace/AlphaFairy/AlphaFairy.ino"
+![](doc/img_instruct/select_com_port.png)
+
+Using Arduino IDE, open the file at "arduino_workspace/AlphaFairy/AlphaFairy.ino", this should be available in the sketchbook directly.
+
+![](doc/img_instruct/open_sketch.png)
 
 Upload the image files: Tools->"ESP32 Sketch Data Upload"
 
+![](doc/img_instruct/sketch_data_upload.png)
+
+(if the "ESP32 Sketch Data Upload" is missing, follow the instructions at https://github.com/me-no-dev/arduino-esp32fs-plugin to install the plugin)
+
 Click "Upload" on the tool-bar
+
+![](doc/img_instruct/click_upload.png)
 
 # Connecting Your Camera
 
