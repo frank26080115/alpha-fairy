@@ -2,13 +2,25 @@
 
 This is an open source firmware project, it is free for anybody to download and install onto the M5StickC-Plus. I do not sell any pre-installed units, so for you to build one of these Alpha-Fairy remotes, you must follow these installation instructions.
 
-Install [Arduino IDE](https://www.arduino.cc/en/software), **version 1.8.19**, later versions will not work. Scroll down on the page until the `Legacy IDE (1.8.X)` section.
+Install [Arduino IDE](https://www.arduino.cc/en/software), please obtain **version 1.8.19**, later versions (such as v 2.x) will not work. Scroll down on the page until the `Legacy IDE (1.8.X)` section.
 
-Download a copy of this particular GitHub repo, find the directory called "arduino_workspace". From inside Arduino IDE, use the menu bar, File->Preferences, put the path to "arduino_workspace" into "Sketchbook Location".
+![](doc/img_instruct/legacy_ide.png)
 
-Follow instructions to install ESP32 for Arduino IDE
- * official instructions https://docs.espressif.com/projects/arduino-esp32/en/latest/installing.html
- * unofficial instructions https://randomnerdtutorials.com/installing-the-esp32-board-in-arduino-ide-windows-instructions/ , https://microcontrollerslab.com/install-esp32-arduino-ide/
+Download a copy of this particular GitHub repo.
+
+![](doc/img_instruct/github_download.png)
+
+Find the directory called "arduino_workspace". From inside Arduino IDE, use the menu bar, click File->Preferences, put the path to "arduino_workspace" into "Sketchbook Location".
+
+![](doc/img_instruct/sketchbook_location.png)
+
+Install the ESP32 toolchain. From inside Arduino IDE, use the menu bar, click File->Preferences. The "Additional Boards Manager URLS" text box needs to be filled with "https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json", then click "OK".
+
+![](doc/img_instruct/board_manager_url.png)
+
+Then use the board manager to install the ESP32 toolchain. From inside Arduino IDE, use the menu bar, click Tools->Boards->Board Manager. Inside the board manager, search for "ESP32" and install the toolchain. (version 2.0.5 is fine)
+
+![](doc/img_instruct/board_manager_install.png)
 
 Connect the M5StickC-Plus to the computer, follow instructions to install the FTDI driver (if required): https://docs.m5stack.com/en/quick_start/m5stickc_plus/arduino (this may also contain instructions for steps I've already listed)
 
@@ -16,17 +28,29 @@ Close the Arduino IDE and open it again.
 
 Open Arduino IDE, from the menu bar, select the correct board: Tools->Boards->ESP32 Boards->M5StickC
 
+![](doc/img_instruct/select_board.png)
+
 Select the correct serial port: Tools->Port->(select the option that matches the M5StickC)
 
-Using Arduino IDE, open the file at "arduino_workspace/AlphaFairy/AlphaFairy.ino"
+![](doc/img_instruct/select_com_port.png)
+
+Using Arduino IDE, open the file at "arduino_workspace/AlphaFairy/AlphaFairy.ino", this should be available in the sketchbook directly.
+
+![](doc/img_instruct/open_sketch.png)
 
 Upload the image files: Tools->"ESP32 Sketch Data Upload"
 
+![](doc/img_instruct/sketch_data_upload.png)
+
+(if the "ESP32 Sketch Data Upload" is missing, follow the instructions at https://github.com/me-no-dev/arduino-esp32fs-plugin to install the plugin, which also requires you to restart the Arduino IDE)
+
 Click "Upload" on the tool-bar
+
+![](doc/img_instruct/click_upload.png)
 
 # Connecting Your Camera
 
-## For PTP capable cameras (newer models)
+## For PTP capable cameras (newer models) AP mode
 
 When the AlphaFairy code is running on the M5StickC, turn on the camera.
 
@@ -46,9 +70,11 @@ From the camera menu, connect to the SSID that the AlphaFairy is broadcasting ("
 
 On the M5StickC's screen, the "no signal" icon should disappear. On the camera's screen, the `Wi-Fi` symbol should be fully white and the `-PC-` icon should be fully white.
 
-NOTE: models theoretically supported: A1, A7SM3, A9M2, A7M4A, A7RM4, A7C, A7M4
+## For PTP capable cameras (newer models) STA mode
 
-## For HTTP JSON-RPC protocol cameras (older/all models)
+There are some cameras that use PTP protocol but do not support Access-Point mode, in this case, follow the instructions below as if it was an older camera. Once connected, the protocol will be selected automatically anyways.
+
+## For HTTP JSON-RPC protocol cameras (older models)
 
 Turn on the camera, and activate the "Control from Smartphone" function. This may be implemented differently on different cameras:
 
@@ -65,11 +91,11 @@ On the Alpha-Fairy, use the Auto Connect function. A search for the camera will 
 
 Completing the connection will add the camera to the next available Wi-Fi profile slot.
 
-NOTE: this mode has less available features, but supports nearly all Sony cameras with Wi-Fi
+NOTE: this mode has less available features, but supports nearly all Sony cameras with Wi-Fi.
 
 ## Managing Multiple Cameras
 
-The Alpha-Fairy has 99 available slots for Wi-Fi profiles, each slot can be used for a different camera. Each profile may be used in AP mode (Alpha-Fairy is an access point, camera connects to the Alpha-Fairy) or STA mode (Alpha-Fairy is a station, and connects to the access point presented by the camera).
+The Alpha-Fairy has 20 available slots for Wi-Fi profiles, each slot can be used for a different camera. Each profile may be used in AP mode (Alpha-Fairy is an access point, camera connects to the Alpha-Fairy) or STA mode (Alpha-Fairy is a station, and connects to the access point presented by the camera).
 
 Slot 0 is always the default slot, AP mode, SSID: "fairywifi", password: "1234567890". This slot cannot be edited. This slot is also used for the web interface.
 
