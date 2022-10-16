@@ -62,7 +62,7 @@ From the camera menu, the option "PC control method" should be "Wi-Fi Access Poi
 
 From the camera menu, airplane mode should be disabled, FTP should be disabled, control-with-smartphone should be disabled.
 
-From the camera menu, the option "connect without pairing" should be enabled. (this is important! Sony cameras don't have an option to un-pair, only through a factory reset, and only one pairing can exist!)
+From the camera menu, the option "connect without pairing" should be enabled. This is important! Sony cameras don't have an option to un-pair, only through a factory reset, and only one pairing can exist! If you are having trouble with this step (some cameras do not allow "connect without pairing"), then try the STA connection mode (described below).
 
 From the camera menu, the option "Still Image Save Destination" should be set to "Camera Only".
 
@@ -74,7 +74,7 @@ On the M5StickC's screen, the "no signal" icon should disappear. On the camera's
 
 There are some cameras that use PTP protocol but do not support Access-Point mode, in this case, follow the instructions below as if it was an older camera. Once connected, the protocol will be selected automatically anyways.
 
-## For HTTP JSON-RPC protocol cameras (older models)
+## For HTTP JSON-RPC protocol cameras (older models) STA mode
 
 Turn on the camera, and activate the "Control from Smartphone" function. This may be implemented differently on different cameras:
 
