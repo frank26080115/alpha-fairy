@@ -54,6 +54,7 @@ enum
     SONYALPHA_PROPCODE_ManualFocusMode    = 0xD2D2,
     SONYALPHA_PROPCODE_ManualFocusStep    = 0xD2D1,
     SONYALPHA_PROPCODE_ZoomStep           = 0xD2DD,
+    SONYALPHA_PROPCODE_ZoomPercentage     = 0xD25D,
     SONYALPHA_PROPCODE_FileFormat         = PTP_PROPCODE_CompressionSetting,
     SONYALPHA_PROPCODE_MovieTime          = 0xD261,
     SONYALPHA_PROPCODE_ManualFocusDist    = 0xD24C, // range seems to be 0 to 100 inclusive, 100 also represents infinity

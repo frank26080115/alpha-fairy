@@ -28,7 +28,6 @@ static const uint16_t interested_properties_default[] = {
     SONYALPHA_PROPCODE_ShutterSpeed,
     SONYALPHA_PROPCODE_DriveMode,
     SONYALPHA_PROPCODE_ISO,
-    #ifdef SONYCAM_PROPCODE_NEED_MORE
     SONYALPHA_PROPCODE_FocusPointGet,
     SONYALPHA_PROPCODE_FocusPointSet,
     SONYALPHA_PROPCODE_ExposeIndex,
@@ -40,7 +39,7 @@ static const uint16_t interested_properties_default[] = {
     SONYALPHA_PROPCODE_MemoryRemaining_Card1,
     SONYALPHA_PROPCODE_MemoryRemaining_Card2,
     PTP_PROPCODE_ExposureProgramMode,
-    #endif
+    SONYALPHA_PROPCODE_ZoomPercentage,
     0x0000, // end of table
 };
 

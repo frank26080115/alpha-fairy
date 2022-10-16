@@ -282,7 +282,7 @@ class AppQuickRemote : public FairyMenuItem
                                 if (ptpcam.isOperating())
                                 {
                                     if (dir != 0) {
-                                        ptpcam.cmd_ZoomStep((dir > 0) ? -1 : ((dir < 0) ? +1 : 0)); // I am soooo sorry for this
+                                        ptpcam.cmd_ZoomStep((dir < 0) ? -1 : ((dir > 0) ? +1 : 0));
                                         ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
                                     }
                                 }
