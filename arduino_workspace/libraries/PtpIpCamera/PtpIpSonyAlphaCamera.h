@@ -85,6 +85,9 @@ class PtpIpSonyAlphaCamera : public PtpIpCamera
         bool propdecode_weird_string;
         bool propdecode_weird_form;
 
+        // these tables, if they are not NULL, will contain valid entries that the camera accepts
+        // index 0 is always the length of the table
+        // the rest of the table might not be 32 bit per entry, for example, aperture is actually 16 bits per entry, so do "uint16* ptr = (uint16_t*)(&table_aperture[1]);"
         uint32_t* table_shutter_speed;
         uint32_t* table_iso;
         uint32_t* table_aperture;
