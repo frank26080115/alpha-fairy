@@ -64,6 +64,10 @@ The features that can change shutter speed are not reliable. The camera takes a 
 
 Battery life is a bit short. Do not use it for intervalometer purposes without an external power source. Also, using Wi-Fi for intervalometer is ill-advised (reliability and latency issues), use a real shutter release cable if possible.
 
+Putting a full frame camera in APS-C mode will disable a ton of features from working.
+
+Other issues will be logged in the Issues tab of GitHub.
+
 ## More
 
  * [Instructions for Setup and Usage](INSTRUCTIONS.md)
