@@ -64,6 +64,10 @@ The features that can change shutter speed are not reliable. The camera takes a 
 
 Battery life is a bit short. Do not use it for intervalometer purposes without an external power source. Also, using Wi-Fi for intervalometer is ill-advised (reliability and latency issues), use a real shutter release cable if possible.
 
+Putting a full frame camera in APS-C mode will disable a ton of features from working.
+
+Other issues will be logged in the Issues tab of GitHub.
+
 ## More
 
  * [Instructions for Setup and Usage](INSTRUCTIONS.md)
@@ -74,10 +78,18 @@ Battery life is a bit short. Do not use it for intervalometer purposes without a
 
 ## Demo Videos
 
+#### Focus Stacking:
+
 https://user-images.githubusercontent.com/1427911/187117478-654adc80-a0a3-48cf-8b0b-643bfd7b2884.mp4
+
+#### Shutter Speed Stepping:
 
 https://user-images.githubusercontent.com/1427911/187117818-dda28b7c-d5e2-45bd-96e9-6ff3c6a178e0.mp4
 
+#### Camera Triggering:
+
 https://user-images.githubusercontent.com/1427911/195257775-e0213d1b-5642-413e-9474-2736aee4f98b.mp4
+
+#### Focus Pull Knob:
 
 https://user-images.githubusercontent.com/1427911/195407559-9cf6f15e-1cde-4ad6-bc44-528534690053.mp4

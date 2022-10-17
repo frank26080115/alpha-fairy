@@ -70,3 +70,9 @@ Also, [Sony does actually provide a SDK](https://support.d-imaging.sony.co.jp/ap
 I figured out that older cameras use a deprecated API and SDK that Sony used to offer: https://developer.sony.com/develop/cameras/api-information/supported-features-and-compatible-cameras
 
 It's a totally proprietary protocol (no standard organization), and is missing manual focusing (so focus stacking is impossible, as is any other feature that requires manual focus). It uses plain JSON and is fairly well documented.
+
+## Adding Zoom, Obtaining Focal Length, mid Oct 2022
+
+I have a friend who does some cool virtual production stuff (think of how The Mandalorian was filmed on a virtual set), and he said that it would be super useful to obtain the lens current focal length for calibration, because that information is used for the camera 3D positional tracking. While testing I didn't notice any property codes changing while I zoomed with my lenses.
+
+It turns out that turning on APS-C mode on my full frame camera disables a whole bunch of the PTP commands from working. So testing with the cheap kit 16-50mm power zoom lens isn't valid. I bit the bullet and got the 16-35mm full frame power zoom lens SELP1635G. Bam! Now the camera is spitting out a property code, `0xD25D`, and it contains the zoom as a percentage (number 0 to 100). So this feature only works with official Sony full frame lenses with power zoom.
