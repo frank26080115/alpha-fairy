@@ -12,6 +12,7 @@ void SonyCamIr_Shoot(void);
 void SonyCamIr_Shoot2S(void);
 void SonyCamIr_Movie(void);
 void SonyCamIr_SendRaw(uint16_t addr, uint8_t cmd);
+void SonyCamIr_SendRawX(uint16_t addr, uint8_t cmd, uint8_t xtimes);
 
 #ifdef __cplusplus
 }

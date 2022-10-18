@@ -86,17 +86,26 @@ void SonyCamIr_SendRaw(uint16_t addr, uint8_t cmd)
     #endif
 }
 
+void SonyCamIr_SendRawX(uint16_t addr, uint8_t cmd, uint8_t xtimes)
+{
+    uint8_t i;
+    for (i = 0; i < xtimes; i++)
+    {
+        SonyCamIr_SendRaw(addr, cmd);
+    }
+}
+
 void SonyCamIr_Shoot()
 {
-    SonyCamIr_SendRaw(SONYCAMERA_ADDR, CMD_SHOOT);
+    SonyCamIr_SendRawX(SONYCAMERA_ADDR, CMD_SHOOT, 3);
 }
 
 void SonyCamIr_Shoot2S()
 {
-    SonyCamIr_SendRaw(SONYCAMERA_ADDR, CMD_SHOOT_2S);
+    SonyCamIr_SendRawX(SONYCAMERA_ADDR, CMD_SHOOT_2S, 3);
 }
 
 void SonyCamIr_Movie()
 {
-    SonyCamIr_SendRaw(SONYCAMERA_ADDR, CMD_MOVIE);
+    SonyCamIr_SendRawX(SONYCAMERA_ADDR, CMD_MOVIE, 3);
 }
