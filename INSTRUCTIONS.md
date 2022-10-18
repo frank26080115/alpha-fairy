@@ -33,6 +33,8 @@ Connect the M5StickC-Plus to the computer, follow instructions to install the FT
 
 Close the Arduino IDE and open it again.
 
+**NOTE:** if you are updating the firmware (thank you for keeping up to date with my project and being patient), then you will be repeating the steps below.
+
 Open Arduino IDE, from the menu bar, select the correct board: Tools->Boards->ESP32 Boards->M5StickC
 
 ![](doc/img_instruct/select_board.png)
@@ -50,6 +52,8 @@ Upload the image files: Tools->"ESP32 Sketch Data Upload"
 ![](doc/img_instruct/sketch_data_upload.png)
 
 (if the "ESP32 Sketch Data Upload" is missing, follow the instructions at https://github.com/me-no-dev/arduino-esp32fs-plugin to install the plugin, which also requires you to restart the Arduino IDE)
+
+**IMPORTANT:** every time you press "ESP32 Sketch Data Upload", the Wi-Fi profiles you have saved **will be erased**. The web interface can be used to view all existing Wi-Fi profiles so you can back them up.
 
 Disable core debug level: Tools->"Core Debug Level:", select "None"
 
