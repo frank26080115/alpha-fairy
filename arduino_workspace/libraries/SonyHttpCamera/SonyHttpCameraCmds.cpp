@@ -159,7 +159,7 @@ void SonyHttpCamera::cmd_ShutterSpeedSetStr(char* s)
 void SonyHttpCamera::cmd_IsoSet(uint32_t x)
 {
     if (x == 0 || x == 0xFFFFFF) {
-        cmd_IsoSetStr("AUTO");
+        cmd_IsoSetStr((char*)"AUTO");
         return;
     }
     x &= 0xFFFFFF;
