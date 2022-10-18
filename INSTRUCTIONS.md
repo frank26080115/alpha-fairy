@@ -50,6 +50,16 @@ Click "Upload" on the tool-bar
 
 # Connecting Your Camera
 
+Make sure your camera's Wi-Fi is configured to use the 2.4 GHz band.
+
+![](doc/img/wifi_freq_24ghz_band.jpg)
+
+From the camera menu, the option "Still Image Save Destination" should be set to "Camera Only". There are actually two places where this is set, one for PC remote, one for smartphone remote. Please set "Camera Only" to both modes.
+
+![](doc/img/smartphone_save_cam_only.webp)
+
+![](doc/img/pc_save_cam_only.webp)
+
 ## For PTP capable cameras (newer models) AP mode
 
 When the AlphaFairy code is running on the M5StickC, turn on the camera.
@@ -64,8 +74,6 @@ From the camera menu, airplane mode should be disabled, FTP should be disabled, 
 
 From the camera menu, the option "connect without pairing" should be enabled. **This is important! Sony cameras don't have an option to un-pair, only through a factory reset, and only one pairing can exist!** If you are having trouble with this step (some cameras do not allow "connect without pairing"), then try the STA connection mode (described below).
 
-From the camera menu, the option "Still Image Save Destination" should be set to "Camera Only".
-
 From the camera menu, connect to the SSID that the AlphaFairy is broadcasting ("fairywifi" by default), the password should be "1234567890"
 
 On the M5StickC's screen, the "no signal" icon should disappear. On the camera's screen, the `Wi-Fi` symbol should be fully white and the `-PC-` icon should be fully white.
@@ -75,6 +83,8 @@ On the M5StickC's screen, the "no signal" icon should disappear. On the camera's
 Turn on the camera, and activate the "Control from Smartphone" function. This may be implemented differently on different cameras:
 
  * Newer cameras will present a QR code but also have an option to show the SSID and password as text
+
+![](doc/img/wifilogin_a1_sta.webp)
 
 ![](doc/img/wifilogin_a6600.webp)
 

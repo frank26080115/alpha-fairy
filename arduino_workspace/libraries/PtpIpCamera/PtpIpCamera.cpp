@@ -187,14 +187,12 @@ void PtpIpCamera::task()
             }
             last_rx_time = now;
             reset_buffers();
-            #ifdef PTPIP_ENABLE_STREAMING
             if (cb_stream_done != NULL) {
                 cb_stream_done();
                 cb_stream_done = NULL;
                 cb_stream = NULL;
-                stream_state = 0;
+                stream_state = PTPSTREAMSTATE_NONE;
             }
-            #endif
         }
     }
 
@@ -351,7 +349,54 @@ bool PtpIpCamera::try_decode_pkt(uint8_t buff[], uint32_t* buff_idx, uint32_t bu
     bool did_stuff = false;
     ptpip_pkthdr_t* hdr = (ptpip_pkthdr_t*)buff;
 
-    if ((*buff_idx) >= hdr->length)
+    if (stream_state != PTPSTREAMSTATE_NONE && pending_data > 0) // stream has started and also STARTDATA has been received, this check takes priority
+    {
+        if (hdr->pkt_type == PTP_PKTTYPE_DATA && stream_state == PTPSTREAMSTATE_START)
+        {
+            int32_t chunk_size = hdr->length - 12;
+            int32_t avail_size = (*buff_idx) - 12;
+            if (avail_size <= 0) {
+                return false;
+            }
+
+            int32_t copy_size = chunk_size < avail_size ? chunk_size : avail_size;
+            dbgser_events->printf("stream sending first chunk %u / %u\r\n", copy_size, pending_data);
+            if (cb_stream != NULL) {
+                cb_stream(&(buff[12]), copy_size);
+            }
+            pending_data -= copy_size;
+            buffer_consume(buff, buff_idx, copy_size, buff_max);
+            stream_state = PTPSTREAMSTATE_GOING;
+            did_stuff = true;
+        }
+        else if (pending_data > 0)
+        {
+            uint32_t copy_size = (uint32_t)(*buff_idx);
+            if (copy_size > pending_data) {
+                copy_size = pending_data;
+            }
+            dbgser_events->printf(" %u ", copy_size);
+            if (cb_stream != NULL) {
+                cb_stream(buff, copy_size);
+            }
+            pending_data -= copy_size;
+            buffer_consume(buff, buff_idx, copy_size, buff_max);
+            did_stuff = true;
+        }
+        else if (hdr->pkt_type == PTP_PKTTYPE_ENDDATA || hdr->pkt_type == PTP_PKTTYPE_CANCELDATA)
+        {
+            dbgser_events->printf("stream end\r\n");
+            pending_data = 0;
+            stream_state = PTPSTREAMSTATE_DONE;
+            if (cb_stream_done != NULL) {
+                cb_stream_done();
+                cb_stream_done = NULL;
+            }
+            cb_stream = NULL;
+            did_stuff |= try_decode_pkt(buff, buff_idx, buff_max, false); // no chance of infinite recursion due to pending_data = 0 and cb_stream = null
+        }
+    }
+    else if ((*buff_idx) >= hdr->length)
     {
         if (pending_data <= 0)
         {
@@ -403,51 +448,6 @@ bool PtpIpCamera::try_decode_pkt(uint8_t buff[], uint32_t* buff_idx, uint32_t bu
         // no need to call buffer_consume as the only place that calls can_force will do a reset_buffer anyways
         did_stuff = true;
     }
-    #ifdef PTPIP_ENABLE_STREAMING
-    else if (cb_stream != NULL && stream_state != 0 && pending_data > 0)
-    {
-        if (hdr->pkt_type == PTP_PKTTYPE_DATA && stream_state == 1)
-        {
-            int32_t chunk_size = hdr->length - 12;
-            int32_t avail_size = (*buff_idx) - 12;
-            if (avail_size <= 0) {
-                return false;
-            }
-
-            int32_t copy_size = chunk_size < avail_size ? chunk_size : avail_size;
-            dbgser_events->printf("stream sending first chunk %u\r\n", copy_size);
-            cb_stream(&(buff[12]), copy_size);
-            pending_data -= copy_size;
-            buffer_consume(buff, buff_idx, copy_size, buff_max);
-            stream_state = 2;
-            did_stuff = true;
-        }
-        else if (pending_data > 0)
-        {
-            uint32_t copy_size = (uint32_t)(*buff_idx);
-            if (copy_size > pending_data) {
-                copy_size = pending_data;
-            }
-            dbgser_events->printf("stream sending another chunk %u\r\n", copy_size);
-            cb_stream(buff, copy_size);
-            pending_data -= copy_size;
-            buffer_consume(buff, buff_idx, copy_size, buff_max);
-            did_stuff = true;
-        }
-        else if (hdr->pkt_type == PTP_PKTTYPE_ENDDATA || hdr->pkt_type == PTP_PKTTYPE_CANCELDATA)
-        {
-            dbgser_events->printf("stream end\r\n");
-            pending_data = 0;
-            stream_state = 3;
-            if (cb_stream_done != NULL) {
-                cb_stream_done();
-                cb_stream_done = NULL;
-            }
-            cb_stream = NULL;
-            did_stuff |= try_decode_pkt(buff, buff_idx, buff_max, false); // no chance of infinite recursion due to pending_data = 0 and cb_stream = null
-        }
-    }
-    #endif
     return did_stuff;
 }
 
@@ -535,7 +535,12 @@ bool PtpIpCamera::decode_pkt(uint8_t buff[], uint32_t buff_len)
     {
         ptpip_pkt_event_t* pktstruct = (ptpip_pkt_event_t*)buff;
         uint16_t event_code = pktstruct->event_code;
-        dbgser_events->printf("PTPIP event 0x%04X\r\n", event_code);
+        dbgser_events->printf("PTPIP event 0x%04X", event_code);
+        int i = sizeof(ptpip_pkt_event_t);
+        for (; i < buff_len && i < pkt_len; i++) {
+            dbgser_events->printf(" 0x%02X", buff[i]);
+        }
+        dbgser_events->printf("\r\n");
         if (cb_onEvent != NULL) {
             cb_onEvent(event_code);
         }
@@ -551,7 +556,12 @@ bool PtpIpCamera::decode_pkt(uint8_t buff[], uint32_t buff_len)
     }
     else
     {
-        dbgser_important->printf("PTP unknown packet type 0x%08X\r\n", pkt_type);
+        dbgser_important->printf("PTP unknown packet type 0x%08X , ", pkt_type);
+        int i = sizeof(ptpip_pkt_event_t);
+        for (; i < buff_len && i < pkt_len; i++) {
+            dbgser_important->printf(" 0x%02X", buff[i]);
+        }
+        dbgser_important->printf("\r\n");
         pkt_valid = false;
     }
     return pkt_valid;
@@ -601,16 +611,14 @@ void PtpIpCamera::wait_canSend(AsyncClient* sock, uint32_t max_time)
 }
 #endif
 
-#ifdef PTPIP_ENABLE_STREAMING
 void PtpIpCamera::start_stream(void (*cb_s)(uint8_t*, uint32_t), void (*cb_d)(void))
 {
     cb_stream = cb_s;
     cb_stream_done = cb_d;
-    stream_state = 1;
+    stream_state = PTPSTREAMSTATE_START;
     pending_data = 0;
     dbgser_events->printf("starting stream\r\n");
 }
-#endif
 
 void PtpIpCamera::reset_buffers()
 {

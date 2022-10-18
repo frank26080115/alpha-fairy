@@ -66,6 +66,8 @@ Battery life is a bit short. Do not use it for intervalometer purposes without a
 
 Putting a full frame camera in APS-C mode will disable a ton of features from working.
 
+Only Wi-Fi 2.4 GHz mode is supported.
+
 Other issues will be logged in the Issues tab of GitHub.
 
 ## More

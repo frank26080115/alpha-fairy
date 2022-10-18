@@ -1,7 +1,7 @@
 #ifndef _ALFY_CONF_H_
 #define _ALFY_CONF_H_
 
-#define ALFY_VERSION            "1.0.6"     // change this with every new build
+#define ALFY_VERSION            "1.0.7"     // change this with every new build
 #define ALFY_VERSION_FILE_CHECK "/chk0.txt" // change this when FS files needs updating
 
 //#define WIFI_AP_UNIQUE_NAME
@@ -42,7 +42,7 @@
 
 #define BTN_DEBOUNCE 50
 
-#define SERIAL_PORT_BAUDRATE   115200
+#define SERIAL_PORT_BAUDRATE   500000
 
 //#define ENABLE_BUILD_LEPTON
 //#define ENABLE_BUILD_LEPTON_TRIGGER_SIMPLE

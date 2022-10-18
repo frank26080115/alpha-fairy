@@ -55,7 +55,7 @@ void setup()
     btns_init();
     SonyCamIr_Init();
 
-    M5.begin(false); // do not initialize the LCD, we have our own extended M5Lcd class to initialize later
+    M5.begin(false, true, false); // do not initialize the LCD, we have our own extended M5Lcd class to initialize later
     M5.IMU.Init();
     M5.IMU.SetGyroFsr(M5.IMU.GFS_500DPS);
     M5.IMU.SetAccelFsr(M5.IMU.AFS_4G);

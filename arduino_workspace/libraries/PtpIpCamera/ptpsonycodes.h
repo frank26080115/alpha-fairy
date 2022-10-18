@@ -20,6 +20,9 @@ enum
     SONYALPHA_EVENTCODE_ObjectAdded       = 0xC201,
     SONYALPHA_EVENTCODE_ObjectRemoved     = 0xC202,
     SONYALPHA_EVENTCODE_PropertyChanged   = 0xC203,
+    SONYALPHA_EVENTCODE_Unknown_1         = 0xC206,
+    SONYALPHA_EVENTCODE_Unknown_2         = 0xC207,
+    SONYALPHA_EVENTCODE_Unknown_3         = 0xC20C,
 };
 
 enum
