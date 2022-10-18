@@ -44,6 +44,10 @@ Upload the image files: Tools->"ESP32 Sketch Data Upload"
 
 (if the "ESP32 Sketch Data Upload" is missing, follow the instructions at https://github.com/me-no-dev/arduino-esp32fs-plugin to install the plugin, which also requires you to restart the Arduino IDE)
 
+Disable core debug level: Tools->"Core Debug Level:", select "None"
+
+![](doc/img_instruct/disable_debug_level.png)
+
 Click "Upload" on the tool-bar
 
 ![](doc/img_instruct/click_upload.png)
