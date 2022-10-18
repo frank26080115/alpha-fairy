@@ -146,11 +146,17 @@ bool PtpIpSonyAlphaCamera::decode_pkt(uint8_t buff[], uint32_t buff_len)
         if (properties_pending != false) {
             decode_properties();
         }
+        else if (objinfo_pending != false) {
+            decode_objinfo();
+        }
     }
     else if (pkt_type == PTP_PKTTYPE_ENDDATA)
     {
         if (properties_pending != false) {
             decode_properties();
+        }
+        else if (objinfo_pending != false) {
+            decode_objinfo();
         }
     }
     else if (pkt_type == PTP_PKTTYPE_EVENT) {
@@ -158,6 +164,11 @@ bool PtpIpSonyAlphaCamera::decode_pkt(uint8_t buff[], uint32_t buff_len)
         uint16_t event_code = pktstruct->event_code;
         if (event_code == SONYALPHA_EVENTCODE_PropertyChanged) {
             need_check_properties = true;
+        }
+        else if (event_code == SONYALPHA_EVENTCODE_ObjectAdded) {
+            need_check_object = true;
+            need_check_object_id = *((uint32_t*)&(buff[sizeof(ptpip_pkt_event_t) + sizeof(uint32_t)]));
+            dbgser_events->printf("ObjectAdded 0x%08X\r\n", need_check_object_id);
         }
     }
     return PtpIpCamera::decode_pkt(buff, buff_len);
@@ -176,7 +187,24 @@ bool PtpIpSonyAlphaCamera::check_dev_props()
     return success;
 }
 
-#ifdef PTPIP_ENABLE_STREAMING
+bool PtpIpSonyAlphaCamera::check_get_object()
+{
+    bool success;
+    wait_while_busy(0, DEFAULT_BUSY_TIMEOUT, NULL);
+    need_check_object = false;
+    dbgser_events->printf("check_get_object 0x%08X", need_check_object_id);
+    success = send_oper_req(PTP_OPCODE_GetObjectInfo, &need_check_object_id, 1, NULL, -1);
+    if (success != false) {
+        dbgser_events->printf("check_get_object 0x%08X\r\n", need_check_object_id);
+        objinfo_pending = true;
+    }
+    else {
+        dbgser_events->printf("check_get_object failed\r\n");
+    }
+    return success;
+}
+
+#if 0
 bool PtpIpSonyAlphaCamera::get_jpg(void (*cb_s)(uint8_t*, uint32_t), void (*cb_d)(void))
 {
     bool success;
@@ -204,7 +232,10 @@ void PtpIpSonyAlphaCamera::task()
         }
         #endif
         #endif
-        if (need_check_properties != false && canSend()) {
+        if (need_check_object != false && canSend()) {
+            check_get_object();
+        }
+        else if (need_check_properties != false && canSend()) {
             check_dev_props();
         }
     }

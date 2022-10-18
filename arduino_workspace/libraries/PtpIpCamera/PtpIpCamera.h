@@ -25,12 +25,19 @@ enum
     PTPSTATE_DISCONNECTED = 0x1002,
 };
 
+enum
+{
+    PTPSTREAMSTATE_NONE,
+    PTPSTREAMSTATE_START,
+    PTPSTREAMSTATE_GOING,
+    PTPSTREAMSTATE_DONE,
+};
+
 #define PACKET_BUFFER_SIZE (1024 * 6) // needs to be just big enough for a whole device properties packet
 #define DATA_BUFFER_SIZE   (1024 * 6) // needs to be just big enough for a whole device properties packet
 #define NAME_BUFFER_SIZE    256
 
 //#define PTPIP_KEEP_STATS
-//#define PTPIP_ENABLE_STREAMING
 #define PTPIP_IGNORE_INIT_ERROR
 
 #define DEFAULT_BUSY_TIMEOUT 1000
@@ -187,12 +194,10 @@ class PtpIpCamera
         void send_debug(char* s);
         void debug_rx(uint8_t*, uint32_t);
 
-        #ifdef PTPIP_ENABLE_STREAMING
         void (*cb_stream)(uint8_t* buff, uint32_t len) = NULL;
         void (*cb_stream_done)(void) = NULL;
         void start_stream(void (*cb_s)(uint8_t*, uint32_t), void (*cb_d)(void));
-        uint8_t stream_state = 0;
-        #endif
+        uint8_t stream_state = PTPSTREAMSTATE_NONE;
 
         #ifdef USE_ASYNC_SOCK
         void        wait_canSend      (AsyncClient* sock, uint32_t max_time);

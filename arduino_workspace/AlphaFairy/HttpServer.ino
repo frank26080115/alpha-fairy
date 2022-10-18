@@ -24,9 +24,11 @@ bool send_wifi_settings(AsyncResponseStream* response, uint8_t idx, bool readonl
 
 static AsyncWebServerRequest* httpsrv_request  = NULL;
 
+#if 0
 void httpsrv_jpgStream(uint8_t* buff, uint32_t len);
 void httpsrv_jpgDone(void);
 void httpsrv_startJpgStream(AsyncWebServerRequest* request);
+#endif
 
 const byte DNS_PORT = 53;
 DNSServer* dnsServer;
@@ -331,6 +333,7 @@ void httpsrv_init()
     });
     #endif
 
+    #if 0
     #if defined(HTTP_ENABLE_CMD_INTEFACE) && defined(HTTP_ON_BOOT)
     httpServer->on("/getpreview.jpg", HTTP_GET, [] (AsyncWebServerRequest* request)
     {
@@ -344,6 +347,7 @@ void httpsrv_init()
         //add_crossDomainHeaders(response);
         httpsrv_startJpgStream(request);
     });
+    #endif
     #endif
 
     #if defined(HTTP_ENABLE_CMD_INTEFACE) && defined(HTTP_ON_BOOT)
@@ -503,6 +507,7 @@ void httpsrv_jpgDone(void)
     httpsrv_request = NULL;
 }
 
+#if 0
 void httpsrv_startJpgStream(AsyncWebServerRequest* request)
 {
 
@@ -519,6 +524,7 @@ void httpsrv_startJpgStream(AsyncWebServerRequest* request)
         httpsrv_jpgDone();
     }
 }
+#endif
 
 void httpsrv_poll()
 {

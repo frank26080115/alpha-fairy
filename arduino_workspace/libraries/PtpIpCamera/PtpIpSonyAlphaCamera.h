@@ -42,7 +42,9 @@ class PtpIpSonyAlphaCamera : public PtpIpCamera
         uint32_t get_property_enum(uint16_t prop_code, uint32_t cur_val, int32_t step = 0);
         bool has_property(uint16_t prop_code);
         bool check_dev_props(void);
+        bool check_get_object(void);
         void decode_properties(void);
+        void decode_objinfo(void);
         void test_prop_decode(uint8_t* data, uint32_t len);
 
         bool decode_pkt(uint8_t buff[], uint32_t buff_len);
@@ -73,12 +75,15 @@ class PtpIpSonyAlphaCamera : public PtpIpCamera
         bool cmd_ExpoCompSet(int32_t x);         // input parameter expects value to be x * 1000 where x is stops of light, but with 2nd decimal place 0, example: +1.7 ev must be specified as 1700, 1666 should be rounded to 1700
         bool cmd_arb(uint32_t opcode, uint32_t propcode, uint8_t* payload, uint32_t payload_len);
 
-        #ifdef PTPIP_ENABLE_STREAMING
+        #if 0
         bool get_jpg(void (*cb_s)(uint8_t*, uint32_t), void (*cb_d)(void));
         #endif
 
         bool need_check_properties;
+        bool need_check_object;
+        uint32_t need_check_object_id;
         bool properties_pending;
+        bool objinfo_pending;
         uint32_t check_props_time;
         uint16_t* p_interested_properties;
 
