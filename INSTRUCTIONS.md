@@ -1,3 +1,10 @@
+This document covers:
+
+ * Installation and setup of Arduino for ESP32
+ * Building the source code and flashing onto a M5StickC-Plus unit
+ * Connecting the Alpha-Fairy to a Sony Camera
+ * Basic usage of the Alpha-Fairy
+
 # Installation Setup on PC
 
 This is an open source firmware project, it is free for anybody to download and install onto the M5StickC-Plus. I do not sell any pre-installed units, so for you to build one of these Alpha-Fairy remotes, you must follow these installation instructions.
