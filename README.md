@@ -77,6 +77,7 @@ Other issues will be logged in the Issues tab of GitHub.
  * [Firmware Engineering](doc/Firmware-Engineering.md)
  * [Camera Reverse Engineering](doc/Camera-Reverse-Engineering.md)
  * [My personal website blog post](https://eleccelerator.com/alpha-fairy-wireless-camera-remote/)
+ * [Wishlist of things I'd like Sony to change](doc/Wishlist-for-Sony-Mirrorless-Camera-Remote-Protocol.md)
 
 ## Demo Videos
 

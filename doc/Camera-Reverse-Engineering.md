@@ -76,3 +76,11 @@ It's a totally proprietary protocol (no standard organization), and is missing m
 I have a friend who does some cool virtual production stuff (think of how The Mandalorian was filmed on a virtual set), and he said that it would be super useful to obtain the lens current focal length for calibration, because that information is used for the camera 3D positional tracking. While testing I didn't notice any property codes changing while I zoomed with my lenses.
 
 It turns out that turning on APS-C mode on my full frame camera disables a whole bunch of the PTP commands from working. So testing with the cheap kit 16-50mm power zoom lens isn't valid. I bit the bullet and got the 16-35mm full frame power zoom lens SELP1635G. Bam! Now the camera is spitting out a property code, `0xD25D`, and it contains the zoom as a percentage (number 0 to 100). So this feature only works with official Sony full frame lenses with power zoom.
+
+## Problems with Card Buffering, mid Oct 2022
+
+A user that I was helping reported that when his A7R4 was commanded to take a photo, the camera's card buffer would not clear, and the busy LED of the camera stayed on forever. This was a situation I have previously encountered using PTP-over-USB. I immediately confirmed that the behavior is similar over Wi-Fi using Wireshark.
+
+The easiest solution is for the user to set the "Still Image Save Destination" to be "Camera Only" instead of "PC + Camera". But it turns out, there's now two different places in the Sony camera menu system where this is set, one for PC control, one for smartphone control. So the user should have both options set to "Camera Only". But there is always the possibility that the option is actually missing on some cameras, as is with my own A6600 and RX0M2.
+
+The solution was to simply read out the buffer into nothingness. This is easy over USB, as the connection is reliable and quick. The file is a JPG file about 400kb. After screwing around with my code, I got the ESP32 to swallow that data, but it really did require the core to stop servicing other IO operations like I2C and debug serial port messages.

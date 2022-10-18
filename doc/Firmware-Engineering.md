@@ -18,13 +18,15 @@ Of course the main application involves a complex interaction between all of the
 
 The ESP32 Wi-Fi stuff runs on its own RTOS thread, as ESP intended, and takes advantage of multi-core. Everything else is on another thread, the one that runs Arduino's `loop()` function. The Wi-Fi API calls are synchronous (I did try asynchronous and it didn't add much benefit). The various modules I wrote that has asynchronous elements offer a `poll()` or `task()` function that can be called during wait-loops.
 
-The menu system involves a table with image file paths and function pointers. Navigating a menu is basically indexing that table when the side-button is pressed, and calling the function when the big-button is pressed. Adding additional menu items, or re-organizing the items, is super easy. There are multiple tables and menus can be nested.
+The menu system is abstracted into four classes that can be inherited: Submenu, Menu Item, Configurable App, Configurable Item
 
-For configuring setting items, there's also a table that contains a pointer to the item's memory, the text that is shown, and the properties of that item (upper and lower limit, step size, displayed unit, etc). Adding to or re-organizing this table is super easy.
+The submenu and app classes feature pages that can be navigated, a list of pages in a linked list makes up a submenu or app. Each page is a class that is represented by a PNG image or an item that can be configured. All of these classes have a bunch of virtual functions that can be overridden by a subclass, such as `on_navTo()`, `on_spin()`, and the all important `on_execute()`. All of this makes it easy to put together an app and also customize it to respond to the gesture controls in particular ways, while still keeping many default behaviors so that the entire project has consistency in user experience.
 
-The code that handles the status bar, which reads the PMIC data (battery voltage and etc) is in a polling function that runs only periodically. The I2C transactions are slow and cost battery power.
+The major menu items uses full screen sized PNG files, and is only refreshed when required, which saves on some power and lag since it's slow to read from external flash and then updating the entire screen. Text elements are drawn quickly directly to only a small region of the screen. Smaller icons, such as the status bar, are cached into sprites to avoid the read from external flash.
 
-The major menu items uses full screen sized PNG files, and is only refreshed when required, which saves on some power and lag since it's slow to read from external flash and then updating the entire screen. Text elements are drawn quickly directly to only a small region of the screen. Smaller icons, such as the status bar, or the spinning clock icon, are cached into sprites to avoid the read from external flash.
+The code that handles the status bar, which reads the PMIC data (battery voltage and etc) is in a polling function that runs only periodically. The I2C transactions are slow and cost battery power. The IMU has to be polled at 40ms intervals because that's what the AHRS algorithm requires.
+
+Originally the clock animation was also cached for speed, but it took way too much memory and caused other memory allocation to fail, so now, the clock is actually drawn computationally.
 
 ## User Interaction
 
@@ -69,10 +71,10 @@ In practice, the IMU certainly did have enough precision for this input method t
 
 ## Resource Usage
 
-The built process (on October 12 2022) reports that
+The built process (on October 18 2022) reports that
 
-    Sketch uses 1174781 bytes (89%) of program storage space. Maximum is 1310720 bytes.
-    Global variables use 72512 bytes (22%) of dynamic memory, leaving 255168 bytes for local variables. Maximum is 327680 bytes.
+    Sketch uses 1182745 bytes (90%) of program storage space. Maximum is 1310720 bytes.
+    Global variables use 72312 bytes (22%) of dynamic memory, leaving 255368 bytes for local variables. Maximum is 327680 bytes.
 
 The local variable memory is further used for image sprites. It actually does not have enough memory to store every single sprite that I can come up with, so the sprite manager is constantly being unloaded.
 
