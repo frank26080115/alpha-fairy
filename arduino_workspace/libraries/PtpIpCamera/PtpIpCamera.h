@@ -30,7 +30,7 @@ enum
     PTPSTREAMSTATE_NONE,
     PTPSTREAMSTATE_START,
     PTPSTREAMSTATE_GOING,
-    PTPSTREAMSTATE_DONE,
+    PTPSTREAMSTATE_DONE_EMPTY,
 };
 
 #define PACKET_BUFFER_SIZE (1024 * 6) // needs to be just big enough for a whole device properties packet

@@ -195,11 +195,11 @@ bool PtpIpSonyAlphaCamera::check_get_object()
     dbgser_events->printf("check_get_object 0x%08X", need_check_object_id);
     success = send_oper_req(PTP_OPCODE_GetObjectInfo, &need_check_object_id, 1, NULL, -1);
     if (success != false) {
-        dbgser_events->printf("check_get_object 0x%08X\r\n", need_check_object_id);
+        dbgser_events->printf(" sent\r\n", need_check_object_id);
         objinfo_pending = true;
     }
     else {
-        dbgser_events->printf("check_get_object failed\r\n");
+        dbgser_events->printf(" failed\r\n");
     }
     return success;
 }

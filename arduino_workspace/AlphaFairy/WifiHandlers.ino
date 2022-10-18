@@ -202,6 +202,7 @@ void handle_user_reauth()
             dbg_ser.printf("autoconnect user wants give up (handle_user_reauth)\r\n");
             btnPwr_clrPressed();
             user_quit = true;
+            break;
         }
     }
 
