@@ -169,6 +169,12 @@ class PageWifiSelectProfile : public FairyMenuItem
             draw_text();
         };
 
+        virtual void on_eachFrame(void)
+        {
+            gui_drawSpinStatus(5, TFT_WHITE);
+            FairyMenuItem::on_eachFrame();
+        };
+
         virtual bool on_execute(void)
         {
             // press button to save

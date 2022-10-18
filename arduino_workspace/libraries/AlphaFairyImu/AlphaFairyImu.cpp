@@ -98,11 +98,11 @@ void AlphaFairyImu::poll()
         if ((now - spin_timestamp) > 500) // rate limit
         {
             // see which direction we have spun
-            if (pitch_accum > 180) {
+            if (pitch_accum > (45 * 3)) {
                 spin_cnt++;
                 spin_timestamp = now;
             }
-            else if (pitch_accum < -180) {
+            else if (pitch_accum < -(45 * 3)) {
                 spin_cnt--;
                 spin_timestamp = now;
             }

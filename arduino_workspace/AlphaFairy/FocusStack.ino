@@ -26,6 +26,12 @@ class AppFocusStack : public FairyMenuItem
             draw_text();
         };
 
+        virtual void on_eachFrame(void)
+        {
+            gui_drawSpinStatus(5, TFT_WHITE);
+            FairyMenuItem::on_eachFrame();
+        };
+
         virtual void on_redraw(void)
         {
             FairyMenuItem::on_redraw();

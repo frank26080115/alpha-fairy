@@ -309,10 +309,12 @@ class AppDualShutter : public FairyMenuItem
                 }
                 set_redraw();
             }
-        }
+        };
 
         virtual void on_eachFrame(void)
         {
+            gui_drawSpinStatus(5, TFT_WHITE);
+
             if (_is_armed)
             {
                 if ((ptpcam.isOperating() && ptpcam.has_property(SONYALPHA_PROPCODE_FocusFound) && ptpcam.get_property(SONYALPHA_PROPCODE_FocusFound) == SONYALPHA_FOCUSSTATUS_FOCUSED) || (httpcam.isOperating() && httpcam.is_focused))
