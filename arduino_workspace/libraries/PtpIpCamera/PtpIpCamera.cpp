@@ -174,26 +174,47 @@ void PtpIpCamera::task()
             return;
         }
         poll();
-        //now = millis();
+        uint32_t last_pending = pending_data;
         uint32_t pkt_timeout = PTPIP_PACKET_TIMEOUT;
         if (pending_data > 0 || pktbuff_idx > 0) {
             pkt_timeout *= 3;
         }
-        if (now > last_rx_time && (now - last_rx_time) > pkt_timeout) {
-            if (pktbuff_idx > 0) {
-                if (try_decode_pkt(pktbuff, &pktbuff_idx, PACKET_BUFFER_SIZE, true) == false) {
-                    dbgser_important->printf("PTP timeout receiving packet (%u rem)\r\n", pktbuff_idx);
+        do
+        {
+            if (now > last_rx_time && (now - last_rx_time) > pkt_timeout) {
+                if (pktbuff_idx > 0) {
+                    if (try_decode_pkt(pktbuff, &pktbuff_idx, PACKET_BUFFER_SIZE, true) == false) {
+                        dbgser_important->printf("PTP timeout receiving packet (%u rem)\r\n", pktbuff_idx);
+                    }
                 }
-            }
-            last_rx_time = now;
-            reset_buffers();
-            if (cb_stream_done != NULL) {
-                cb_stream_done();
+                last_rx_time = now;
+                reset_buffers();
+                if (cb_stream_done != NULL) {
+                    cb_stream_done();
+                }
                 cb_stream_done = NULL;
                 cb_stream = NULL;
                 stream_state = PTPSTREAMSTATE_NONE;
+                pending_data = 0;
+                break;
+            }
+
+            // if we are in a critical streaming mode, keep polling tightly
+            // which means no LCD updates, no button presses, no I2C transactions
+            if ((stream_state != PTPSTREAMSTATE_NONE && pending_data > 0) && (millis() - now) < 2000) {
+                poll();
+                if (last_pending != pending_data) {
+                    // keep reading if busy
+                    now = millis();
+                    last_pending = pending_data;
+                }
+                continue;
+            }
+            else {
+                break;
             }
         }
+        while (true);
     }
 
     if (state == PTPSTATE_CMD_REQ) {
@@ -375,25 +396,39 @@ bool PtpIpCamera::try_decode_pkt(uint8_t buff[], uint32_t* buff_idx, uint32_t bu
             if (copy_size > pending_data) {
                 copy_size = pending_data;
             }
-            dbgser_events->printf(" %u ", copy_size);
+            //dbgser_events->printf(" %u ", copy_size);
             if (cb_stream != NULL) {
                 cb_stream(buff, copy_size);
             }
             pending_data -= copy_size;
             buffer_consume(buff, buff_idx, copy_size, buff_max);
             did_stuff = true;
-        }
-        else if (hdr->pkt_type == PTP_PKTTYPE_ENDDATA || hdr->pkt_type == PTP_PKTTYPE_CANCELDATA)
-        {
-            dbgser_events->printf("stream end\r\n");
-            pending_data = 0;
-            stream_state = PTPSTREAMSTATE_DONE;
-            if (cb_stream_done != NULL) {
-                cb_stream_done();
-                cb_stream_done = NULL;
+            if (pending_data <= 0) {
+                dbgser_events->printf("stream 0 pending\r\n");
+                stream_state = PTPSTREAMSTATE_DONE_EMPTY;
             }
-            cb_stream = NULL;
-            did_stuff |= try_decode_pkt(buff, buff_idx, buff_max, false); // no chance of infinite recursion due to pending_data = 0 and cb_stream = null
+        }
+    }
+    else if (stream_state == PTPSTREAMSTATE_DONE_EMPTY)
+    {
+        // this is a dirty hack
+        // even after pending data is 0, there seems to be remaining data in the buffer
+        // so I implemented this next loop to discard data until the next packet appears valid
+        while ((*buff_idx) >= 8)
+        {
+            if (hdr->length <= 32) // length is about right
+            {
+                if (hdr->pkt_type >= PTP_PKTTYPE_OPERRESP && hdr->pkt_type <= PTP_PKTTYPE_ENDDATA) // is valid packet type
+                {
+                    break;
+                }
+            }
+            buffer_consume(buff, buff_idx, 1, buff_max); // discard one byte
+        }
+        if ((*buff_idx) >= 8) // exited loop due to valid packet
+        {
+            stream_state = PTPSTREAMSTATE_NONE;
+            did_stuff |= try_decode_pkt(buff, buff_idx, buff_max, false);
         }
     }
     else if ((*buff_idx) >= hdr->length)
@@ -511,14 +546,38 @@ bool PtpIpCamera::decode_pkt(uint8_t buff[], uint32_t buff_len)
         pending_data = pktstruct->pending_data_length;
         databuff_idx = 0;
         dbgser_rx->printf("PTPRX start-data %u\r\n", pending_data);
+        if (stream_state != PTPSTREAMSTATE_NONE) {
+            dbgser_events->printf("stream startdata %u\r\n", pending_data);
+        }
     }
     else if (pkt_type == PTP_PKTTYPE_ENDDATA)
     {
         dbgser_rx->printf("PTPRX end-data\r\n");
+        if (stream_state != PTPSTREAMSTATE_NONE) {
+            dbgser_events->printf("stream enddata ");
+            if (pending_data > 0)
+            {
+                dbgser_events->printf("with data rem %u\r\n", pending_data);
+                pending_data = 0;
+                stream_state = PTPSTREAMSTATE_NONE;
+            }
+            else if (stream_state >= PTPSTREAMSTATE_GOING && pending_data <= 0)
+            {
+                dbgser_events->printf("finalizing\r\n");
+            }
+            else {
+                dbgser_events->printf("??\r\n");
+            }
+        }
     }
     else if (pkt_type == PTP_PKTTYPE_CANCELDATA)
     {
         dbgser_rx->printf("PTPRX cancel-data\r\n");
+        if (stream_state != PTPSTREAMSTATE_NONE) {
+            dbgser_events->printf("stream canceldata\r\n");
+            pending_data = 0;
+            stream_state = PTPSTREAMSTATE_NONE;
+        }
     }
     else if (pkt_type == PTP_PKTTYPE_INITFAILED)
     {
