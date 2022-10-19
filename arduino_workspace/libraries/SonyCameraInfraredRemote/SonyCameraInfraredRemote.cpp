@@ -30,11 +30,6 @@
 
 #endif
 
-#define SONYCAMERA_ADDR 0x1E3A
-#define CMD_SHOOT       0x2D
-#define CMD_SHOOT_2S    0x37
-#define CMD_MOVIE       0x48
-
 void SonyCamIr_Init()
 {
     #ifdef USE_IRREMOTE
@@ -97,15 +92,15 @@ void SonyCamIr_SendRawX(uint16_t addr, uint8_t cmd, uint8_t xtimes)
 
 void SonyCamIr_Shoot()
 {
-    SonyCamIr_SendRawX(SONYCAMERA_ADDR, CMD_SHOOT, 3);
+    SonyCamIr_SendRawX(IR_ADDR_SONYCAM, IR_CMD_SHOOT, 3);
 }
 
 void SonyCamIr_Shoot2S()
 {
-    SonyCamIr_SendRawX(SONYCAMERA_ADDR, CMD_SHOOT_2S, 3);
+    SonyCamIr_SendRawX(IR_ADDR_SONYCAM, IR_CMD_SHOOT_2S, 3);
 }
 
 void SonyCamIr_Movie()
 {
-    SonyCamIr_SendRawX(SONYCAMERA_ADDR, CMD_MOVIE, 3);
+    SonyCamIr_SendRawX(IR_ADDR_SONYCAM, IR_CMD_MOVIE, 3);
 }
