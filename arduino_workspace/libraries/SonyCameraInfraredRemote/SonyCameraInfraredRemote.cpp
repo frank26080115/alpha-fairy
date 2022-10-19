@@ -90,6 +90,30 @@ void SonyCamIr_SendRawX(uint16_t addr, uint8_t cmd, uint8_t xtimes)
     }
 }
 
+void SonyCamIr_SendRawBits(uint32_t data, uint8_t numbits, uint8_t xtimes)
+{
+    uint8_t k;
+    for (k = 0; k < xtimes; k++)
+    {
+        #ifdef USE_ESP32_RMT
+        static rmt_item32_t rmtObjects[32];
+        uint8_t i, j;
+        rmtObjects[0].duration0 = 2400;
+        rmtObjects[0].level0 = ACTIVE_VAL == 0 ? 0 : 1;
+        rmtObjects[0].duration1 = 600;
+        rmtObjects[0].level1 = ACTIVE_VAL == 0 ? 1 : 0;
+        for (i = 1, j = 0; j < numbits; i += 1, j += 1)
+        {
+            rmtObjects[i].duration0 = (((data & (1UL << j)) != 0) ? 2 : 1) * 600;
+            rmtObjects[i].level0 = ACTIVE_VAL == 0 ? 0 : 1;
+            rmtObjects[i].duration1 = 600;
+            rmtObjects[i].level1 = ACTIVE_VAL == 0 ? 1 : 0;
+        }
+        rmt_write_items(RMT_CHANNEL, rmtObjects, i, true);
+        #endif
+    }
+}
+
 void SonyCamIr_Shoot()
 {
     SonyCamIr_SendRawX(IR_ADDR_SONYCAM, IR_CMD_SHOOT, 3);
