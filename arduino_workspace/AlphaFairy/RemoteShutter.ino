@@ -262,6 +262,12 @@ class AppRemoteShutter : public FairyMenuItem
             }
         };
 
+        virtual void on_eachFrame(void)
+        {
+            gui_drawSpinStatus(5, TFT_WHITE);
+            FairyMenuItem::on_eachFrame();
+        };
+
         virtual bool on_execute(void)
         {
             cpufreq_boost();

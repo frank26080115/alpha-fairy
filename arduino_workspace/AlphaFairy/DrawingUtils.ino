@@ -98,6 +98,27 @@ void gui_drawTopThickLine(uint16_t thickness, uint16_t colour)
     M5Lcd.fillRect(0, 0, M5Lcd.width(), thickness, colour);
 }
 
+void gui_drawSpinStatus(uint16_t thickness, uint16_t bgcolour)
+{
+    int ang = imu.pitch_accum;
+    int x;
+    if (ang > 0) {
+        x = ang;
+        x = x > M5Lcd.width() ? M5Lcd.width() : x;
+        M5Lcd.fillRect(0, 0, x, thickness, TFT_LIGHTGREY);
+        M5Lcd.fillRect(x + 1, 0, M5Lcd.width() - x, thickness, bgcolour);
+    }
+    else if (ang < 0) {
+        x = -ang;
+        x = x > M5Lcd.width() ? M5Lcd.width() : x;
+        M5Lcd.fillRect(0, 0, M5Lcd.width() - x, thickness, bgcolour);
+        M5Lcd.fillRect(M5Lcd.width() - x + 1, 0, x, thickness, TFT_LIGHTGREY);
+    }
+    else {
+        gui_drawTopThickLine(thickness, bgcolour);
+    }
+}
+
 void gui_showVal(int32_t x, uint32_t txtfmt, Print* printer)
 {
     char str[64]; int i = 0;

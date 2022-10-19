@@ -266,40 +266,36 @@ class AppQuickRemote : public FairyMenuItem
                     }
                     else if (qikrmt_row == 1) // zoom
                     {
-                        if (must_be_connected() == false) {
-                            can_do = false;
-                        }
-
-                        if (can_do)
+                        do
                         {
-                            bool do_one = true;
-                            while ((btnBig_isPressed() || do_one) && fairycam.isOperating())
+                            cpufreq_boost();
+                            app_poll();
+                            int8_t dir = qikrmt_col == 0 ? -1 : +1; // pick direction of zoom based on which table column is selected
+                            if (ptpcam.isOperating())
                             {
-                                do_one = false;
-                                cpufreq_boost();
-                                app_poll();
-                                int8_t dir = qikrmt_col == 0 ? -1 : +1; // pick direction of zoom based on which table column is selected
-                                if (ptpcam.isOperating())
-                                {
-                                    if (dir != 0) {
-                                        ptpcam.cmd_ZoomStep((dir < 0) ? -1 : ((dir > 0) ? +1 : 0));
-                                        ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
-                                    }
-                                }
-                                if (httpcam.isOperating())
-                                {
-                                    httpcam.cmd_ZoomStart(dir);
-                                    httpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+                                if (dir != 0) {
+                                    ptpcam.cmd_ZoomStep((dir < 0) ? -1 : ((dir > 0) ? +1 : 0));
+                                    ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
                                 }
                             }
+                            if (httpcam.isOperating())
+                            {
+                                httpcam.cmd_ZoomStart(dir);
+                                httpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+                            }
+                            if (fairycam.isOperating() == false && config_settings.infrared_enabled != 0)
+                            {
+                                SonyCamIr_SendRawX(IR_ADDR_SONYCAM, dir < 0 ? IR_CMD_ZOOM_WIDE2 : IR_CMD_ZOOM_TELE2, 3);
+                            }
+                        }
+                        while (btnBig_isPressed());
 
-                            // button is released, stop the zooming
-                            if (ptpcam.isOperating()) {
-                                ptpcam.cmd_ZoomStep(0);
-                            }
-                            if (httpcam.isOperating()) {
-                                httpcam.cmd_ZoomStop();
-                            }
+                        // button is released, stop the zooming
+                        if (ptpcam.isOperating()) {
+                            ptpcam.cmd_ZoomStep(0);
+                        }
+                        if (httpcam.isOperating()) {
+                            httpcam.cmd_ZoomStop();
                         }
                     }
                     else if (qikrmt_row == 2) // focus

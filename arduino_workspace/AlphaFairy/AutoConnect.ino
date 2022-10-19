@@ -47,21 +47,26 @@ class AppAutoConnect : public FairyMenuItem
             autoconnect_active = true;
             autoconnect_status = 0;
 
+            uint8_t scan_failed_cnt = 0;
             uint8_t result_code = 0;
             uint8_t result_profile = 0;
             wifiprofile_t profile;
 
+            bool first_loop = true;
             bool user_quit = false;
 
             int draw_idx = 0;
             uint32_t t = millis();
             uint32_t now = t;
 
+            WiFi.mode(WIFI_STA);
             WiFi.disconnect(); // halt wifi activity for now
 
             btnAny_clrPressed();
 
             dbg_ser.println("autoconnect starting");
+
+            int scan_ret;
 
             while (true)
             {
@@ -88,9 +93,17 @@ class AppAutoConnect : public FairyMenuItem
                     gui_drawStatusBar(false);
                 }
 
-                int scan_ret = WiFi.scanComplete();
+                if (first_loop) {
+                    scan_ret = 0;
+                    first_loop = false;
+                }
+                else if (scan_ret <= 0) {
+                    scan_ret = WiFi.scanComplete();
+                }
+
                 if (scan_ret > 0) // has results
                 {
+                    scan_failed_cnt = 0;
                     dbg_ser.printf("autoconnect scan complete, %u results\r\n", scan_ret);
                     int i, j;
                     // first check if anything is broadcasting a SSID that we already have in database
@@ -125,6 +138,9 @@ class AppAutoConnect : public FairyMenuItem
                         for (i = 0; i < scan_ret; i++)
                         {
                             char* ssid_str = (char*)WiFi.SSID(i).c_str();
+                            if (strlen(ssid_str) > 0) {
+                                dbg_ser.printf(" [%u]scanned SSID: %s\r\n", i, ssid_str);
+                            }
                             if (memcmp("DIRECT-", ssid_str, 7) == 0) // looks like a Sony camera
                             {
                                 dbg_ser.printf("autoconnect new SSID: %s\r\n", ssid_str);
@@ -145,7 +161,7 @@ class AppAutoConnect : public FairyMenuItem
                     {
                         // nothing found, restart the scan
                         dbg_ser.printf("autoconnect re-scan\r\n");
-                        WiFi.scanNetworks(true, false, false);
+                        scan_ret = WiFi.scanNetworks(true, false, false);
                     }
                     else
                     {
@@ -156,8 +172,11 @@ class AppAutoConnect : public FairyMenuItem
                 else if (scan_ret != WIFI_SCAN_RUNNING)
                 {
                     // either the scan isn't running or no results were found, (re)start the scan
-                    dbg_ser.printf("autoconnect scan start\r\n");
-                    WiFi.scanNetworks(true, false, false);
+                    dbg_ser.printf("autoconnect scan start (code %d)\r\n", scan_ret);
+                    if (scan_ret == WIFI_SCAN_FAILED) {
+                        scan_failed_cnt++;
+                    }
+                    scan_ret = WiFi.scanNetworks(true, false, false);
                 }
 
                 // maybe the user wants to cancel
@@ -171,6 +190,10 @@ class AppAutoConnect : public FairyMenuItem
                     btnSide_clrPressed();
                     btnPwr_clrPressed();
                     break;
+                }
+
+                if (scan_failed_cnt > 5) {
+                    critical_error("/wifi_error.png");
                 }
             }
 
