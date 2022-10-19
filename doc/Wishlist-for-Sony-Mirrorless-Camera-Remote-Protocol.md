@@ -1,6 +1,7 @@
 ## Wishlist for Sony Mirrorless Camera Remote Protocol
 
  * Make the option to save to "Camera Only" an option on all models of cameras and for all modes
+ * Give an option to unpair a computer without doing a full factory reset
  * Add focal length data to the device property packets
    * for all lenses, not just power zoom lenses
    * will allow for accurate inside-out camera 3D positional tracking without calibrating for lens focal length

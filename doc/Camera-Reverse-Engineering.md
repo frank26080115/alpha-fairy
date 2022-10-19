@@ -24,6 +24,8 @@ It looks like when a camera is "paired" to an application, you cannot unpair it!
 
 Please use the "Connect Without Pairing" option!!!
 
+NOTE: After examining multiple Wireshark capture sessions, using the same laptop as the host, and multiple camera models, it looks like the GUID for each pairing is unique. This means a spoofing attack is less likely to be possible, and very impractical to implement in a way that a photographer can utilize.
+
 ## Device Properties
 
 One key feature for me to implement is to read the camera's status (current settings, battery level, etc). This is done by requesting all device properties, and then getting a gigantic chunk of data as a reply. There are a few annoying things about the way this works:
