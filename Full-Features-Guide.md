@@ -199,6 +199,12 @@ This is an experimental feature, meant more as a joke, for those situations when
 
 NOTE: the reporting rate of the focus status from the camera is rather slow, so the rapid tapping detection doesn't work very reliably
 
+## Timecode Reset
+
+![](screens_240/timecode_reset.png)
+
+Press the big button to send the infrared command that resets timecode on a supported Sony camera. ([see feature request](https://github.com/frank26080115/alpha-fairy/issues/13))
+
 ## Auto Connect
 
 ![](doc/img/autoconnect_ani.webp)

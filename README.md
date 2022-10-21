@@ -45,6 +45,7 @@ The fun part about this project for me is to create a usable user interface on a
    * same as intervalometer but more focused on bulb mode, and uses pause time instead of fixed interval time
  * Focus Frustration
    * is your camera not focusing on the thing you want it to focus on? rapidly tapping the AF button repeatedly will automatically pull the focus back to the nearest possible point
+ * [Timecode reset](https://github.com/frank26080115/alpha-fairy/issues/13), can be used to reset timecode on multiple cameras simultaneously
 
 ### Minor Features
 
