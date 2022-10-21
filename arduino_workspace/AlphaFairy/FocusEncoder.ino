@@ -286,6 +286,22 @@ class AppFocusCalib : public FairyMenuItem
         AppFocusCalib() : FairyMenuItem("/focus_calib.png") {
         };
 
+        virtual void on_navTo(void)
+        {
+            if (config_settings.fenc_large != 0 && _success != 2) {
+                _success = 1;
+            }
+            FairyMenuItem::on_navTo();
+        };
+
+        virtual void on_redraw(void)
+        {
+            FairyMenuItem::on_redraw();
+            if (_success > 0) {
+                focus_calib_write(_success == 1 ? TFT_BLACK : TFT_RED);
+            }
+        };
+
         virtual bool on_execute(void)
         {
             if (must_be_ptp() == false) {
@@ -294,11 +310,13 @@ class AppFocusCalib : public FairyMenuItem
 
             M5Lcd.drawPngFile(SPIFFS, "/focus_calib.png", 0, 0); // clear screen, removes text
             bool success = fenc_calibrate();
-            M5Lcd.drawPngFile(SPIFFS, "/focus_calib.png", 0, 0); // clear screen, removes the progress dots
-
-            focus_calib_write(success ? TFT_BLACK : TFT_RED);
+            _success = success ? 1 : 2;
+            set_redraw();
             return false;
         };
+
+    protected:
+        int _success = 0;
 };
 
 extern FairySubmenu menu_utils;
