@@ -251,6 +251,30 @@ void pwr_sleepCheck()
     #endif
 }
 
+void pwr_dimCheck()
+{
+    uint32_t now = millis();
+
+    if (config_settings.lcd_dim_secs != 0)
+    {
+        if ((now - lcddim_last_tick) > (config_settings.lcd_dim_secs * 1000))
+        {
+            // time to dim the LCD backlight
+            if (lcd_backlight_dim == false) {
+                M5.Axp.ScreenBreath(7);
+                lcd_backlight_dim = true;
+            }
+        }
+        else {
+            pwr_lcdUndim();
+        }
+    }
+    else
+    {
+        pwr_lcdUndim();
+    }
+}
+
 void pwr_lightSleepEnter()
 {
     if (gui_microphoneActive) {
