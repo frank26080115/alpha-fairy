@@ -6,6 +6,8 @@ static uint32_t intervalometer_start_time;
 
 extern bool tallylite_enable;
 
+bool interval_redMode = false;
+
 void interval_drawTimer(int8_t x)
 {
     static uint8_t i = 0;
@@ -76,6 +78,7 @@ class PageInterval : public FairyCfgItem
 
         virtual void on_redraw(void)
         {
+            M5Lcd.setTextColor(interval_redMode ? TFT_RED : TFT_WHITE, TFT_BLACK);
             FairyCfgItem::on_redraw();
             if (is_func())
             {
@@ -85,6 +88,18 @@ class PageInterval : public FairyCfgItem
             {
                 draw_total();
             }
+        };
+
+        virtual void on_eachFrame(void)
+        {
+            if (imu.getSpin() != 0)
+            {
+                interval_redMode ^= true;
+                M5Lcd.setTextColor(interval_redMode ? TFT_RED : TFT_WHITE, TFT_BLACK);
+                set_redraw();
+                imu.resetSpin();
+            }
+            FairyCfgItem::on_eachFrame();
         };
 
     protected:
@@ -132,7 +147,9 @@ class PageInterval : public FairyCfgItem
                     M5Lcd.print("s");
                 }
                 if (config_settings.astro_pause > 1) {
-                    M5Lcd.print(" + ");
+                    if (config_settings.astro_bulb != 0) {
+                        M5Lcd.print(" + ");
+                    }
                     M5Lcd.print(config_settings.astro_pause, DEC);
                     M5Lcd.print("s");
                 }
@@ -189,6 +206,7 @@ bool intervalometer_func(void* ptr)
 
     // prep screen for drawing
     gui_startAppPrint();
+    M5Lcd.setTextColor(interval_redMode ? TFT_RED : TFT_WHITE, TFT_BLACK);
     M5Lcd.fillScreen(TFT_BLACK);
     interval_drawTimerStart();
     interval_drawTimer(-1);
@@ -206,6 +224,9 @@ bool intervalometer_func(void* ptr)
 
     // handle early quit
     if (stop_flag) {
+        sprites->unload_all();
+        redraw_flag = true; // force parent to redraw
+        app_waitAllRelease();
         return false;
     }
 
@@ -218,10 +239,12 @@ bool intervalometer_func(void* ptr)
     {
         app_poll();
         pwr_tick(false); // app_poll already checks for IMU motion to undim the LCD
+        pwr_dimCheck();
 
         if (redraw_flag) {
             redraw_flag = false;
             gui_startAppPrint();
+            M5Lcd.setTextColor(interval_redMode ? TFT_RED : TFT_WHITE, TFT_BLACK);
             M5Lcd.fillScreen(TFT_BLACK);
             M5Lcd.setTextFont(4);
         }
@@ -325,10 +348,12 @@ bool intervalometer_wait(
     while ((telapsed = ((now = millis()) - tstart)) < twait)
     {
         app_poll();
+        pwr_dimCheck();
 
         if (redraw_flag) {
             redraw_flag = false;
             gui_startAppPrint();
+            M5Lcd.setTextColor(interval_redMode ? TFT_RED : TFT_WHITE, TFT_BLACK);
             M5Lcd.fillScreen(TFT_BLACK);
             M5Lcd.setTextFont(4);
         }
