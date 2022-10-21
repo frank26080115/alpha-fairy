@@ -230,6 +230,8 @@ The submenu items contain information and QR codes for a smartphone to establish
 
 ![](doc/img/wificfg_qrcode.jpg)
 
+**NOTE:** the screen is super tiny and your QR scanner might not actually work, sorry! Just type in the credentials manually if this is the case.
+
 ![](doc/img/wificonfig_androidwifi.png)
 
 With a smartphone browser, the entire list of Wi-Fi profiles (ie. cameras registered with the remote) can be edited, and also new entries can be added.
