@@ -143,6 +143,7 @@ void setup_menus()
     setup_remoteshutter();
     setup_shuttertrigger();
     setup_dualshutter();
+    setup_timecodeReset();
 
     setup_focusstack();
     setup_shutterstep();
