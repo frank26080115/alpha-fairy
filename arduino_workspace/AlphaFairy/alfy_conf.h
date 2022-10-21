@@ -2,7 +2,7 @@
 #define _ALFY_CONF_H_
 
 #define ALFY_VERSION            "1.0.10"    // change this with every new build
-#define ALFY_VERSION_FILE_CHECK "/chk0.txt" // change this when FS files needs updating
+#define ALFY_VERSION_FILE_CHECK "/chk1.txt" // change this when FS files needs updating
 
 //#define WIFI_AP_UNIQUE_NAME
 #ifndef WIFI_AP_UNIQUE_NAME
@@ -10,7 +10,7 @@
 #else
 #define WIFI_DEFAULT_SSID "fairy"
 #endif
-#define WIFI_DEFAULT_PASS  "1234567890"
+#define WIFI_DEFAULT_PASS "1234567890"
 
 //#define DISABLE_STATUS_BAR
 //#define DISABLE_POWER_SAVE
