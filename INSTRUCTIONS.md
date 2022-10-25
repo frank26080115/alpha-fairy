@@ -5,6 +5,33 @@ This document covers:
  * Connecting the Alpha-Fairy to a Sony Camera
  * Basic usage of the Alpha-Fairy
 
+# Disclaimer
+
+There are inherent dangers in the use of any software/firmware available for download on the Internet, and we caution you to make sure that you completely understand the potential risks before downloading any of the software/firmware.
+
+The software, firmware, instructions, and code samples available on this website are provided "as is" without warranty of any kind, either express or implied. Use at your own risk.
+
+The use of the software, firmware, instructions, and scripts on this site is done at your own discretion and risk and with agreement that you will be solely responsible for any damage to your electronic devices or loss of data that results from such activities.
+
+You are solely responsible for adequate protection and backup of the data and equipment used in connection with any of the software or firmware, and we will not be liable for any damages that you may suffer in connection with using, modifying or distributing any of this software or firmware. No advice or information, whether oral or written, obtained by you from us or from this website shall create any warranty for the software or firmware.
+
+We make makes no warranty that
+
+* the software or firmware will meet your requirements
+* the software or firmware will be uninterrupted, timely, secure or error-free
+* the results that may be obtained from the use of the software or firmware will be effective, accurate or reliable
+* the quality of the software or firmware will meet your expectations
+* any errors in the software or firmware obtained from us will be corrected.
+
+The software, firmware, code sample and their documentation made available on this website:
+
+* could include technical or other mistakes, inaccuracies or typographical errors. We may make changes to the software or firmware or documentation made available on its web site at any time without prior-notice.
+* may be out of date, and we make no commitment to update such materials.
+
+We assume no responsibility for errors or omissions in the software or documentation available from its web site.
+
+In no event shall we be liable to you or any third parties for any special, punitive, incidental, indirect or consequential damages of any kind, or any damages whatsoever, including, without limitation, those resulting from loss of use, data or profits, and on any theory of liability, arising out of or in connection with the use of this software or firmware.
+
 # Installation Setup on PC
 
 This is an open source firmware project, it is free for anybody to download and install onto the M5StickC-Plus. I do not sell any pre-installed units, so for you to build one of these Alpha-Fairy remotes, you must follow these installation instructions.

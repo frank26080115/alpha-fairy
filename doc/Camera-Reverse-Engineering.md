@@ -86,3 +86,11 @@ A user that I was helping reported that when his A7R4 was commanded to take a ph
 The easiest solution is for the user to set the "Still Image Save Destination" to be "Camera Only" instead of "PC + Camera". But it turns out, there's now two different places in the Sony camera menu system where this is set, one for PC control, one for smartphone control. So the user should have both options set to "Camera Only". But there is always the possibility that the option is actually missing on some cameras, as is with my own A6600 and RX0M2.
 
 The solution was to simply read out the buffer into nothingness. This is easy over USB, as the connection is reliable and quick. The file is a JPG file about 400kb. After screwing around with my code, I got the ESP32 to swallow that data, but it really did require the core to stop servicing other IO operations like I2C and debug serial port messages.
+
+## Timecode Reset, late Oct 2022
+
+I responded to [this feature request](https://github.com/frank26080115/alpha-fairy/issues/13). It is about adding a infrared remote command to reset the running timecode on cameras. This is a way of synchronizing video across multiple simultaneously filming cameras.
+
+My first attempt involving simply guessing. It is quite common for Sony devices to use commands that comprise of a 13 bit device address and 7 bit command, meaning I had to check 127 different commands. This was not successful, but I did figure out many other command bytes in this process.
+
+The RMT-845 does not exist in any of the open source IR code databases I checked, such as LIRC. The remote is also no longer in production, and actually quite rare. Subsequent replacement models exist but without the timecode resetting button. So I decided to actually purchase one before they disappear forever. After obtaining one, I quickly wired it up to a logic analyzer to extract it's infrared codes. The results are [inside this source file (click here)](https://github.com/frank26080115/alpha-fairy/blob/main/arduino_workspace/libraries/SonyCameraInfraredRemote/SonyCameraInfraredRemote.h).
