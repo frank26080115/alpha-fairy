@@ -125,7 +125,11 @@ NOTE: in astrophotography mode, instead of interval between photos, the user set
 
 The side-button navigates through items. The big-button will edit the current item. The tilt angle of the remote determines if the big-button will add or subtract from the value. There is a start screen with all of the settings displayed to review, pressing the big-button on this screen will begin the intervalometer.
 
-NOTE: if Wi-Fi is not connected, the method of sending the shutter command will use the infrared emitter or GPIO (shutter release cable), depending on which one is enabled in the configuration
+NOTE: If Wi-Fi is not connected, the method of sending the shutter command will use the infrared emitter or GPIO (shutter release cable), depending on which one is enabled in the configuration. If this happens, the entire Alpha-Fairy is placed into a low power "airplane mode" to extend battery life. A reboot will occur to exit out of airplane mode.
+
+NOTE: Rotating the remote while in the intervalometer app will toggle "red mode", which is meant to be more eye-friendly during night time.
+
+![](doc/img/interval_redmode.jpg)
 
 ## Focus Stacking
 

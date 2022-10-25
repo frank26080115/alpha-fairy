@@ -32,7 +32,7 @@ The fun part about this project for me is to create a usable user interface on a
  * Focus Pull
    * with optional focus knob (for **linear** focus pull)
  * Talley Light, Virtual "Top Panel"
- * Sensored Trigger Shutter
+ * Sensor Trigger Shutter
    * trigger sources: microphone, voltage input, and/or IMU motion trigger
    * trigger action: take photo, take video (adjustable duration), start intervalometer
    * adjustable delays before arming and after trigger
