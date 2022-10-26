@@ -1,8 +1,8 @@
 #ifndef _ALFY_CONF_H_
 #define _ALFY_CONF_H_
 
-#define ALFY_VERSION            "1.0.10"    // change this with every new build
-#define ALFY_VERSION_FILE_CHECK "/chk1.txt" // change this when FS files needs updating
+#define ALFY_VERSION            "1.0.11"    // change this with every new build
+#define ALFY_VERSION_FILE_CHECK "/chk2.txt" // change this when FS files needs updating
 
 //#define WIFI_AP_UNIQUE_NAME
 #ifndef WIFI_AP_UNIQUE_NAME

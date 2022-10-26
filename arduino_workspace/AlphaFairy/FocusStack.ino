@@ -116,13 +116,24 @@ class AppFocusStack : public FairyMenuItem
 
             int dot_idx = 0;
 
+            // enforce minimum pause based on shutter speed
+            uint32_t shutter_speed_time = shutter_to_millis(ptpcam.get_property(SONYALPHA_PROPCODE_ShutterSpeed));
+            shutter_speed_time = shutter_speed_time < config_settings.shutter_press_time_ms ? config_settings.shutter_press_time_ms : shutter_speed_time;
+            shutter_speed_time += config_settings.focus_pause_time_ms;
+
             while (ptpcam.isOperating()) // I wish we had try-catches
             {
                 app_poll();
                 gui_drawVerticalDots(0, 40, -1, 5, 5, dot_idx, step_size > 0, TFT_GREEN, TFT_RED);
                 if (is_contshoot == false)
                 {
+                    uint32_t t = millis();
                     ptpcam.cmd_Shoot(config_settings.shutter_press_time_ms);
+
+                    // enforce minimum pause based on shutter speed
+                    while ((millis() - t) < shutter_speed_time) {
+                        app_poll();
+                    }
                 }
                 for (i = 0; i < step_cnt; i++)
                 {
@@ -194,8 +205,77 @@ class AppFocus9Point : public FairyMenuItem
         {
         };
 
+        virtual void on_eachFrame(void)
+        {
+            gui_drawSpinStatus(5, TFT_WHITE);
+            FairyMenuItem::on_eachFrame();
+        };
+
+        virtual void on_navTo(void)
+        {
+            uint32_t x = config_settings.nine_point_dist;
+            x *= 100;
+            x /= SONYALPHA_FOCUSPOINT_Y_MID;
+            x = x >= 95 ? 95: (x <= 20 ? 20 : x);
+            _dist = x;
+            _dist_start = x;
+            FairyMenuItem::on_navTo();
+        };
+
+        virtual void on_navOut(void)
+        {
+            save_if_needed();
+            FairyMenuItem::on_navOut();
+        };
+
+        virtual void on_redraw(void)
+        {
+            FairyMenuItem::on_redraw();
+            draw_text();
+        };
+
+        virtual void on_spin(int8_t x)
+        {
+            uint8_t pd = _dist;
+            if (x > 0)
+            {
+                if (_dist <= 30) {
+                    _dist = 40;
+                }
+                else if (_dist <= 50) {
+                    _dist = 60;
+                }
+                else if (_dist <= 70) {
+                    _dist = 80;
+                }
+                else if (_dist <= 90) {
+                    _dist = 95;
+                }
+            }
+            else if (x < 0)
+            {
+                if (_dist >= 90) {
+                    _dist = 80;
+                }
+                else if (_dist >= 70) {
+                    _dist = 60;
+                }
+                else if (_dist >= 50) {
+                    _dist = 40;
+                }
+                else if (_dist >= 30) {
+                    _dist = 20;
+                }
+            }
+            if (_dist != pd) {
+                draw_text();
+            }
+        };
+
         virtual bool on_execute(void)
         {
+            save_if_needed();
+
             if (must_be_ptp() == false) {
                 return false;
             }
@@ -219,8 +299,14 @@ class AppFocus9Point : public FairyMenuItem
 
             int x_cent = SONYALPHA_FOCUSPOINT_X_MAX / 2;
             int y_cent = SONYALPHA_FOCUSPOINT_Y_MAX / 2;
-            int dist = config_settings.nine_point_dist;
+            int hdist = _dist;
+            int vdist = _dist;
             int x, y, dot_x, dot_y;
+
+            hdist *= SONYALPHA_FOCUSPOINT_X_MID;
+            hdist /= 100;
+            vdist *= SONYALPHA_FOCUSPOINT_Y_MID;
+            vdist /= 100;
 
             int i;
             for (i = 0; fairycam.isOperating(); i++)
@@ -229,15 +315,15 @@ class AppFocus9Point : public FairyMenuItem
                 // figure out which point to focus on
                 switch (i)
                 {
-                    case 0: x = x_cent;        y = y_cent;        dot_x = dot_x_start;             dot_y = dot_y_start;             break;
-                    case 1: x = x_cent + dist; y = y_cent;        dot_x = dot_x_start + dot_space; dot_y = dot_y_start;             break;
-                    case 2: x = x_cent - dist; y = y_cent;        dot_x = dot_x_start - dot_space; dot_y = dot_y_start;             break;
-                    case 3: x = x_cent;        y = y_cent + dist; dot_x = dot_x_start;             dot_y = dot_y_start + dot_space; break;
-                    case 4: x = x_cent;        y = y_cent - dist; dot_x = dot_x_start;             dot_y = dot_y_start - dot_space; break;
-                    case 5: x = x_cent + dist; y = y_cent + dist; dot_x = dot_x_start + dot_space; dot_y = dot_y_start + dot_space; break;
-                    case 6: x = x_cent + dist; y = y_cent - dist; dot_x = dot_x_start + dot_space; dot_y = dot_y_start - dot_space; break;
-                    case 7: x = x_cent - dist; y = y_cent + dist; dot_x = dot_x_start - dot_space; dot_y = dot_y_start + dot_space; break;
-                    case 8: x = x_cent - dist; y = y_cent - dist; dot_x = dot_x_start - dot_space; dot_y = dot_y_start - dot_space; break;
+                    case 0: x = x_cent;         y = y_cent;         dot_x = dot_x_start;             dot_y = dot_y_start;             break;
+                    case 1: x = x_cent + hdist; y = y_cent;         dot_x = dot_x_start + dot_space; dot_y = dot_y_start;             break;
+                    case 2: x = x_cent - hdist; y = y_cent;         dot_x = dot_x_start - dot_space; dot_y = dot_y_start;             break;
+                    case 3: x = x_cent;         y = y_cent + vdist; dot_x = dot_x_start;             dot_y = dot_y_start + dot_space; break;
+                    case 4: x = x_cent;         y = y_cent - vdist; dot_x = dot_x_start;             dot_y = dot_y_start - dot_space; break;
+                    case 5: x = x_cent + hdist; y = y_cent + vdist; dot_x = dot_x_start + dot_space; dot_y = dot_y_start + dot_space; break;
+                    case 6: x = x_cent + hdist; y = y_cent - vdist; dot_x = dot_x_start + dot_space; dot_y = dot_y_start - dot_space; break;
+                    case 7: x = x_cent - hdist; y = y_cent + vdist; dot_x = dot_x_start - dot_space; dot_y = dot_y_start + dot_space; break;
+                    case 8: x = x_cent - hdist; y = y_cent - vdist; dot_x = dot_x_start - dot_space; dot_y = dot_y_start - dot_space; break;
                     // the first 9 points are fixed, after that, the points are random
                     default:
                         x = 20 + (rand() % (SONYALPHA_FOCUSPOINT_X_MAX - 20));
@@ -283,6 +369,34 @@ class AppFocus9Point : public FairyMenuItem
 
             set_redraw();
             return false;
+        };
+
+    protected:
+        uint8_t _dist = 20;
+        uint8_t _dist_start;
+
+        void save_if_needed(void)
+        {
+            if (_dist_start != _dist) {
+                uint32_t x = SONYALPHA_FOCUSPOINT_Y_MID;
+                x *= _dist;
+                x /= 100;
+                config_settings.nine_point_dist = x;
+                settings_save();
+                _dist_start = _dist;
+            }
+        };
+
+        void draw_text(void)
+        {
+            M5Lcd.setTextFont(2);
+            M5Lcd.highlight(true);
+            M5Lcd.setTextWrap(false);
+            M5Lcd.setTextColor(TFT_BLACK, TFT_WHITE);
+            M5Lcd.setHighlightColor(TFT_WHITE);
+            M5Lcd.setCursor(40, 194);
+            M5Lcd.printf("spacing: %u%%", _dist);
+            M5Lcd.fillRect(M5Lcd.getCursorX(), M5Lcd.getCursorY(), M5Lcd.width() - M5Lcd.getCursorX(), M5Lcd.fontHeight(), TFT_WHITE);
         };
 };
 
