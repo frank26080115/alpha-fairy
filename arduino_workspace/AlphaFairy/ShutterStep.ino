@@ -14,6 +14,15 @@ class AppShutterStep : public FairyMenuItem
                 return false;
             }
 
+            uint32_t expo_mode = fairycam.get_exposureMode();
+            if (expo_mode != SONYALPHA_EXPOMODE_M && expo_mode != SONYALPHA_EXPOMODE_S)
+            {
+                M5Lcd.drawPngFile(SPIFFS, "/tvstep_unable.png", 0, 0);
+                app_waitAllRelease();
+                set_redraw();
+                return false;
+            }
+
             bool toggle_button = imu.rolli < -60; // hold the device upside down
 
             uint32_t t, now;
