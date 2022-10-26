@@ -44,6 +44,8 @@ class AppFocusStack : public FairyMenuItem
                 return false;
             }
 
+            bool toggle_button = imu.rolli < -60; // hold the device upside down
+
             bool starting_mf = ptpcam.is_manuallyfocused();
 
             if (starting_mf == false && ptpcam.isOperating())
@@ -143,9 +145,16 @@ class AppFocusStack : public FairyMenuItem
                 }
                 dot_idx++;
 
-                if (btnBig_isPressed() == false) {
+                if (btnBig_isPressed() == false && toggle_button == false) {
                     // check button release here so at least one photo is captured
                     break;
+                }
+                else if (toggle_button) {
+                    // in toggle mode, the button might actually be released already, but we still run until the next button press
+                    if (btnAny_hasPressed()) {
+                        btnAny_clrPressed();
+                        break;
+                    }
                 }
             }
 
@@ -290,6 +299,8 @@ class AppFocus9Point : public FairyMenuItem
                 return false;
             }
 
+            bool toggle_button = imu.rolli < -60; // hold the device upside down
+
             int dot_rad = 5;
             int dot_space = 30;
             int dot_y_start = (M5Lcd.height() / 2) + 28;
@@ -361,9 +372,16 @@ class AppFocus9Point : public FairyMenuItem
                 fairycam.cmd_AutoFocus(false);
                 fairycam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
 
-                if (btnBig_isPressed() == false) {
-                    // button check here means we get at least one photo
+                if (btnBig_isPressed() == false && toggle_button == false) {
+                    // check button release here so at least one photo is captured
                     break;
+                }
+                else if (toggle_button) {
+                    // in toggle mode, the button might actually be released already, but we still run until the next button press
+                    if (btnAny_hasPressed()) {
+                        btnAny_clrPressed();
+                        break;
+                    }
                 }
             }
 

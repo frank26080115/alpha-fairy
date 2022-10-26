@@ -14,6 +14,8 @@ class AppShutterStep : public FairyMenuItem
                 return false;
             }
 
+            bool toggle_button = imu.rolli < -60; // hold the device upside down
+
             uint32_t t, now;
 
             bool starting_mf = fairycam.is_manuallyfocused();
@@ -94,8 +96,20 @@ class AppShutterStep : public FairyMenuItem
                     httpcam.cmd_ShutterSpeedSetStr(next_ss);
                 }
                 fairycam.wait_while_busy(config_settings.shutter_step_time_ms / 2, DEFAULT_BUSY_TIMEOUT, NULL);
+
+                if (btnBig_isPressed() == false && toggle_button == false) {
+                    // check button release here so at least one photo is captured
+                    break;
+                }
+                else if (toggle_button) {
+                    // in toggle mode, the button might actually be released already, but we still run until the next button press
+                    if (btnAny_hasPressed()) {
+                        btnAny_clrPressed();
+                        break;
+                    }
+                }
             }
-            while (btnBig_isPressed() && ptpcam.isOperating());
+            while (ptpcam.isOperating());
 
             if (starting_mf == false && fairycam.isOperating()) {
                 // restore AF state
