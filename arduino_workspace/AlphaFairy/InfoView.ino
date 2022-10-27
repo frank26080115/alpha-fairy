@@ -705,7 +705,7 @@ void infoscr_clearRestOfLines()
     M5Lcd.fillRect(0, y, M5Lcd.width(), M5Lcd.height() - y - 14, infoscr_backcolour);
 }
 
-void infoscr_changeVal(int8_t tilt)
+void infoscr_changeVal(uint8_t item, int8_t tilt)
 {
     if (tilt == 0 || fairycam.isOperating() == false) {
         return;
@@ -713,14 +713,14 @@ void infoscr_changeVal(int8_t tilt)
     int cur_idx, next_idx;
     uint32_t x;
     int32_t sx;
-    switch (infoscr_editItem)
+    switch (item)
     {
         case EDITITEM_SHUTTER:
             cur_idx = fairycam.getIdx_shutter(infoscr_reqShutter);
             if (cur_idx < 0) {
                 break;
             }
-            next_idx = cur_idx + (tilt > 0 ? 1 : -1);
+            next_idx = cur_idx + tilt;
             x = fairycam.getVal_shutter(next_idx);
             fairycam.cmd_ShutterSpeedSet(x);
             infoscr_reqShutter = x;
@@ -731,7 +731,7 @@ void infoscr_changeVal(int8_t tilt)
             if (cur_idx < 0) {
                 break;
             }
-            next_idx = cur_idx + (tilt > 0 ? 1 : -1);
+            next_idx = cur_idx + tilt;
             x = fairycam.getVal_aperture(next_idx);
             fairycam.cmd_ApertureSet(x);
             infoscr_reqAperture = x;
@@ -742,7 +742,7 @@ void infoscr_changeVal(int8_t tilt)
             if (cur_idx < 0) {
                 break;
             }
-            next_idx = cur_idx + (tilt > 0 ? 1 : -1);
+            next_idx = cur_idx + tilt;
             x = fairycam.getVal_iso(next_idx);
             fairycam.cmd_IsoSet(x);
             infoscr_reqIso = x;
@@ -750,7 +750,7 @@ void infoscr_changeVal(int8_t tilt)
             break;
         case EDITITEM_EXPOCOMP:
             cur_idx = fairycam.getIdx_expoComp(infoscr_reqExpoComp);
-            next_idx = cur_idx + (tilt > 0 ? 1 : -1);
+            next_idx = cur_idx + tilt;
             sx = fairycam.getVal_expoComp(next_idx);
             fairycam.cmd_ExpoCompSet(sx);
             infoscr_reqExpoComp = sx;
@@ -831,7 +831,7 @@ void infoscr_startEdit()
 
             if (tilt != 0)
             {
-                infoscr_changeVal(tilt);
+                infoscr_changeVal(infoscr_editItem, tilt < 0 ? -1 : +1 );
                 infoscr_print();
 
                 // press and hold to repeatedly change
@@ -861,7 +861,7 @@ void infoscr_startEdit()
                                 tspan *= 3;
                                 tspan /= 4;
                             }
-                            infoscr_changeVal(tilt2);
+                            infoscr_changeVal(infoscr_editItem, tilt2 < 0 ? -1 : +1);
                             infoscr_print();
                         }
                     }
@@ -896,7 +896,7 @@ void infoscr_startEdit()
             lepton_encRead(&enc_btn, &enc_inc, &enc_rem);
             if (enc_inc != 0)
             {
-                infoscr_changeVal(enc_inc);
+                infoscr_changeVal(infoscr_editItem, enc_inc < 0 ? -1 : +1);
                 infoscr_print();
             }
         }

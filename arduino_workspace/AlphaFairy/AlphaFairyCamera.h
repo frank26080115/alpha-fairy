@@ -20,6 +20,7 @@ class AlphaFairyCamera
         uint32_t  getIp           (void);
         char*     getCameraName   (void);
         void wait_while_busy(uint32_t min_wait, uint32_t max_wait, volatile bool* exit_signal = NULL);
+        void wait_while_saving(uint32_t min_wait, uint32_t max_wait_get, uint32_t max_wait_save);
         inline bool isOperating() { return cam_ptp->isOperating() || cam_http->isOperating(); };
         void force_disconnect(void);
         bool is_movierecording(void);

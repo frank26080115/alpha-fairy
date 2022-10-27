@@ -109,6 +109,7 @@ bool SonyHttpCamera::parse_event(char* data, int32_t maxlen)
     found = scan_json_for_key(rx_buff, maxlen, "cameraStatus", &i, &j, (char*)res_buff, 64);
     if (found) {
         is_movierecording_v = (memcmp(res_buff, "Movie", 5) == 0);
+        is_sortofbusy = (memcmp(res_buff, "IDLE", 4) != 0 && memcmp(res_buff, "idle", 4) != 0);
         dbgser_devprop_dump->printf("httpcam event key \"cameraStatus\" = \"%s\"\r\n", res_buff);
         ret |= true;
         event_found_flag |= (1 << 0);
@@ -469,6 +470,33 @@ void SonyHttpCamera::task()
         state = SHCAMSTATE_FAILED;
         if (cb_onDisconnect != NULL) {
             cb_onDisconnect();
+        }
+    }
+}
+
+void SonyHttpCamera::wait_while_saving(uint32_t min_wait, uint32_t max_wait_get, uint32_t max_wait_save)
+{
+    uint32_t start_time = millis();
+    uint32_t now = start_time;
+
+    while (((now - start_time) < max_wait_get) || ((now - start_time) < min_wait && min_wait > 0))
+    {
+        now = millis();
+        task();
+        if (is_sortofbusy) {
+            break;
+        }
+    }
+
+    if (is_sortofbusy)
+    {
+        while ((now - start_time) < max_wait_save || ((now - start_time) < min_wait && min_wait > 0))
+        {
+            now = millis();
+            task();
+            if (is_sortofbusy == false) {
+                break;
+            }
         }
     }
 }

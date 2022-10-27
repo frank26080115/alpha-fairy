@@ -137,10 +137,11 @@ class AppFocusStack : public FairyMenuItem
                         app_poll();
                     }
                 }
+                fairycam.wait_while_saving(config_settings.focus_pause_time_ms, 500, DEFAULT_SAVE_TIMEOUT);
                 for (i = 0; i < step_cnt; i++)
                 {
                     ptpcam.cmd_ManualFocusStep(step_size);
-                    ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+                    ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT);
                     steps_done++;
                 }
                 dot_idx++;
@@ -173,7 +174,7 @@ class AppFocusStack : public FairyMenuItem
                     gui_drawVerticalDots(0, 40, -1, 5, 5, dot_idx, step_size < 0, TFT_GREEN, TFT_RED);
                     ptpcam.cmd_ManualFocusStep(step_size * -1);
                     steps_done--;
-                    ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+                    ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT);
                     x = ptpcam.get_property(SONYALPHA_PROPCODE_ManualFocusDist);
                     dot_idx++;
                 }
@@ -301,6 +302,11 @@ class AppFocus9Point : public FairyMenuItem
 
             bool toggle_button = imu.rolli < -60; // hold the device upside down
 
+            // enforce minimum pause based on shutter speed
+            uint32_t shutter_speed_time = shutter_to_millis(ptpcam.get_property(SONYALPHA_PROPCODE_ShutterSpeed));
+            shutter_speed_time = shutter_speed_time < config_settings.shutter_press_time_ms ? config_settings.shutter_press_time_ms : shutter_speed_time;
+            shutter_speed_time += config_settings.focus_pause_time_ms;
+
             int dot_rad = 5;
             int dot_space = 30;
             int dot_y_start = (M5Lcd.height() / 2) + 28;
@@ -352,7 +358,7 @@ class AppFocus9Point : public FairyMenuItem
                 if (fairycam.need_wait_af())
                 {
                     fairycam.cmd_AutoFocus(true);
-                    fairycam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+                    fairycam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT);
 
                     if (httpcam.isOperating()) {
                         httpcam.setPollDelay(0);
@@ -368,9 +374,15 @@ class AppFocus9Point : public FairyMenuItem
                     }
                 }
                 // take the photo
+                uint32_t t = millis();
                 fairycam.cmd_Shoot(config_settings.shutter_press_time_ms);
+                // wait for shutter to finish
+                while ((millis() - t) < shutter_speed_time) {
+                    app_poll();
+                }
                 fairycam.cmd_AutoFocus(false);
-                fairycam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+                fairycam.wait_while_saving(config_settings.focus_pause_time_ms, 500, DEFAULT_SAVE_TIMEOUT);
+                //fairycam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT);
 
                 if (btnBig_isPressed() == false && toggle_button == false) {
                     // check button release here so at least one photo is captured
@@ -407,11 +419,8 @@ class AppFocus9Point : public FairyMenuItem
 
         void draw_text(void)
         {
+            gui_startMenuPrint();
             M5Lcd.setTextFont(2);
-            M5Lcd.highlight(true);
-            M5Lcd.setTextWrap(false);
-            M5Lcd.setTextColor(TFT_BLACK, TFT_WHITE);
-            M5Lcd.setHighlightColor(TFT_WHITE);
             M5Lcd.setCursor(40, 194);
             M5Lcd.printf("spacing: %u%%", _dist);
             M5Lcd.fillRect(M5Lcd.getCursorX(), M5Lcd.getCursorY(), M5Lcd.width() - M5Lcd.getCursorX(), M5Lcd.fontHeight(), TFT_WHITE);

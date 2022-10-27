@@ -67,6 +67,8 @@ void dual_shutter_shoot(bool already_focused, bool read_button, speed_t* restore
         goto last_step;
     }
 
+    fairycam.wait_while_saving(0, 500, DEFAULT_SAVE_TIMEOUT);
+
     // set the shutter speed for second shot
     need_restore_ss = true;
     if (ptpcam.isOperating() && dual_shutter_next.flags == SPEEDTYPE_PTP) {
@@ -76,7 +78,7 @@ void dual_shutter_shoot(bool already_focused, bool read_button, speed_t* restore
         httpcam.cmd_ShutterSpeedSetStr(dual_shutter_next.str);
     }
 
-    fairycam.wait_while_busy(config_settings.shutter_step_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+    fairycam.wait_while_busy(config_settings.shutter_step_time_ms, DEFAULT_BUSY_TIMEOUT);
 
     // change ISO if required
     if (ptpcam.isOperating() && restore_iso != NULL && dual_shutter_iso.flags == SPEEDTYPE_PTP && restore_iso->flags == SPEEDTYPE_PTP && dual_shutter_iso.u32 != restore_iso->u32) {
@@ -88,7 +90,7 @@ void dual_shutter_shoot(bool already_focused, bool read_button, speed_t* restore
         httpcam.cmd_IsoSetStr(dual_shutter_iso.str);
     }
     if (need_restore_iso) {
-        fairycam.wait_while_busy(config_settings.shutter_step_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+        fairycam.wait_while_busy(config_settings.shutter_step_time_ms, DEFAULT_BUSY_TIMEOUT);
     }
 
     // start second shot
@@ -136,7 +138,7 @@ void dual_shutter_shoot(bool already_focused, bool read_button, speed_t* restore
         {
             if (ptpcam.isOperating() && restore_shutter->flags == SPEEDTYPE_PTP && restore_shutter->u32 != 0) {
                 ptpcam.cmd_ShutterSpeedSet32(restore_shutter->u32);
-                ptpcam.wait_while_busy(100, DEFAULT_BUSY_TIMEOUT, NULL);
+                ptpcam.wait_while_busy(100, DEFAULT_BUSY_TIMEOUT);
                 cur_ss = ptpcam.get_property(SONYALPHA_PROPCODE_ShutterSpeed);
                 if (cur_ss == compare_ss) {
                     break;
@@ -144,7 +146,7 @@ void dual_shutter_shoot(bool already_focused, bool read_button, speed_t* restore
             }
             else if (httpcam.isOperating() && restore_shutter->flags == SPEEDTYPE_HTTP && restore_shutter->str[0] != 0) {
                 httpcam.cmd_ShutterSpeedSetStr(restore_shutter->str);
-                httpcam.wait_while_busy(100, DEFAULT_BUSY_TIMEOUT, NULL);
+                httpcam.wait_while_busy(100, DEFAULT_BUSY_TIMEOUT);
                 cur_ss = httpcam.get_shutterspd_32();
                 if (cur_ss == compare_ss) {
                     break;
@@ -161,7 +163,7 @@ void dual_shutter_shoot(bool already_focused, bool read_button, speed_t* restore
         {
             if (ptpcam.isOperating() && restore_iso->flags == SPEEDTYPE_PTP && restore_iso->u32 != 0) {
                 ptpcam.cmd_IsoSet(restore_iso->u32);
-                ptpcam.wait_while_busy(100, DEFAULT_BUSY_TIMEOUT, NULL);
+                ptpcam.wait_while_busy(100, DEFAULT_BUSY_TIMEOUT);
                 cur_iso = ptpcam.get_property(SONYALPHA_PROPCODE_ISO);
                 if (cur_iso == restore_iso->u32) {
                     break;
@@ -169,7 +171,7 @@ void dual_shutter_shoot(bool already_focused, bool read_button, speed_t* restore
             }
             else if (httpcam.isOperating() && restore_iso->flags == SPEEDTYPE_HTTP && restore_iso->str[0] != 0) {
                 httpcam.cmd_IsoSetStr(restore_iso->str);
-                httpcam.wait_while_busy(100, DEFAULT_BUSY_TIMEOUT, NULL);
+                httpcam.wait_while_busy(100, DEFAULT_BUSY_TIMEOUT);
                 char* cur_iso_str = httpcam.get_iso_str();
                 if (strcmp(cur_iso_str, restore_iso->str) == 0) {
                     break;
@@ -201,7 +203,7 @@ void dual_shutter_shoot(bool already_focused, bool read_button, speed_t* restore
         while (((now = millis()) - t) < timeout);
     }
     if (need_restore_af && starting_mf_ignore == false) {
-        fairycam.wait_while_busy(config_settings.shutter_step_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+        fairycam.wait_while_busy(config_settings.shutter_step_time_ms, DEFAULT_BUSY_TIMEOUT);
         fairycam.cmd_AutoFocus(false);
     }
     app_waitAllRelease();

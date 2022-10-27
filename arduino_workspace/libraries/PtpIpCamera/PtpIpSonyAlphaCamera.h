@@ -37,6 +37,8 @@ class PtpIpSonyAlphaCamera : public PtpIpCamera
 
         uint8_t cam_model = 0;
 
+        virtual void wait_while_saving(uint32_t min_wait, uint32_t max_wait_get, uint32_t max_wait_save);
+
         bool update_property(uint16_t prop_code, uint16_t data_type, uint8_t* data_chunk, uint8_t data_size);
         int32_t get_property(uint16_t prop_code);
         uint32_t get_property_enum(uint16_t prop_code, uint32_t cur_val, int32_t step = 0);
@@ -89,6 +91,7 @@ class PtpIpSonyAlphaCamera : public PtpIpCamera
 
         bool propdecode_weird_string;
         bool propdecode_weird_form;
+        uint32_t prop_rx_cnt;
 
         // these tables, if they are not NULL, will contain valid entries that the camera accepts
         // index 0 is always the length of the table

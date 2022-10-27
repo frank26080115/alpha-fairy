@@ -165,7 +165,7 @@ void remote_shutter(uint8_t time_delay, bool use_gui)
             }
             if (ptpcam.is_focused) {
                 dbg_ser.printf("rmtshutter got focus\r\n");
-                ptpcam.wait_while_busy(config_settings.shutter_press_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+                ptpcam.wait_while_busy(config_settings.shutter_press_time_ms, DEFAULT_BUSY_TIMEOUT);
             }
             ptpcam.cmd_Shutter(false);
             dbg_ser.printf("rmtshutter shutter close\r\n");
