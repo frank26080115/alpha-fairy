@@ -41,6 +41,7 @@ enum
 #define PTPIP_IGNORE_INIT_ERROR
 
 #define DEFAULT_BUSY_TIMEOUT 1000
+#define DEFAULT_SAVE_TIMEOUT 5000
 
 #define PTP_GUID_LEN 16
 
@@ -98,7 +99,7 @@ class PtpIpCamera
                bool     isKindaBusy(void);
                bool     isPairingWaiting(void);
         bool send_oper_req(uint32_t opcode, uint32_t* params, uint8_t params_cnt, uint8_t* payload, int32_t payload_len);
-        void wait_while_busy(uint32_t min_wait, uint32_t max_wait, volatile bool* exit_signal = NULL);
+        virtual void wait_while_busy(uint32_t min_wait, uint32_t max_wait, volatile bool* exit_signal = NULL);
 
         inline char* donateBuffer(void) { return (char*)databuff; };
         void generate_guid(char*);

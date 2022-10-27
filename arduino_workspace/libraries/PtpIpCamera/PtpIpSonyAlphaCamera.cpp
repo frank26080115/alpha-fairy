@@ -177,7 +177,7 @@ bool PtpIpSonyAlphaCamera::decode_pkt(uint8_t buff[], uint32_t buff_len)
 bool PtpIpSonyAlphaCamera::check_dev_props()
 {
     bool success;
-    wait_while_busy(0, DEFAULT_BUSY_TIMEOUT, NULL);
+    wait_while_busy(0, DEFAULT_BUSY_TIMEOUT);
     need_check_properties = false;
     success = send_oper_req(SONYALPHA_OPCODE_GetAllDevicePropData, NULL, 0, NULL, -1);
     if (success != false) {
@@ -190,7 +190,7 @@ bool PtpIpSonyAlphaCamera::check_dev_props()
 bool PtpIpSonyAlphaCamera::check_get_object()
 {
     bool success;
-    wait_while_busy(0, DEFAULT_BUSY_TIMEOUT, NULL);
+    wait_while_busy(0, DEFAULT_BUSY_TIMEOUT);
     need_check_object = false;
     dbgser_events->printf("check_get_object 0x%08X", need_check_object_id);
     success = send_oper_req(PTP_OPCODE_GetObjectInfo, &need_check_object_id, 1, NULL, -1);
@@ -208,7 +208,7 @@ bool PtpIpSonyAlphaCamera::check_get_object()
 bool PtpIpSonyAlphaCamera::get_jpg(void (*cb_s)(uint8_t*, uint32_t), void (*cb_d)(void))
 {
     bool success;
-    wait_while_busy(0, DEFAULT_BUSY_TIMEOUT, NULL);
+    wait_while_busy(0, DEFAULT_BUSY_TIMEOUT);
     uint32_t objcode = 0xFFFFC002;
     success = send_oper_req(PTP_OPCODE_GetObject, &objcode, 1, NULL, 0);
     if (success != false) {
@@ -295,3 +295,57 @@ bool PtpIpSonyAlphaCamera::is_focused()
     return (x != SONYALPHA_FOCUSSTATUS_FOCUSED);
 }
 */
+
+void PtpIpSonyAlphaCamera::wait_while_saving(uint32_t min_wait, uint32_t max_wait_get, uint32_t max_wait_save)
+{
+    uint32_t start_time = millis();
+    uint32_t now = start_time;
+
+    int has_photo = 0;
+
+    if (has_property(SONYALPHA_PROPCODE_ObjectInMemory) == false) {
+        wait_while_busy(min_wait, max_wait_save);
+        return;
+    }
+
+    while (((now - start_time) < max_wait_get) || ((now - start_time) < min_wait && min_wait > 0))
+    {
+        now = millis();
+        task();
+
+        int32_t x = get_property(SONYALPHA_PROPCODE_ObjectInMemory);
+        if (has_photo <= 0)
+        {
+            if (x > 0) {
+                has_photo = x;
+                break;
+            }
+        }
+    }
+
+    if (has_photo > 0)
+    {
+        while ((now - start_time) < max_wait_save || ((now - start_time) < min_wait && min_wait > 0))
+        {
+            now = millis();
+            task();
+            int32_t x = get_property(SONYALPHA_PROPCODE_ObjectInMemory);
+            if (x < has_photo) {
+                break;
+            }
+        }
+        while (canSend() == false || ((now - start_time) < min_wait && min_wait > 0))
+        {
+            now = millis();
+            poll();
+        }
+    }
+    else
+    {
+        while ((canSend() == false && (now - start_time) < max_wait_get) || ((now - start_time) < min_wait && min_wait > 0))
+        {
+            now = millis();
+            poll();
+        }
+    }
+}

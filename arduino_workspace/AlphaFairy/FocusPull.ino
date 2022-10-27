@@ -8,7 +8,7 @@ void focus_pull(bool live, int bar_y)
     if (starting_mf == false && ptpcam.isOperating()) {
         // force into manual focus mode
         ptpcam.cmd_ManualFocusMode(true, false);
-        ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+        ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT);
     }
 
     int8_t step_size = focus_tiltToStepSize(gui_drawFocusPullState(bar_y));
@@ -24,7 +24,7 @@ void focus_pull(bool live, int bar_y)
         if (step_size != 0)
         {
             ptpcam.cmd_ManualFocusStep(step_size);
-            ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+            ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT);
         }
 
         if (btnBig_isPressed() == false)
@@ -36,7 +36,7 @@ void focus_pull(bool live, int bar_y)
     
     if (starting_mf == false && ptpcam.isOperating()) {
         // restore AF state
-        ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+        ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT);
         ptpcam.cmd_ManualFocusMode(false, false);
     }
 }

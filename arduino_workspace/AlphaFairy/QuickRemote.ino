@@ -275,13 +275,13 @@ class AppQuickRemote : public FairyMenuItem
                             {
                                 if (dir != 0) {
                                     ptpcam.cmd_ZoomStep((dir < 0) ? -1 : ((dir > 0) ? +1 : 0));
-                                    ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+                                    ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT);
                                 }
                             }
                             if (httpcam.isOperating())
                             {
                                 httpcam.cmd_ZoomStart(dir);
-                                httpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+                                httpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT);
                             }
                             if (fairycam.isOperating() == false && config_settings.infrared_enabled != 0)
                             {

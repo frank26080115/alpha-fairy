@@ -144,11 +144,11 @@ class AppFocusFrustration : public FairyMenuItem
 
             int step_cnt = 0;
 
-            ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+            ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT);
             for (int i = 0; i < 10 || btnBig_isPressed(); i++) {
                 gui_drawVerticalDots(0, 40, -1, 5, 5, step_cnt++, false, TFT_GREEN, TFT_RED);
                 ptpcam.cmd_ManualFocusStep(SONYALPHA_FOCUSSTEP_CLOSER_LARGE);
-                ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+                ptpcam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT);
             }
 
             // return to AF mode

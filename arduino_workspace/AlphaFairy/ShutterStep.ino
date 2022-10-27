@@ -1,11 +1,58 @@
 #include "AlphaFairy.h"
 #include "FairyMenu.h"
 
+extern int32_t infoscr_reqShutter;
+
 class AppShutterStep : public FairyMenuItem
 {
     public:
         AppShutterStep() : FairyMenuItem("/shutter_step.png")
         {
+        };
+
+        virtual void on_eachFrame(void)
+        {
+            gui_drawSpinStatus(5, TFT_WHITE);
+            FairyMenuItem::on_eachFrame();
+        };
+
+        virtual void on_navTo(void)
+        {
+            _step_cnt = config_settings.shutter_speed_step_cnt;
+            FairyMenuItem::on_navTo();
+        };
+
+        virtual void on_navOut(void)
+        {
+            save_if_needed();
+            FairyMenuItem::on_navOut();
+        };
+
+        virtual void on_spin(int8_t x)
+        {
+            int prev = _step_cnt;
+            _step_cnt = _step_cnt <= 0 ? 1 : _step_cnt; // enforce a minimum
+            if (x > 0)
+            {
+                if (_step_cnt <= 9) {
+                    _step_cnt++;
+                }
+            }
+            else if (x < 0)
+            {
+                if (_step_cnt > 1) {
+                    _step_cnt--;
+                }
+            }
+            if (prev != _step_cnt) {
+                draw_text();
+            }
+        };
+
+        virtual void on_redraw(void)
+        {
+            FairyMenuItem::on_redraw();
+            draw_text();
         };
 
         virtual bool on_execute(void)
@@ -23,6 +70,8 @@ class AppShutterStep : public FairyMenuItem
                 return false;
             }
 
+            save_if_needed();
+
             bool toggle_button = imu.rolli < -60; // hold the device upside down
 
             uint32_t t, now;
@@ -36,11 +85,9 @@ class AppShutterStep : public FairyMenuItem
                 fairycam.cmd_ManualFocusMode(true, false);
             }
 
-            config_settings.shutter_speed_step_cnt = config_settings.shutter_speed_step_cnt <= 0 ? 1 : config_settings.shutter_speed_step_cnt; // enforce a minimum
+            _step_cnt = _step_cnt <= 0 ? 1 : _step_cnt; // enforce a minimum
 
             uint32_t cur_ss;
-            int cur_ss_idx;
-            char next_ss[32] = {0};
 
             // get the current shutter speed
             if (ptpcam.isOperating()) {
@@ -48,8 +95,8 @@ class AppShutterStep : public FairyMenuItem
             }
             else if (httpcam.isOperating()) {
                 cur_ss = httpcam.get_shutterspd_32();
-                cur_ss_idx = httpcam.get_shutterspd_idx();
             }
+            infoscr_reqShutter = cur_ss;
 
             uint32_t shutter_ms = shutter_to_millis(cur_ss);
 
@@ -80,31 +127,19 @@ class AppShutterStep : public FairyMenuItem
                 gui_drawVerticalDots(0, 40, -1, 5, 5, dot_idx, false, TFT_GREEN, TFT_RED);
                 dot_idx++;
 
-                // calculate the next shutter speed to change to
+                fairycam.wait_while_saving(config_settings.shutter_step_time_ms, 500, DEFAULT_SAVE_TIMEOUT);
+
+                infoscr_changeVal(EDITITEM_SHUTTER, -_step_cnt);
+
+                // calculate the next shutter speed
                 if (ptpcam.isOperating()) {
-                    cur_ss = ptpcam.get_property_enum(SONYALPHA_PROPCODE_ShutterSpeed, cur_ss, -config_settings.shutter_speed_step_cnt);
+                    cur_ss = ptpcam.get_property(SONYALPHA_PROPCODE_ShutterSpeed);
                 }
                 else if (httpcam.isOperating()) {
-                    cur_ss_idx -= config_settings.shutter_speed_step_cnt;
-                    if (cur_ss_idx <= 0) {
-                        cur_ss_idx = 0;
-                    }
-                    cur_ss = httpcam.get_another_shutterspd(cur_ss_idx, next_ss);
+                    cur_ss = httpcam.get_shutterspd_32();
                 }
                 shutter_ms = shutter_to_millis(cur_ss);
                 dbg_ser.printf("shutter_step next %u\r\n", shutter_ms);
-
-                // TODO: maybe wait here a bit longer? maybe we need to check for buffer state?
-
-                // set the new shutter speed
-                fairycam.wait_while_busy(config_settings.shutter_step_time_ms / 2, DEFAULT_BUSY_TIMEOUT, NULL);
-                if (ptpcam.isOperating()) {
-                    ptpcam.cmd_ShutterSpeedSet32(cur_ss);
-                }
-                else if (httpcam.isOperating()) {
-                    httpcam.cmd_ShutterSpeedSetStr(next_ss);
-                }
-                fairycam.wait_while_busy(config_settings.shutter_step_time_ms / 2, DEFAULT_BUSY_TIMEOUT, NULL);
 
                 if (btnBig_isPressed() == false && toggle_button == false) {
                     // check button release here so at least one photo is captured
@@ -118,16 +153,35 @@ class AppShutterStep : public FairyMenuItem
                     }
                 }
             }
-            while (ptpcam.isOperating());
+            while (fairycam.isOperating());
 
             if (starting_mf == false && fairycam.isOperating()) {
                 // restore AF state
-                fairycam.wait_while_busy(config_settings.shutter_step_time_ms, DEFAULT_BUSY_TIMEOUT, NULL);
+                fairycam.wait_while_busy(config_settings.shutter_step_time_ms, DEFAULT_BUSY_TIMEOUT);
                 fairycam.cmd_ManualFocusMode(true, false);
             }
 
             set_redraw();
             return false;
+        };
+
+    protected:
+        int8_t _step_cnt;
+
+        void draw_text(void)
+        {
+            gui_startMenuPrint();
+            M5Lcd.setTextFont(4);
+            M5Lcd.setCursor(55, 200);
+            M5Lcd.printf("%u ", _step_cnt);
+        };
+
+        void save_if_needed(void)
+        {
+            if (_step_cnt != config_settings.shutter_speed_step_cnt) {
+                config_settings.shutter_speed_step_cnt = _step_cnt;
+                settings_save();
+            }
         };
 };
 

@@ -38,6 +38,16 @@ void AlphaFairyCamera::wait_while_busy(uint32_t min_wait, uint32_t max_wait, vol
     }
 }
 
+void AlphaFairyCamera::wait_while_saving(uint32_t min_wait, uint32_t max_wait_get, uint32_t max_wait_save)
+{
+    if (cam_ptp->isOperating()) {
+        return cam_ptp->wait_while_saving(min_wait, max_wait_get, max_wait_save);
+    }
+    if (cam_http->isOperating()) {
+        return cam_http->wait_while_saving(min_wait, max_wait_get, max_wait_save);
+    }
+}
+
 bool AlphaFairyCamera::is_movierecording(void)
 {
     if (cam_ptp->isOperating()) {

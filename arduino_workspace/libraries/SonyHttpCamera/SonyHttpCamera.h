@@ -94,6 +94,8 @@ class SonyHttpCamera
         inline void      setForbidden    (void) { state = SHCAMSTATE_FORBIDDEN; }
                void      force_disconnect(void);
 
+        virtual void     wait_while_saving(uint32_t min_wait, uint32_t max_wait_get, uint32_t max_wait_save);
+
         inline int       getPollDelay    (void)       { return poll_delay; };
         inline void      setPollDelay    (uint32_t x) { poll_delay = x; };
         inline void      setPollDelaySlow(void)       { poll_delay = 500; };
@@ -171,6 +173,7 @@ class SonyHttpCamera
         char str_expomode[32];
         int  expocomp;
 
+        bool     is_sortofbusy;
         int8_t   zoom_state;
         uint32_t zoom_time;
         bool     is_movierecording_v;
