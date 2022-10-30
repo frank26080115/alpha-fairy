@@ -158,7 +158,7 @@ class AppShutterStep : public FairyMenuItem
             if (starting_mf == false && fairycam.isOperating()) {
                 // restore AF state
                 fairycam.wait_while_busy(config_settings.shutter_step_time_ms, DEFAULT_BUSY_TIMEOUT);
-                fairycam.cmd_ManualFocusMode(true, false);
+                fairycam.cmd_ManualFocusMode(false, false);
             }
 
             set_redraw();
