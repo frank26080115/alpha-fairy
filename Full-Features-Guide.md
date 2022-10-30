@@ -155,7 +155,11 @@ When activated, the camera will start to continuously take photos, and change th
 
 https://user-images.githubusercontent.com/1427911/187118098-8fa0dbad-dda0-40ed-ad42-8bafc61e2450.mp4
 
-The camera must be placed in movable spot autofocus mode.
+The camera must be:
+
+ * placed in movable spot autofocus mode
+ * not using MF
+ * the option "AF with shutter" must be turned ON (through the camera's menu system)
 
 ## Shutter Speed Step
 
