@@ -294,9 +294,12 @@ class AppFocus9Point : public FairyMenuItem
                 // the camera must be in one of the many spot focus modes
                 // we can't pick one for them
                 // show user the error message
-                M5Lcd.drawPngFile(SPIFFS, "/9point_unable.png", 0, 0);
-                set_redraw();
-                app_waitAllRelease();
+                show_unable("wrong AF zone");
+                return false;
+            }
+
+            if (ptpcam.isOperating() && ptpcam.is_manuallyfocused()) {
+                show_unable("wrong AF mode");
                 return false;
             }
 
@@ -353,26 +356,34 @@ class AppFocus9Point : public FairyMenuItem
                     // this is just cosmetic
                     M5Lcd.fillCircle(dot_x, dot_y, dot_rad, TFT_GREEN);
                 }
+
                 // set the point
                 fairycam.cmd_FocusPointSet(x, y);
-                if (fairycam.need_wait_af())
+
+                // engage autofocus
+                fairycam.cmd_AutoFocus(true);
+                fairycam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT);
+
+                // wait for autofocus to lock onto something
+                uint32_t tstart = millis();
+                uint32_t now;
+                uint32_t tlimit = (i < 9) ? 5000 : 2000;
+                while (((now = millis()) - tstart) < 5000 && (fairycam.is_focused() == false && fairycam.isOperating()))
                 {
-                    fairycam.cmd_AutoFocus(true);
-                    fairycam.wait_while_busy(config_settings.focus_pause_time_ms, DEFAULT_BUSY_TIMEOUT);
+                    app_poll();
+                }
 
-                    if (httpcam.isOperating()) {
-                        httpcam.setPollDelay(0);
-                    }
-
-                    // wait for autofocus to lock onto something
-                    uint32_t tstart = millis();
-                    uint32_t now;
-                    uint32_t tlimit = (i < 9) ? 5000 : 2000;
-                    while (((now = millis()) - tstart) < 5000 && (fairycam.is_focused() == false && fairycam.isOperating()))
-                    {
-                        app_poll();
+                if (fairycam.is_focused() == false && fairycam.isOperating()) // still no focus? investigate cause
+                {
+                    fairycam.cmd_AutoFocus(false);
+                    if (ptpcam.has_property(SONYALPHA_PROPCODE_FocusFound)) {
+                        if (ptpcam.get_property(SONYALPHA_PROPCODE_FocusFound) == SONYALPHA_FOCUSSTATUS_NONE) {
+                            show_unable("AF w shutter off");
+                            return false;
+                        }
                     }
                 }
+
                 // take the photo
                 uint32_t t = millis();
                 fairycam.cmd_Shoot(config_settings.shutter_press_time_ms);
@@ -424,6 +435,21 @@ class AppFocus9Point : public FairyMenuItem
             M5Lcd.setCursor(40, 194);
             M5Lcd.printf("spacing: %u%%", _dist);
             M5Lcd.fillRect(M5Lcd.getCursorX(), M5Lcd.getCursorY(), M5Lcd.width() - M5Lcd.getCursorX(), M5Lcd.fontHeight(), TFT_WHITE);
+        };
+
+        void show_unable(const char* reason)
+        {
+            M5Lcd.drawPngFile(SPIFFS, "/9point_unable.png", 0, 0);
+            if (reason != NULL)
+            {
+                gui_startMenuPrint();
+                M5Lcd.setTextFont(0);
+                M5Lcd.setTextColor(TFT_RED, TFT_WHITE);
+                M5Lcd.setCursor(8, M5Lcd.height() - 18 - M5Lcd.fontHeight());
+                M5Lcd.print(reason);
+            }
+            set_redraw();
+            app_waitAllRelease();
         };
 };
 
