@@ -219,6 +219,7 @@ enum
     SONYALPHA_FOCUSSTATUS_HUNTING  = 0x05, // still searching
     SONYALPHA_FOCUSSTATUS_FAILED   = 0x03, // AF failed, unable to acquire
     SONYALPHA_FOCUSSTATUS_LOST     = 0x02, // single AF on target, but then shift out of focus (normal for AF-S)
+    SONYALPHA_FOCUSSTATUS_AFS_FOCUSED = SONYALPHA_FOCUSSTATUS_LOST,
 };
 // note: Does NOT match "CrFocusIndicator" from "CrDeviceProperty" in CrSDK
 

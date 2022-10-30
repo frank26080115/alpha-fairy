@@ -266,6 +266,12 @@ bool PtpIpSonyAlphaCamera::update_property(uint16_t prop_code, uint16_t data_typ
     // the wait routine can check this variable to exit quickly
     if (prop_code == SONYALPHA_PROPCODE_FocusFound) {
         is_focused = (x == SONYALPHA_FOCUSSTATUS_FOCUSED);
+        // check if AF-S mode and focus is actually obtained
+        if (is_focused == false && has_property(SONYALPHA_PROPCODE_FocusMode)) {
+            if (get_property(SONYALPHA_PROPCODE_FocusMode) == SONYALPHA_AFMODE_AFS && x == SONYALPHA_FOCUSSTATUS_AFS_FOCUSED) {
+                is_focused |= true;
+            }
+        }
     }
 
     bool is_interested = false;
