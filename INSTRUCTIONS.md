@@ -32,7 +32,11 @@ We assume no responsibility for errors or omissions in the software or documenta
 
 In no event shall we be liable to you or any third parties for any special, punitive, incidental, indirect or consequential damages of any kind, or any damages whatsoever, including, without limitation, those resulting from loss of use, data or profits, and on any theory of liability, arising out of or in connection with the use of this software or firmware.
 
-# Installation Setup on PC
+# Quick Way: Build the image using platformio
+
+First install [vscode](https://code.visualstudio.com/download). Then install the extension [PlatformIO](https://platformio.org/platformio-ide). After installation restart the vscode editor and open the source code directory. On the left-hand side, select the PlatformIO icon. Connect the m5stick now. Click "Project Tasks -> m5stick-c -> General -> Upload". The toolbox will automatically download the toolchain and build the project the first time it is run. After that, in "Project Tasks -> m5stick-c -> Platform" choose "Build Filesystem Image" and then "Upload Filesystem Image".
+
+# Normal Way: Installation Setup on PC
 
 This is an open source firmware project, it is free for anybody to download and install onto the M5StickC-Plus. I do not sell any pre-installed units, so for you to build one of these Alpha-Fairy remotes, you must follow these installation instructions.
 
