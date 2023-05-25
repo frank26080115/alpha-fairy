@@ -32,11 +32,39 @@ We assume no responsibility for errors or omissions in the software or documenta
 
 In no event shall we be liable to you or any third parties for any special, punitive, incidental, indirect or consequential damages of any kind, or any damages whatsoever, including, without limitation, those resulting from loss of use, data or profits, and on any theory of liability, arising out of or in connection with the use of this software or firmware.
 
-# Quick Way: Build the image using platformio
+# Quick Way: Build with PlatformIO
 
-First install [vscode](https://code.visualstudio.com/download). Then install the extension [PlatformIO](https://platformio.org/platformio-ide). After installation restart the vscode editor and open the source code directory. On the left-hand side, select the PlatformIO icon. Connect the m5stick now. Click "Project Tasks -> m5stick-c -> General -> Upload". The toolbox will automatically download the toolchain and build the project the first time it is run. After that, in "Project Tasks -> m5stick-c -> Platform" choose "Build Filesystem Image" and then "Upload Filesystem Image".
+PlatformIO is an alternative IDE to Arduino, if you choose to use PlatformIO, skip the instruction section about Arduino.
 
-# Normal Way: Installation Setup on PC
+Download a copy of this particular GitHub repo.
+
+![](doc/img_instruct/github_download.png)
+
+Install [Visual Studio Code](https://code.visualstudio.com/download) (aka VSCode)
+
+Then install the extension [PlatformIO](https://platformio.org/platformio-ide), this is done from within VSCode by first clicking on "Extensions"
+
+![](doc/img_instruct/pio_install.png)
+
+After installation, restart the VSCode editor and open the source code directory.
+
+![](doc/img_instruct/pio_open_folder.png)
+
+![](doc/img_instruct/pio_after_open.png)
+
+On the left-hand side, select the PlatformIO icon. Connect the M5StickC-Plus now. Select the right COM port
+
+![](doc/img_instruct/pio_select_com_port.png)
+
+On the left-hand side, click "Project Tasks -> m5stick-c -> General -> Upload". (the toolbox will automatically download the toolchain and build the project the first time it is run)
+
+![](doc/img_instruct/pio_upload.png)
+
+After that, in "Project Tasks -> m5stick-c -> Platform" choose "Build Filesystem Image" and then "Upload Filesystem Image"
+
+![](doc/img_instruct/pio_upload_data.png)
+
+# Normal Way: Arduino IDE, Installation Setup on PC
 
 This is an open source firmware project, it is free for anybody to download and install onto the M5StickC-Plus. I do not sell any pre-installed units, so for you to build one of these Alpha-Fairy remotes, you must follow these installation instructions.
 
