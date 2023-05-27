@@ -46,6 +46,10 @@ void setup()
     Serial.begin(SERIAL_PORT_BAUDRATE);
     dbg_ser.enabled = true;
 
+    // Can trigger shutter to take a picture
+    bt_init();
+    bt_poll();
+
     Wire1.begin(21, 22);
     Wire1.setClock(400000);
 
@@ -82,6 +86,9 @@ void setup()
 
     cam_cb_setup();
     wifi_init();
+    // blocked at GetServices()
+    // bt_init();
+    // bt_poll();
 
     dbg_ser.printf("finished setup() at %u ms\r\n", millis());
 
@@ -177,6 +184,7 @@ bool app_poll()
         cmdline.task();
         fenc_task();
         btnPwr_poll();
+        bt_poll();
         shutterrelease_task();
 
         if (imu.hasMajorMotion) {
