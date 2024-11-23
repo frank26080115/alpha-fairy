@@ -42,11 +42,22 @@ FairyEncoder  fencoder;
 FairySubmenu main_menu(NULL, 0);
 
 void setup()
-{
+{   
+
     Serial.begin(SERIAL_PORT_BAUDRATE);
+
+    #ifdef ARDUINO_M5Stick_C_Plus2
+    // enable power HOLD
+    pinMode(POWER_HOLD_PIN, OUTPUT);
+    digitalWrite(POWER_HOLD_PIN, HIGH);
+    // enable LCD BL
+    ledcSetup(LCD_PWM_CHAN, LCD_BL_HZ, LCD_BL_RESOLUTION_BITS);
+    ledcAttachPin(LCD_BL_PIN, LCD_PWM_CHAN);
+    ledcWrite(LCD_PWM_CHAN, 1 << LCD_BL_RESOLUTION_BITS - 1);
+    #endif
     dbg_ser.enabled = true;
 
-    Wire1.begin(21, 22);
+    Wire1.begin(GPIO_NUM_21, GPIO_NUM_22);
     Wire1.setClock(400000);
 
     cpufreq_init();
@@ -54,6 +65,10 @@ void setup()
     settings_init();
     btns_init();
     SonyCamIr_Init();
+    #ifdef BOARD_HAS_PSRAM
+    bt_init();
+    bt_poll();
+    #endif
 
     M5.begin(false, true, false); // do not initialize the LCD, we have our own extended M5Lcd class to initialize later
     M5.IMU.Init();
@@ -177,6 +192,7 @@ bool app_poll()
         cmdline.task();
         fenc_task();
         btnPwr_poll();
+        bt_poll();
         shutterrelease_task();
 
         if (imu.hasMajorMotion) {

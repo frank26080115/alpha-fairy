@@ -196,8 +196,13 @@
 #define TFT_MOSI 15
 #define TFT_SCLK 13
 #define TFT_CS   5   // Chip select line for TFT display on Shield
+#ifndef ARDUINO_M5Stick_C_Plus2
 #define TFT_DC   23  // Data/command line for TFT on Shield
 #define TFT_RST  18  // Reset line for TFT is handled by seesaw!
+#else
+#define TFT_DC   14  // Data/command line for TFT on Shield
+#define TFT_RST  12  // Reset line for TFT is handled by seesaw!
+#endif
 
 // ######       EDIT THE PINs BELOW TO SUIT YOUR ESP32 PARALLEL TFT SETUP ######
 

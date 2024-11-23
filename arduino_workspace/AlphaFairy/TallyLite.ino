@@ -1,5 +1,11 @@
 #include "AlphaFairy.h"
-
+#ifndef ARDUINO_M5Stick_C_Plus2
+#undef LED_PIN
+#define LED_PIN GPIO_NUM_10
+#else
+#undef LED_PIN
+#define LED_PIN GPIO_NUM_19
+#endif
 extern bool redraw_flag;
 bool tallylite_nopoll = false; // used to prevent recursion in app_poll()
 bool tallylite_enable = true;
@@ -66,17 +72,17 @@ bool tallylite_ledIsOn = false;
 
 void tallylite_ledOn()
 {
-    pinMode(10, OUTPUT);
-    digitalWrite(10, LOW);
-    tallylite_ledIsOn = true;
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, LOW);
+  tallylite_ledIsOn = true;
 }
 
 void tallylite_ledOff()
 {
     if (tallylite_ledIsOn)
     {
-        pinMode(10, INPUT);
-        digitalWrite(10, HIGH);
+      pinMode(LED_PIN, INPUT);
+      digitalWrite(LED_PIN, HIGH);
     }
     tallylite_ledIsOn = false;
 }

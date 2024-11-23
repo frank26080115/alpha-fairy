@@ -13,27 +13,28 @@
 #include <IRremote.h>
 #include <ir_Sony.hpp>
 
-#define IR_TX_PIN 9
-//#define IR_TX_PIN 26
-
 #endif
 
 #ifdef USE_ESP32_RMT
 #include "driver/rmt.h"
 #include "soc/rmt_reg.h"
 
+#ifndef ARDUINO_M5Stick_C_Plus2
 #define IR_TX_PIN   GPIO_NUM_9
+#define ACTIVE_VAL 0
+#else
+#define IR_TX_PIN   GPIO_NUM_19
+#define ACTIVE_VAL 1
+#endif
 //#define IR_TX_PIN   GPIO_NUM_26
 #define RMT_CHANNEL RMT_CHANNEL_3
-
-#define ACTIVE_VAL 0
 
 #endif
 
 void SonyCamIr_Init()
 {
     #ifdef USE_IRREMOTE
-    IrSender.begin(9);
+    IrSender.begin(IR_TX_PIN);
     #endif
     #ifdef USE_ESP32_RMT
     rmt_config_t rmt_tx;

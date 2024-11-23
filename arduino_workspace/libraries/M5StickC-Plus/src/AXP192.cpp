@@ -1,8 +1,10 @@
 #include "AXP192.h"
+#include "utility/Config.h"
 
 AXP192::AXP192() {
 }
 
+#ifndef ARDUINO_M5Stick_C_Plus2
 void AXP192::begin(void) {
     Wire1.begin(21, 22);
     Wire1.setClock(400000);
@@ -426,3 +428,244 @@ void AXP192::SetLDO2(bool State) {
 void AXP192::PowerOff() {
     Write1Byte(0x32, Read8bit(0x32) | 0x80);  // MSB for Power Off
 }
+#else
+void AXP192::begin(void) { BtnC.read(); }
+void AXP192::Write1Byte(uint8_t Addr, uint8_t Data) {}
+
+uint8_t AXP192::Read8bit(uint8_t Addr) {
+  return 0;
+}
+
+uint16_t AXP192::Read12Bit(uint8_t Addr) {
+  uint16_t Data = 0;
+  return Data;
+}
+
+uint16_t AXP192::Read13Bit(uint8_t Addr) {
+  uint16_t Data = 0;
+  return Data;
+}
+
+uint16_t AXP192::Read16bit(uint8_t Addr) {
+  uint16_t ReData = 0;
+  return ReData;
+}
+
+uint32_t AXP192::Read24bit(uint8_t Addr) {
+  uint32_t ReData = 0;
+  return ReData;
+}
+
+uint32_t AXP192::Read32bit(uint8_t Addr) {
+  uint32_t ReData = 0;
+  return ReData;
+}
+
+void AXP192::ReadBuff(uint8_t Addr, uint8_t Size, uint8_t *Buff) {}
+
+void AXP192::ScreenBreath(uint8_t brightness) {
+  if (brightness > 12) {
+    brightness = 12;
+  } else if (brightness < 1) {
+    brightness = 1;
+  }
+  ledcWrite(LCD_PWM_CHAN, gamma_lut[brightness]);
+}
+
+void AXP192::ScreenSwitch(bool state) {
+  uint8_t brightness;
+  if (state == false) {
+    brightness = 0;
+  } else if (state == true) {
+    brightness = LCD_BL_RESOLUTION_BITS;
+  }
+  ledcWrite(LCD_PWM_CHAN, gamma_lut[brightness]);
+}
+
+bool AXP192::GetBatState() {
+  // TODO:
+  return true;
+}
+//---------coulombcounter_from_here---------
+// enable: void EnableCoulombcounter(void);
+// disable: void DisableCOulombcounter(void);
+// stop: void StopCoulombcounter(void);
+// clear: void ClearCoulombcounter(void);
+// get charge data: uint32_t GetCoulombchargeData(void);
+// get discharge data: uint32_t GetCoulombdischargeData(void);
+// get coulomb val affter calculation: float GetCoulombData(void);
+//------------------------------------------
+void AXP192::EnableCoulombcounter(void) { Write1Byte(0xB8, 0x80); }
+
+void AXP192::DisableCoulombcounter(void) { Write1Byte(0xB8, 0x00); }
+
+void AXP192::StopCoulombcounter(void) { Write1Byte(0xB8, 0xC0); }
+
+void AXP192::ClearCoulombcounter(void) { Write1Byte(0xB8, 0xA0); }
+
+uint32_t AXP192::GetCoulombchargeData(void) { return 0; }
+
+uint32_t AXP192::GetCoulombdischargeData(void) { return 0; }
+
+float AXP192::GetCoulombData(void) {
+  uint32_t coin = 0;
+  uint32_t coout = 0;
+
+//   coin = GetCoulombchargeData();
+//   coout = GetCoulombdischargeData();
+
+  // c = 65536 * current_LSB * (coin - coout) / 3600 / ADC rate
+  // Adc rate can be read from 84H ,change this variable if you change the ADC
+  // reate
+  float ccc = 65536 * 0.5 * (int32_t)(coin - coout) / 3600.0 / 25.0;
+
+  return ccc;
+}
+//----------coulomb_end_at_here----------
+
+uint16_t AXP192::GetVbatData(void) {
+  uint16_t vbat = 4;
+  return vbat;
+}
+
+uint16_t AXP192::GetVinData(void) {
+  uint16_t vin = 5;
+  return vin;
+}
+
+uint16_t AXP192::GetIinData(void) {
+  return 0;
+}
+
+uint16_t AXP192::GetVusbinData(void) { return 5; }
+
+uint16_t AXP192::GetIusbinData(void) {
+  return 0;
+}
+
+uint16_t AXP192::GetIchargeData(void) {
+  return 0;
+}
+
+uint16_t AXP192::GetIdischargeData(void) {
+  return 0;
+}
+
+uint16_t AXP192::GetTempData(void) {
+  return 0;
+}
+
+uint32_t AXP192::GetPowerbatData(void) {
+  return 0;
+}
+
+uint16_t AXP192::GetVapsData(void) {
+  return 0;
+}
+
+void AXP192::SetSleep(void) {
+    
+}
+
+uint8_t AXP192::GetWarningLeve(void) {
+  // TODO:;
+  uint8_t buf = 1;
+  return (buf & 0x01);
+}
+
+// -- sleep
+void AXP192::DeepSleep(uint64_t time_in_us) {
+  SetSleep();
+
+  if (time_in_us > 0) {
+    esp_sleep_enable_timer_wakeup(time_in_us);
+  } else {
+    esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_TIMER);
+  }
+  (time_in_us == 0) ? esp_deep_sleep_start() : esp_deep_sleep(time_in_us);
+}
+
+void AXP192::LightSleep(uint64_t time_in_us) {
+  SetSleep();
+
+  if (time_in_us > 0) {
+    esp_sleep_enable_timer_wakeup(time_in_us);
+  } else {
+    esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_TIMER);
+  }
+  esp_light_sleep_start();
+}
+
+// 0 not press, 0x01 long press, 0x02 press
+uint8_t AXP192::GetBtnPress() {
+  BtnC.read();
+  if (BtnC.wasPressed()) {
+    return 0x02;
+  }
+  return 0;
+}
+
+uint8_t AXP192::GetWarningLevel(void) { return 0; }
+
+float AXP192::GetBatVoltage() {
+  return 4.2;
+}
+
+float AXP192::GetBatCurrent() {
+  return 0.0;
+}
+
+float AXP192::GetVinVoltage() {
+  return 5.0;
+}
+
+float AXP192::GetVinCurrent() {
+  return 0.0;
+}
+
+float AXP192::GetVBusVoltage() {
+  return 4.2;
+}
+
+float AXP192::GetVBusCurrent() {
+  return 0.0;
+}
+
+float AXP192::GetTempInAXP192() {
+  return 37;
+}
+
+float AXP192::GetBatPower() {
+  float VoltageLSB = 1.1;
+  float CurrentLCS = 0.5;
+  uint32_t ReData = 0;
+  return VoltageLSB * CurrentLCS * ReData / 1000.0;
+}
+
+float AXP192::GetBatChargeCurrent() {
+  float ADCLSB = 0.5;
+  uint16_t ReData = 0;
+  return ReData * ADCLSB;
+}
+float AXP192::GetAPSVoltage() {
+  float ADCLSB = 1.4 / 1000.0;
+  uint16_t ReData = 0;
+  return ReData * ADCLSB;
+}
+
+float AXP192::GetBatCoulombInput() {
+  uint32_t ReData = 0;
+  return ReData * 65536 * 0.5 / 3600 / 25.0;
+}
+
+float AXP192::GetBatCoulombOut() {
+  uint32_t ReData = 0;
+  return ReData * 65536 * 0.5 / 3600 / 25.0;
+}
+
+void AXP192::SetCoulombClear() {}
+
+void AXP192::SetLDO2(bool State) {}
+
+void AXP192::PowerOff() { digitalWrite(POWER_HOLD_PIN, LOW); }
+#endif

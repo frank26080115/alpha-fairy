@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include <Wire.h>
+#include "utility/Button.h"
 
 #define SLEEP_MSEC(us) (((uint64_t)us) * 1000L)
 #define SLEEP_SEC(us)  (((uint64_t)us) * 1000000L)
@@ -37,6 +38,10 @@ class AXP192 {
     uint16_t GetIusbinData(void) __attribute__((deprecated));
     uint16_t GetVapsData(void) __attribute__((deprecated));
     uint8_t GetBtnPress(void);
+#define DEBOUNCE_MS 10
+#ifdef ARDUINO_M5Stick_C_Plus2
+    Button BtnC = Button(35, true, DEBOUNCE_MS);
+#endif
 
     // -- sleep
     void SetSleep(void);

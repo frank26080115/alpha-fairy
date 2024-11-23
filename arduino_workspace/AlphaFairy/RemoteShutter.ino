@@ -28,6 +28,7 @@ void remote_shutter(uint8_t time_delay, bool use_gui)
             else {
                 dbg_ser.println("IR - shoot");
                 SonyCamIr_Shoot();
+                bt_req_shutter = true;
             }
 
             can_still_shoot = true;
@@ -196,6 +197,7 @@ void record_movie()
         if (config_settings.infrared_enabled) {
             dbg_ser.println("IR - movie");
             SonyCamIr_Movie();
+            bt_req_rec = true;
             return;
         }
         else {
