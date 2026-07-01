@@ -30,7 +30,7 @@ bool SpriteMgr::load(const uint8_t* data, size_t len, int16_t width, int16_t hei
         Serial.printf("SpMgr malloc null\r\n");
         return false;
     }
-    TFT_eSprite* sprite = new TFT_eSprite(this->tft);
+    M5Canvas* sprite = new M5Canvas(this->tft);
     if (sprite == NULL) {
         Serial.printf("SpMgr sprite null\r\n");
         free(node);
@@ -65,7 +65,7 @@ void SpriteMgr::draw(const uint8_t* data, size_t len, int16_t x, int16_t y, int1
 {
     need_boost();
 
-    TFT_eSprite* sprite = get(data, len);
+    M5Canvas* sprite = get(data, len);
     if (sprite == NULL)
     {
         // does not exist, create new if possible
@@ -93,7 +93,7 @@ void SpriteMgr::draw(const uint8_t* data, size_t len, int16_t x, int16_t y, int1
     sprite->pushSprite(x, y);
 }
 
-TFT_eSprite* SpriteMgr::get(const uint8_t* data, size_t len)
+M5Canvas* SpriteMgr::get(const uint8_t* data, size_t len)
 {
     sprmgr_item_t* cur_node = this->head_node;
     while (cur_node != NULL) {
@@ -131,7 +131,7 @@ void SpriteMgr::unload_all(void)
     sprmgr_item_t* prev_node;
     while (node != NULL)
     {
-        TFT_eSprite* s = node->sprite;
+        M5Canvas* s = node->sprite;
         if (s != NULL)
         {
             s->deleteSprite();

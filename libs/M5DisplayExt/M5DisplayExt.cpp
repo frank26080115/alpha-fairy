@@ -1,8 +1,18 @@
 #include "M5DisplayExt.h"
+#include <M5Unified.h>
 
 // These read 16- and 32-bit types from the SD card file.
 // BMP data is stored little-endian, Arduino is little-endian too.
 // May need to reverse subscript order if porting elsewhere.
+
+void M5DisplayExt::begin(void) {
+  if (M5.Display.getBoard() != m5gfx::board_t::board_unknown) {
+    static_cast<M5GFX&>(*this) = M5.Display;
+  }
+  else {
+    init();
+  }
+}
 
 uint16_t read16(fs::File &f) {
   uint16_t result;
@@ -27,7 +37,7 @@ void M5DisplayExt::drawBmpFile(fs::FS &fs, const char *path, uint16_t x, uint16_
 }
 
 // Bodmers BMP image rendering function
-void M5DisplayExt::drawBmpFileSprite(TFT_eSPI* sprite, fs::FS &fs, const char *path, uint16_t x, uint16_t y) {
+void M5DisplayExt::drawBmpFileSprite(LovyanGFX* sprite, fs::FS &fs, const char *path, uint16_t x, uint16_t y) {
   need_boost();
 
   if ((x >= width()) || (y >= height())) return;
@@ -330,7 +340,7 @@ typedef struct _png_draw_params {
   double scale;
   uint8_t alphaThreshold;
 
-  TFT_eSPI *tft;
+  LovyanGFX *tft;
 } png_file_decoder_t;
 
 static void pngle_draw_callback(pngle_t *pngle, uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint8_t rgba[4])
@@ -379,7 +389,7 @@ void M5DisplayExt::drawPngData(const uint8_t* data, size_t len, uint16_t x, uint
   drawPngDataSprite(this, data, len, x, y, maxWidth, maxHeight, offX, offY, scale, alphaThreshold);
 }
 
-void M5DisplayExt::drawPngFileSprite(TFT_eSPI* sprite, fs::FS &fs, const char *path, uint16_t x, uint16_t y,
+void M5DisplayExt::drawPngFileSprite(LovyanGFX* sprite, fs::FS &fs, const char *path, uint16_t x, uint16_t y,
                             uint16_t maxWidth, uint16_t maxHeight, uint16_t offX,
                             uint16_t offY, double scale, uint8_t alphaThreshold)
 {
@@ -434,7 +444,7 @@ void M5DisplayExt::drawPngFileSprite(TFT_eSPI* sprite, fs::FS &fs, const char *p
   file.close();
 }
 
-void M5DisplayExt::drawPngDataSprite(TFT_eSPI* sprite, const uint8_t* data, size_t len, uint16_t x, uint16_t y,
+void M5DisplayExt::drawPngDataSprite(LovyanGFX* sprite, const uint8_t* data, size_t len, uint16_t x, uint16_t y,
                             uint16_t maxWidth, uint16_t maxHeight, uint16_t offX,
                             uint16_t offY, double scale, uint8_t alphaThreshold)
 {

@@ -186,10 +186,10 @@ void pwr_func(void* cmd, char* argstr, Stream* stream)
 {
   pwr_tick(true);
   stream->printf("pwr:   %0.3f   %0.3f   %0.3f   %0.3f\r\n",
-    M5.Axp.GetBatVoltage(),
-    M5.Axp.GetBatCurrent(),
-    M5.Axp.GetVBusVoltage(),
-    M5.Axp.GetVBusCurrent()
+    m5power_getBatteryVoltage(),
+    m5power_getBatteryCurrent(),
+    m5power_getVBusVoltage(),
+    m5power_getVBusCurrent()
     );
 }
 
@@ -313,7 +313,7 @@ void wifipwr_func(void* cmd, char* argstr, Stream* stream)
 
 void listlog_func(void* cmd, char* argstr, Stream* stream)
 {
-    File root = SPIFFS.open("/");
+    File root = ALFY_FS.open("/");
     File file = root.openNextFile();
     stream->println("listing log files");
     while(file)
@@ -330,7 +330,7 @@ void listlog_func(void* cmd, char* argstr, Stream* stream)
 
 void readlog_func(void* cmd, char* argstr, Stream* stream)
 {
-    File f = SPIFFS.open(argstr);
+    File f = ALFY_FS.open(argstr);
     stream->println();
     while (f.available() > 0) {
         stream->write((uint8_t)(f.read()));
@@ -342,7 +342,7 @@ void readlog_func(void* cmd, char* argstr, Stream* stream)
 void readhex_func(void* cmd, char* argstr, Stream* stream)
 {
     int i = 0;
-    File f = SPIFFS.open(argstr);
+    File f = ALFY_FS.open(argstr);
     stream->println();
     while (f.available() > 0) {
         stream->printf("0x%02X, ", (uint8_t)(f.read()));

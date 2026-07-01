@@ -369,7 +369,9 @@ void FairyCfgItem::set_font(int fn)
         uint16_t dim1 = M5Lcd.width();
         uint16_t dim2 = M5Lcd.height();
         uint16_t dim = dim1 > dim2 ? dim1 : dim2;
-        uint16_t w = M5Lcd.textWidth((const char*)_disp_name, _font_num = 4);
+        _font_num = 4;
+        M5Lcd.setTextFont(_font_num);
+        uint16_t w = M5Lcd.textWidth((const char*)_disp_name);
         if (w >= dim - _icon_width - 10) {
             _font_num = 2;
         }

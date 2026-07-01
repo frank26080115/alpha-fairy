@@ -47,7 +47,7 @@ extern const uint16_t GrayLevel[];
 extern uint16_t smallBuffer[FLIR_X * FLIR_Y];
 extern uint16_t raw_max, raw_min;
 extern uint16_t max_x, max_y, min_x, min_y;
-TFT_eSprite* lepton_imgBuff = NULL;
+M5Canvas* lepton_imgBuff = NULL;
 bool smallBuffer_Lock = false;
 bool img_buffer_Lock = false;
 lepton_encoder_t lepton_enc_data = {0};
@@ -221,7 +221,7 @@ void lepton_dispBatt(uint16_t x, uint16_t y, float vol)
     const uint8_t h = 7;
 
     #ifdef ENABLE_LEPTON_HISTOGRAM
-    TFT_eSprite* ib = lepton_imgBuff;
+    M5Canvas* ib = lepton_imgBuff;
     #else
     M5DisplayExt* ib = &M5Lcd;
     #endif
@@ -280,7 +280,7 @@ void lepton_saveImg()
             lepton_saveNum++;
         }
         sprintf(fname, "/flir_%u.bin", lepton_saveNum);
-        if (SPIFFS.exists(fname) == false) {
+        if (ALFY_FS.exists(fname) == false) {
             break;
         }
         else {
@@ -288,7 +288,7 @@ void lepton_saveImg()
             continue;
         }
     }
-    File f = SPIFFS.open(fname, FILE_WRITE);
+    File f = ALFY_FS.open(fname, FILE_WRITE);
     if (!f) {
         return;
     }
@@ -331,7 +331,7 @@ void lepton_makeFrameBuff()
     #else
     int16_t w = FLIR_X, h = FLIR_Y;
     #endif
-    lepton_imgBuff = new TFT_eSprite(&M5Lcd);
+    lepton_imgBuff = new M5Canvas(&M5Lcd);
     lepton_imgBuff->createSprite(w > h ? w : h, w > h ? h : w);
     lepton_imgBuff->setTextFont(0);
     //lepton_imgBuff->highlight(true);
@@ -584,7 +584,7 @@ void lepton_updateFlir(bool gui)
     if (gui) {
         //Setting info
         lepton_imgBuff->setTextDatum(TC_DATUM);
-        float bat_voltage = M5.Axp.GetBatVoltage();
+        float bat_voltage = m5power_getBatteryVoltage();
         lepton_dispBatt(214, 4, bat_voltage);
     }
 

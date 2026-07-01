@@ -271,7 +271,7 @@ void dissolve_restart(uint16_t colour)
         {
             M5Lcd.fillRect(x, y, 1, 1, TFT_BLACK);
             int32_t b = config_settings.lcd_brightness - (((millis() - t) - 5000) / 1250);
-            M5.Axp.ScreenBreath(b);
+            m5gfx_setBrightness(b);
         }
     }
     ESP.restart();

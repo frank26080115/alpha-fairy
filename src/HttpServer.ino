@@ -1,7 +1,6 @@
 #include "AlphaFairy.h"
 #include <WiFi.h>
 #include <FS.h>
-#include <SPIFFS.h>
 
 /*
 implement a simple web page interface for the user to change Wi-Fi configuration

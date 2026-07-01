@@ -32,9 +32,7 @@ We assume no responsibility for errors or omissions in the software or documenta
 
 In no event shall we be liable to you or any third parties for any special, punitive, incidental, indirect or consequential damages of any kind, or any damages whatsoever, including, without limitation, those resulting from loss of use, data or profits, and on any theory of liability, arising out of or in connection with the use of this software or firmware.
 
-# Quick Way: Build with PlatformIO
-
-PlatformIO is an alternative IDE to Arduino, if you choose to use PlatformIO, skip the instruction section about Arduino.
+# Build with PlatformIO
 
 Download a copy of this particular GitHub repo.
 
@@ -59,68 +57,6 @@ On the left-hand side, select the PlatformIO icon. Connect the M5StickC-Plus now
 On the left-hand side, click "Project Tasks -> m5stick-c -> General -> Upload". (the toolbox will automatically download the toolchain and build the project the first time it is run)
 
 ![](doc/img_instruct/pio_upload.png)
-
-After that, in "Project Tasks -> m5stick-c -> Platform" choose "Build Filesystem Image" and then "Upload Filesystem Image"
-
-![](doc/img_instruct/pio_upload_data.png)
-
-# Normal Way: Arduino IDE, Installation Setup on PC
-
-This is an open source firmware project, it is free for anybody to download and install onto the M5StickC-Plus. I do not sell any pre-installed units, so for you to build one of these Alpha-Fairy remotes, you must follow these installation instructions.
-
-Install [Arduino IDE](https://www.arduino.cc/en/software), please obtain **version 1.8.19**, later versions (such as v 2.x) will not work. Scroll down on the page until the `Legacy IDE (1.8.X)` section.
-
-![](doc/img_instruct/legacy_ide.png)
-
-Download a copy of this particular GitHub repo.
-
-![](doc/img_instruct/github_download.png)
-
-Find the directory called "arduino_workspace". From inside Arduino IDE, use the menu bar, click File->Preferences, put the path to "arduino_workspace" into "Sketchbook Location".
-
-![](doc/img_instruct/sketchbook_location.png)
-
-Install the ESP32 toolchain. From inside Arduino IDE, use the menu bar, click File->Preferences. The "Additional Boards Manager URLS" text box needs to be filled with "https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json", then click "OK".
-
-![](doc/img_instruct/board_manager_url.png)
-
-Then use the board manager to install the ESP32 toolchain. From inside Arduino IDE, use the menu bar, click Tools->Boards->Board Manager. Inside the board manager, search for "ESP32" and install the toolchain. (version 2.0.5 is fine)
-
-![](doc/img_instruct/board_manager_install.png)
-
-Connect the M5StickC-Plus to the computer, follow instructions to install the FTDI driver (if required): https://docs.m5stack.com/en/quick_start/m5stickc_plus/arduino (this may also contain instructions for steps I've already listed)
-
-Close the Arduino IDE and open it again.
-
-**NOTE:** if you are updating the firmware (thank you for keeping up to date with my project and being patient), then you will be repeating the steps below.
-
-Open Arduino IDE, from the menu bar, select the correct board: Tools->Boards->ESP32 Boards->M5StickC
-
-![](doc/img_instruct/select_board.png)
-
-Select the correct serial port: Tools->Port->(select the option that matches the M5StickC)
-
-![](doc/img_instruct/select_com_port.png)
-
-Using Arduino IDE, open the file at "arduino_workspace/AlphaFairy/AlphaFairy.ino", this should be available in the sketchbook directly.
-
-![](doc/img_instruct/open_sketch.png)
-
-Upload the image files: Tools->"ESP32 Sketch Data Upload"
-
-![](doc/img_instruct/sketch_data_upload.png)
-
-(if the "ESP32 Sketch Data Upload" is missing, follow the instructions at https://github.com/me-no-dev/arduino-esp32fs-plugin to install the plugin, which also requires you to restart the Arduino IDE)
-
-**IMPORTANT:** every time you press "ESP32 Sketch Data Upload", the Wi-Fi profiles you have saved **will be erased**. The web interface can be used to view all existing Wi-Fi profiles so you can back them up.
-
-Disable core debug level: Tools->"Core Debug Level:", select "None"
-
-![](doc/img_instruct/disable_debug_level.png)
-
-Click "Upload" on the tool-bar
-
-![](doc/img_instruct/click_upload.png)
 
 # Connecting Your Camera
 

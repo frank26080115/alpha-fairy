@@ -2,8 +2,7 @@
 #define _FAIRYKEYBOARD_H_
 
 #include <Arduino.h>
-#include <M5StickCPlus.h>
-#include <M5Display.h>
+#include <M5DisplayExt.h>
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -22,7 +21,7 @@
 class FairyKeyboard
 {
     public:
-        FairyKeyboard(M5Display* used_lcd,
+        FairyKeyboard(M5DisplayExt* used_lcd,
                             uint16_t colour_bg    = TFT_WHITE,
                             uint16_t colour_fg    = TFT_BLACK,
                             uint16_t colour_fade  = TFT_LIGHTGREY,
@@ -49,7 +48,7 @@ class FairyKeyboard
         void register_redraw_cb(void(*)(void));    // register a function to be called when a whole screen redraw is called
 
     protected:
-        M5Display* _lcd;
+        M5DisplayExt* _lcd;
 
         void (*redraw_cb)(void) = NULL;
 

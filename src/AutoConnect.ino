@@ -145,7 +145,7 @@ class AppAutoConnect : public FairyMenuItem
                             {
                                 dbg_ser.printf("autoconnect new SSID: %s\r\n", ssid_str);
                                 result_code = AUTOCONNRES_FOUND_NEW;
-                                // use the data structure as a cache, we can save it into SPIFFS later quickly
+                                // use the data structure as a cache, we can save it into LittleFS later quickly
                                 strncpy(profile.ssid, ssid_str, WIFI_STRING_LEN);
                                 profile.password[0] = 0;
                                 profile.opmode = WIFIOPMODE_STA;

@@ -43,7 +43,7 @@ void tallylite_task()
 void tallylite_show()
 {
     M5Lcd.fillScreen(TFT_RED); // red screen
-    M5.Axp.ScreenBreath(12);   // super bright
+    m5gfx_setBrightness(12);   // super bright
     tallylite_nopoll = true;   // prevent recursion
     while (fairycam.isOperating() && fairycam.is_movierecording()) // quit if disconnected, or recording has stopped
     {
@@ -57,7 +57,7 @@ void tallylite_show()
             break;
         }
     }
-    M5.Axp.ScreenBreath(config_settings.lcd_brightness); // normal screen brightness
+    m5gfx_setBrightness(config_settings.lcd_brightness); // normal screen brightness
     tallylite_nopoll = false;
     redraw_flag = true;
 }

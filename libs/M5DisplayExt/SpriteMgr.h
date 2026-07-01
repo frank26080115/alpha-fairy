@@ -7,13 +7,12 @@
 #include <string.h>
 
 #include "M5DisplayExt.h"
-#include "M5Display.h" // this includes "Sprite.h" for us
 
 typedef struct
 {
     const uint8_t* data;
     size_t len;
-    TFT_eSprite* sprite;
+    M5Canvas* sprite;
     void* next_node;
     void* prev_node;
 }
@@ -25,7 +24,7 @@ class SpriteMgr
         SpriteMgr(M5DisplayExt* tft);
         bool load(const uint8_t* data, size_t len, int16_t width, int16_t height);
         void draw(const uint8_t* data, size_t len, int16_t x, int16_t y, int16_t width = 0, int16_t height = 0);
-        TFT_eSprite* get(const uint8_t* data, size_t len);
+        M5Canvas* get(const uint8_t* data, size_t len);
         void unload_all(void);
         uint8_t holder_flag;
         void (*cb_needboost)(void) = NULL;

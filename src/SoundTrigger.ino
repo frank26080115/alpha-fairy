@@ -1,5 +1,4 @@
 #include "AlphaFairy.h"
-#include <M5StickCPlus.h>
 #include <driver/i2s.h>
 
 /*

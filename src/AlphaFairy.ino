@@ -1,5 +1,4 @@
 #include "AlphaFairy.h"
-#include <M5StickCPlus.h>
 #include <M5DisplayExt.h>
 #include <SpriteMgr.h>
 #include "FairyMenu.h"
@@ -46,27 +45,34 @@ void setup()
     Serial.begin(SERIAL_PORT_BAUDRATE);
     dbg_ser.enabled = true;
 
-    Wire1.begin(21, 22);
-    Wire1.setClock(400000);
-
     cpufreq_init();
 
     settings_init();
     btns_init();
     SonyCamIr_Init();
 
-    M5.begin(false, true, false); // do not initialize the LCD, we have our own extended M5Lcd class to initialize later
-    M5.IMU.Init();
-    M5.IMU.SetGyroFsr(M5.IMU.GFS_500DPS);
-    M5.IMU.SetAccelFsr(M5.IMU.AFS_4G);
+    auto m5cfg = M5.config();
+    m5cfg.serial_baudrate = 0;
+    m5cfg.clear_display = false;
+    m5cfg.output_power = true;
+    m5cfg.internal_imu = true;
+    m5cfg.internal_rtc = true;
+    m5cfg.internal_mic = false;
+    m5cfg.internal_spk = false;
+    m5cfg.external_imu = false;
+    m5cfg.external_rtc = false;
+#if defined(M5GFX_BOARD)
+    m5cfg.fallback_board = static_cast<m5::board_t>(m5gfx::M5GFX_BOARD);
+#endif
+    M5.begin(m5cfg);
 
-    M5.Axp.begin();
-    M5.Axp.ScreenSwitch(false); // turn off the LCD backlight while initializing, avoids junk being shown on the screen
+    M5.Display.setBrightness(0); // turn off the LCD backlight while initializing, avoids junk being shown on the screen
     M5Lcd.begin(); // our own extended LCD object
+    M5Lcd.setBrightness(0);
     M5Lcd.fillScreen(TFT_BLACK);
-    M5.Axp.ScreenBreath(config_settings.lcd_brightness);
+    m5gfx_setBrightness(config_settings.lcd_brightness);
 
-    spiffs_init();
+    storage_init();
 
     #ifdef PMIC_LOG_ON_BOOT
     pmic_startCoulombCount();
@@ -228,7 +234,7 @@ void critical_error(sprite_asset_id_t asset_id)
 
     cpufreq_boost();
     pwr_tick(true);
-    M5.Axp.GetBtnPress(); // clear the button bit
+    m5power_getButtonPress(); // clear the button bit
     uint32_t t = millis(), now = t;
 
     // disconnect
@@ -263,9 +269,9 @@ void critical_error(sprite_asset_id_t asset_id)
         }
 
         // shutdown on power button press
-        if (M5.Axp.GetBtnPress() != 0) {
+        if (m5power_getButtonPress() != 0) {
             show_poweroff();
-            M5.Axp.PowerOff();
+            m5power_powerOff();
         }
 
         // if debugging over serial port, or allow the user to plug it in now, repeat the message
@@ -361,68 +367,35 @@ void setup_aboutme(void)
     menu_utils.install(&app);
 }
 
-void spiffs_init(void)
+void storage_init(void)
 {
-    uint8_t fail = 0;
-    if (!SPIFFS.begin(false))
-    {
-        Serial.println("SPIFFS Mount Failed");
-        fail = 1;
-    }
-    else if (!SPIFFS.exists("/about.png"))
-    {
-        // A file that should exist which we can use to quickly test that the files are present.
-        // The main case here is that the user only flashed the firmware, and not the FS, so a
-        // single file is a sufficient check.
-        fail = 2;
-    }
-    else if (!SPIFFS.exists(ALFY_VERSION_FILE_CHECK)) // defined in alfy_conf.h
-    {
-        // use this file to make sure the version matches the files
-        // change the file name when files are updated
-        fail = 3;
+    if (ALFY_FS.begin(true, ALFY_FS_BASE_PATH, ALFY_FS_MAX_OPEN_FILES, ALFY_FS_LABEL)) {
+        return;
     }
 
-    // If there was any issue finding the images, give the user a helpful message
-    if (fail != 0)
-    {
-        gui_startAppPrint();
-        M5Lcd.setTextColor(TFT_RED, TFT_BLACK);
-        M5Lcd.setTextFont(4);
-        M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);
-        M5Lcd.printf("ERROR!!!");
-        M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET + 25);
-        if (fail != 3) {
-            M5Lcd.printf("Image Files Missing");
-        }
-        else {
-            M5Lcd.printf("Files out-of-date");
-        }
-        M5Lcd.setTextFont(2);
-        M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET + 50);
-        M5Lcd.printf("Please use the Arduino IDE");
-        M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET + 68);
-        if (fail != 3) {
-            M5Lcd.printf("to upload the missing files");
-        }
-        else {
-            M5Lcd.printf("to upload the new files");
-        }
+    Serial.println("LittleFS Mount Failed");
 
-        // We should still let the user power off... No sense killing the battery.
-        while (true)
-        {
-            yield();
-            if (fail == 1) {
-                Serial.println("SPIFFS Mount Failed");
-            }
-            else if (fail == 2) {
-                Serial.println("Image files are missing");
-            }
-            if (M5.Axp.GetBtnPress() != 0) {
-                pwr_shutdown();
-            }
-            delay(100);
+    gui_startAppPrint();
+    M5Lcd.setTextColor(TFT_RED, TFT_BLACK);
+    M5Lcd.setTextFont(4);
+    M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET);
+    M5Lcd.printf("ERROR!!!");
+    M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET + 25);
+    M5Lcd.printf("Storage Failed");
+    M5Lcd.setTextFont(2);
+    M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET + 50);
+    M5Lcd.printf("LittleFS mount failed");
+    M5Lcd.setCursor(SUBMENU_X_OFFSET, SUBMENU_Y_OFFSET + 68);
+    M5Lcd.printf("Power to shut down");
+
+    // We should still let the user power off... No sense killing the battery.
+    while (true)
+    {
+        yield();
+        Serial.println("LittleFS Mount Failed");
+        if (m5power_getButtonPress() != 0) {
+            pwr_shutdown();
         }
+        delay(1000);
     }
 }

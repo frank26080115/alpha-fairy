@@ -1,5 +1,4 @@
 #include "AlphaFairy.h"
-#include <M5StickCPlus.h>
 #include <M5DisplayExt.h>
 
 #include "esp_pm.h"
@@ -47,13 +46,13 @@ void gui_drawStatusBar(bool is_black)
         // I'll admit that file reading, decoding, and LCD transactions are also very slow
         batt_last_time = now;
         if (li == 0 || batt_vbus < 0) {
-            batt_vbus  = M5.Axp.GetVBusVoltage();
+            batt_vbus  = m5power_getVBusVoltage();
         }
         if (li == 1 || batt_vbatt < 0) {
-            batt_vbatt = M5.Axp.GetBatVoltage();
+            batt_vbatt = m5power_getBatteryVoltage();
         }
         if (li == 2 || batt_ibatt < 0) {
-            batt_ibatt = M5.Axp.GetBatCurrent();
+            batt_ibatt = m5power_getBatteryCurrent();
         }
         li = (li + 1) % 3;
 
@@ -198,7 +197,7 @@ void gui_prepStatusBarText(int16_t x, int16_t y, bool is_black)
 void pwr_lcdUndim()
 {
     if (lcd_backlight_dim) {
-        M5.Axp.ScreenBreath(config_settings.lcd_brightness);
+        m5gfx_setBrightness(config_settings.lcd_brightness);
         lcd_backlight_dim = false;
     }
 }
@@ -213,7 +212,7 @@ void pwr_sleepCheck()
         {
             // time to dim the LCD backlight
             if (lcd_backlight_dim == false) {
-                M5.Axp.ScreenBreath(7);
+                m5gfx_setBrightness(7);
                 lcd_backlight_dim = true;
             }
         }
@@ -260,7 +259,7 @@ void pwr_dimCheck()
         {
             // time to dim the LCD backlight
             if (lcd_backlight_dim == false) {
-                M5.Axp.ScreenBreath(7);
+                m5gfx_setBrightness(7);
                 lcd_backlight_dim = true;
             }
         }
@@ -388,28 +387,28 @@ void pwr_shutdown()
     if (batt_vbus < 3) {
         Serial.println("Power Save Shutdown");
         while (true) {
-            M5.Axp.PowerOff();
+            m5power_powerOff();
         }
     }
 
     // yes USB voltage -> pretend power off but keep charging the battery
     Serial.println("Power Save Screen Saver");
     M5Lcd.fillScreen(TFT_BLACK);
-    M5.Axp.ScreenSwitch(false);
+    m5gfx_screenSwitch(false);
     while (true)
     {
         cmdline.task();
         yield();
 
-        batt_vbus = M5.Axp.GetVBusVoltage();
+        batt_vbus = m5power_getVBusVoltage();
         // no USB voltage -> power off
         if (batt_vbus < 3) {
             Serial.println("Power Save Screen Saver Shutdown");
             while (true) {
-                M5.Axp.PowerOff();
+                m5power_powerOff();
             }
         }
-        if (M5.Axp.GetBtnPress() != 0) {
+        if (m5power_getButtonPress() != 0) {
             ESP.restart();
         }
     }
@@ -480,7 +479,7 @@ void show_poweroff()
                 uint32_t d = millis() - t;
                 if (d > 800) {
                     t = millis();
-                    M5.Axp.ScreenBreath(b);
+                    m5gfx_setBrightness(b);
                     b -= 1;
                     if (b < 5) {
                         break;
@@ -502,7 +501,7 @@ void show_poweroff()
             uint32_t d = millis() - t;
             if (d > 800) {
                 t = millis();
-                M5.Axp.ScreenBreath(b);
+                m5gfx_setBrightness(b);
                 b -= 1;
                 if (b < 5) {
                     break;
@@ -515,40 +514,15 @@ void show_poweroff()
     }
 
     M5Lcd.fillScreen(TFT_BLACK);
-    M5.Axp.ScreenSwitch(false);
+    m5gfx_screenSwitch(false);
 }
 
 int pmic_fnum = 0;
 
 void pmic_startCoulombCount(void)
 {
-    int  fnum;
-    char fname[32];
-    for (fnum = 1; fnum < 999; ) {
-        sprintf(fname, "/pwrlog_%u.txt", fnum);
-        if (SPIFFS.exists(fname) == false) {
-            pmic_fnum = fnum;
-            break;
-        }
-        else {
-            fnum++;
-            continue;
-        }
-    }
-
-    #ifdef PMIC_LOG_DISABLE_RECHARGING
-    M5.Axp.Write1Byte(0x33, 0);
-    #endif
-
-    M5.Axp.EnableCoulombcounter();
-    M5.Axp.ClearCoulombcounter();
-
-    if (pmic_fnum > 0) {
-        dbg_ser.printf("coulomb cnt started, file %s\r\n", fname);
-    }
-    else {
-        dbg_ser.println("unable to start pmic log");
-    }
+    pmic_fnum = 0;
+    dbg_ser.println("pmic coulomb logging is not supported by M5Unified yet");
 }
 
 void pmic_log(void)
@@ -567,9 +541,9 @@ void pmic_log(void)
 
     static float prev_c = 0;
 
-    float c    = M5.Axp.GetCoulombData();
-    float vbat = M5.Axp.GetBatVoltage();
-    float ibat = M5.Axp.GetBatCurrent();
+    float c    = 0;
+    float vbat = m5power_getBatteryVoltage();
+    float ibat = m5power_getBatteryCurrent();
 
     char logstr[256];
     char fname[32];
@@ -579,7 +553,7 @@ void pmic_log(void)
     sprintf(logstr, "%8u, %0.3f, %0.3f, %0.3f, %0.3f, \r\n", millis(), vbat, ibat, c, (c - prev_c) / 5);
     prev_c = c;
 
-    File f = SPIFFS.open(fname, FILE_APPEND);
+    File f = ALFY_FS.open(fname, FILE_APPEND);
     f.print(logstr);
     f.close();
 

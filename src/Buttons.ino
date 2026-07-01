@@ -228,7 +228,7 @@ bool btnAny_hasPressed() {
     x |= btnSide_hasPressed();
     x |= btnBig_hasPressed();
     x |= btnPwr_hasPressed();
-    x |= M5.Axp.GetBtnPress() != 0;
+    x |= m5power_getButtonPress() != 0;
     return x;
 }
 
@@ -250,7 +250,7 @@ void btnPwr_poll()
 
 void btnPwr_quickPoll()
 {
-    uint8_t b = M5.Axp.GetBtnPress();
+    uint8_t b = m5power_getButtonPress();
     if (b != 0) {
         btnPwr_cnt++;
         dbg_ser.printf("user pressed power button\r\n");

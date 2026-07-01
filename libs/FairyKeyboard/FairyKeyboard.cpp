@@ -23,7 +23,7 @@ static const char line_2_u[] = "NOPQRSTUVWXYZ";
 static const char line_2_l[] = "nopqrstuvwxyz";
 static const char line_3[]   = "<<1234567890==";
 
-FairyKeyboard::FairyKeyboard(M5Display* used_lcd, uint16_t colour_bg, uint16_t colour_fg, uint16_t colour_fade, uint32_t colour_hl, uint32_t colour_box, uint16_t roll_span, uint16_t pitch_span, uint16_t pitch_hyster, uint32_t blink_dly, bool auto_flip)
+FairyKeyboard::FairyKeyboard(M5DisplayExt* used_lcd, uint16_t colour_bg, uint16_t colour_fg, uint16_t colour_fade, uint32_t colour_hl, uint32_t colour_box, uint16_t roll_span, uint16_t pitch_span, uint16_t pitch_hyster, uint32_t blink_dly, bool auto_flip)
 {
     _lcd           = used_lcd;
     _colour_back   = colour_bg;

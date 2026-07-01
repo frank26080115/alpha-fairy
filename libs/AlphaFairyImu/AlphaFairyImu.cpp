@@ -1,19 +1,13 @@
 #include "AlphaFairyImu.h"
 #include <Wire.h>
 #include <Arduino.h>
-#include <M5StickCPlus.h>
+#include <M5Unified.h>
 
+#include "MahonyAHRS.h"
 #include <math.h>
 
 #define TILT_THRESH 40
 #define TILT_HYSTER 20
-
-extern void MahonyAHRSupdate(float gx, float gy, float gz, float ax, float ay,
-                      float az, float mx, float my, float mz);
-// void MahonyAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay,
-// float az);
-extern void MahonyAHRSupdateIMU(float gx, float gy, float gz, float ax, float ay,
-                         float az, float *pitch, float *roll, float *yaw);
 
 AlphaFairyImu::AlphaFairyImu()
 {
@@ -36,8 +30,8 @@ void AlphaFairyImu::poll()
     }
     sample_timestamp = now;
 
-    M5.IMU.getGyroData(&gyroX, &gyroY, &gyroZ);
-    M5.IMU.getAccelData(&accX, &accY, &accZ);
+    M5.Imu.getGyroData(&gyroX, &gyroY, &gyroZ);
+    M5.Imu.getAccelData(&accX, &accY, &accZ);
     MahonyAHRSupdateIMU(gyroX * DEG_TO_RAD, gyroY * DEG_TO_RAD, gyroZ * DEG_TO_RAD, accX, accY, accZ, &pitch, &roll, &yaw);
 
     if (hasMajorMotion == false)

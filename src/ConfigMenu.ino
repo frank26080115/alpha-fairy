@@ -19,7 +19,7 @@ class PageLcdBrightness : public FairyCfgItem
 
         virtual void on_readjust(void)
         {
-            M5.Axp.ScreenBreath(config_settings.lcd_brightness);
+            m5gfx_setBrightness(config_settings.lcd_brightness);
         };
 
         virtual void on_eachFrame(void)
@@ -66,7 +66,7 @@ install(new FairyCfgItem("Save + Exit", config_save_exit, SPRITE_ASSET_BACK_ICON
             {
                 // user quit via pwr button press, so do not save the settings
                 memcpy(&config_settings, _backup, sizeof(configsettings_t));
-                M5.Axp.ScreenBreath(config_settings.lcd_brightness);
+                m5gfx_setBrightness(config_settings.lcd_brightness);
             }
             else
             {

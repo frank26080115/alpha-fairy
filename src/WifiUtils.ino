@@ -53,7 +53,7 @@ bool wifiprofile_getProfileRaw(uint8_t idx, char* ssid, char* password, uint8_t*
     char fname[32];
     char* tmp = (char*)fname;
     wifiprofile_getIdxFname(idx, fname);
-    File f = SPIFFS.open(fname);
+    File f = ALFY_FS.open(fname);
     if (!f) {
         ssid[0] = 0;
         password[0] = 0;
@@ -112,7 +112,7 @@ bool wifiprofile_writeProfileRaw(uint8_t idx, char* ssid, char* password, uint8_
     char* tmp = (char*)fname;
     wifiprofile_getIdxFname(idx, fname);
 
-    File f = SPIFFS.open(fname, FILE_WRITE);
+    File f = ALFY_FS.open(fname, FILE_WRITE);
     if (!f) {
         return false;
     }
@@ -187,13 +187,13 @@ void wifiprofile_deleteProfile(uint8_t idx)
     char fname[16];
     char fname2[16];
     wifiprofile_getIdxFname(idx, (char*)fname);
-    SPIFFS.remove(fname);
+    ALFY_FS.remove(fname);
     for (; idx < WIFIPROFILE_LIMIT; idx++)
     {
         wifiprofile_getIdxFname(idx, (char*)fname);
         wifiprofile_getIdxFname(idx + 1, (char*)fname2);
-        if (SPIFFS.exists(fname2)) {
-            SPIFFS.rename(fname, fname2);
+        if (ALFY_FS.exists(fname2)) {
+            ALFY_FS.rename(fname, fname2);
         }
     }
 }
@@ -301,7 +301,7 @@ void force_wifi_config(sprite_asset_id_t asset_id)
     prevent_status_bar_thread = true;
 
     pwr_tick(true);
-    M5.Axp.GetBtnPress();
+    m5power_getButtonPress();
     uint32_t t = millis(), now = t;
     M5Lcd.setRotation(0);
     const sprite_asset_t* asset = spriteAsset(asset_id);
@@ -327,9 +327,9 @@ void force_wifi_config(sprite_asset_id_t asset_id)
         if (btnBoth_hasPressed()) {
             break;
         }
-        if (M5.Axp.GetBtnPress() != 0) {
+        if (m5power_getButtonPress() != 0) {
             show_poweroff();
-            M5.Axp.PowerOff();
+            m5power_powerOff();
         }
     }
     btnBoth_clrPressed();
