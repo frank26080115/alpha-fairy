@@ -82,25 +82,45 @@ PtpIpSonyAlphaCamera::PtpIpSonyAlphaCamera(char* host_name, uint16_t* interested
 
 bool PtpIpSonyAlphaCamera::check_name()
 {
-    this->cam_model = SONYALPHAMODEL_A1;
-    // TODO: assign model number according to name string
-    if (camera_name_check(this->cam_name, "ILCE-1")) {
+    this->cam_model = SONYALPHAMODEL_NONE;
+    if (camera_name_check(this->cam_name, "A1M2") || camera_name_check(this->cam_name, "ILCE-1M2")) {
+        this->cam_model = SONYALPHAMODEL_A1M2;
+    }
+    else if (camera_name_check(this->cam_name, "ILCE-1")) {
         this->cam_model = SONYALPHAMODEL_A1;
     }
-    else if (camera_name_check(this->cam_name, "A7M4A") || camera_name_check(this->cam_name, "ILCE-7M4A")) {
-        this->cam_model = SONYALPHAMODEL_A7M4A;
-    }
-    else if (camera_name_check(this->cam_name, "A7M4") || camera_name_check(this->cam_name, "ILCE-7M4")) {
-        this->cam_model = SONYALPHAMODEL_A7M4;
-    }
-    else if (camera_name_check(this->cam_name, "A7SM3") || camera_name_check(this->cam_name, "ILCE-7SM3")) {
-        this->cam_model = SONYALPHAMODEL_A7SM3;
+    else if (camera_name_check(this->cam_name, "A9M3") || camera_name_check(this->cam_name, "ILCE-9M3")) {
+        this->cam_model = SONYALPHAMODEL_A9M3;
     }
     else if (camera_name_check(this->cam_name, "A9M2") || camera_name_check(this->cam_name, "ILCE-9M2")) {
         this->cam_model = SONYALPHAMODEL_A9M2;
     }
-    else if (camera_name_check(this->cam_name, "A7RM4") || camera_name_check(this->cam_name, "ILCE-7M4")) {
+    else if (camera_name_check(this->cam_name, "A7SM3") || camera_name_check(this->cam_name, "ILCE-7SM3")) {
+        this->cam_model = SONYALPHAMODEL_A7SM3;
+    }
+    else if (camera_name_check(this->cam_name, "A7M4A") || camera_name_check(this->cam_name, "ILCE-7M4A")) {
+        this->cam_model = SONYALPHAMODEL_A7M4A;
+    }
+    else if (camera_name_check(this->cam_name, "A7M6") || camera_name_check(this->cam_name, "ILCE-7M6")) {
+        this->cam_model = SONYALPHAMODEL_A7M6;
+    }
+    else if (camera_name_check(this->cam_name, "A7M5") || camera_name_check(this->cam_name, "ILCE-7M5")) {
+        this->cam_model = SONYALPHAMODEL_A7M5;
+    }
+    else if (camera_name_check(this->cam_name, "A7M4") || camera_name_check(this->cam_name, "ILCE-7M4")) {
+        this->cam_model = SONYALPHAMODEL_A7M4;
+    }
+    else if (camera_name_check(this->cam_name, "A7RM6") || camera_name_check(this->cam_name, "ILCE-7RM6")) {
+        this->cam_model = SONYALPHAMODEL_A7RM6;
+    }
+    else if (camera_name_check(this->cam_name, "A7RM5") || camera_name_check(this->cam_name, "ILCE-7RM5")) {
+        this->cam_model = SONYALPHAMODEL_A7RM5;
+    }
+    else if (camera_name_check(this->cam_name, "A7RM4") || camera_name_check(this->cam_name, "ILCE-7RM4")) {
         this->cam_model = SONYALPHAMODEL_A7RM4;
+    }
+    else if (camera_name_check(this->cam_name, "A7CM2") || camera_name_check(this->cam_name, "ILCE-7CM2")) {
+        this->cam_model = SONYALPHAMODEL_A7CM2;
     }
     else if (camera_name_check(this->cam_name, "A7C") || camera_name_check(this->cam_name, "ILCE-7C")) {
         this->cam_model = SONYALPHAMODEL_A7C;
@@ -110,6 +130,9 @@ bool PtpIpSonyAlphaCamera::check_name()
     }
     else if (camera_name_check(this->cam_name, "ZV1") || camera_name_check(this->cam_name, "ZV-1")) {
         this->cam_model = SONYALPHAMODEL_ZV1;
+    }
+    else if (camera_name_check(this->cam_name, "A6700") || camera_name_check(this->cam_name, "ILCE-6700")) {
+        this->cam_model = SONYALPHAMODEL_A6700;
     }
     else if (camera_name_check(this->cam_name, "A6600") || camera_name_check(this->cam_name, "ILCE-6600")) {
         this->cam_model = SONYALPHAMODEL_A6600;
