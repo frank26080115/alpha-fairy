@@ -1,8 +1,4 @@
 #include "SpriteMgr.h"
-#include <FS.h>
-#include <SPIFFS.h>
-
-static uint16_t fletcher16_str(const uint8_t* data);
 
 SpriteMgr::SpriteMgr(M5DisplayExt* tft)
 {
@@ -11,11 +7,15 @@ SpriteMgr::SpriteMgr(M5DisplayExt* tft)
     this->holder_flag = 0;
 }
 
-bool SpriteMgr::load(const char* fp, int16_t width, int16_t height)
+bool SpriteMgr::load(const uint8_t* data, size_t len, int16_t width, int16_t height)
 {
     need_boost();
 
-    if (get(fp) != NULL) {
+    if (data == NULL || len == 0) {
+        return false;
+    }
+
+    if (get(data, len) != NULL) {
         return true;
     }
 
@@ -50,9 +50,10 @@ bool SpriteMgr::load(const char* fp, int16_t width, int16_t height)
     }
 
     sprite->createSprite(width, height);
-    this->tft->drawPngFileSprite(sprite, SPIFFS, fp, 0, 0);
+    this->tft->drawPngDataSprite(sprite, data, len, 0, 0);
     node->sprite = sprite;
-    node->uid = fletcher16_str((const uint8_t*)fp);
+    node->data = data;
+    node->len = len;
     node->next_node = NULL;
 
     //Serial.printf("SpMgr free heap after %u\r\n", ESP.getFreeHeap());
@@ -60,19 +61,19 @@ bool SpriteMgr::load(const char* fp, int16_t width, int16_t height)
     return true;
 }
 
-void SpriteMgr::draw(const char* fp, int16_t x, int16_t y, int16_t width, int16_t height)
+void SpriteMgr::draw(const uint8_t* data, size_t len, int16_t x, int16_t y, int16_t width, int16_t height)
 {
     need_boost();
 
-    TFT_eSprite* sprite = get(fp);
+    TFT_eSprite* sprite = get(data, len);
     if (sprite == NULL)
     {
         // does not exist, create new if possible
         if (width > 0 && height > 0)
         {
-            if (load(fp, width, height))
+            if (load(data, len, width, height))
             {
-                sprite = get(fp);
+                sprite = get(data, len);
                 if (sprite == NULL) {
                     return;
                 }
@@ -80,7 +81,8 @@ void SpriteMgr::draw(const char* fp, int16_t x, int16_t y, int16_t width, int16_
             else
             {
                 // failed, maybe ran out of memory, so draw directly
-                this->tft->drawPngFile(SPIFFS, fp, x, y);
+                this->tft->drawPngData(data, len, x, y);
+                return;
             }
         }
         else {
@@ -91,12 +93,11 @@ void SpriteMgr::draw(const char* fp, int16_t x, int16_t y, int16_t width, int16_
     sprite->pushSprite(x, y);
 }
 
-TFT_eSprite* SpriteMgr::get(const char* fp)
+TFT_eSprite* SpriteMgr::get(const uint8_t* data, size_t len)
 {
-    uint16_t uid = fletcher16_str((const uint8_t*)fp);
     sprmgr_item_t* cur_node = this->head_node;
     while (cur_node != NULL) {
-        if (cur_node->uid == uid) {
+        if (cur_node->data == data && cur_node->len == len) {
             return cur_node->sprite;
         }
         cur_node = (sprmgr_item_t*)(cur_node->next_node);
@@ -145,24 +146,4 @@ void SpriteMgr::unload_all(void)
     #ifdef SPMGR_DEBUG_MEMORY
     Serial.printf("SpMgr free heap after unload %u\r\n", ESP.getFreeHeap());
     #endif
-}
-
-static uint16_t fletcher16_str(const uint8_t* data)
-{
-    // https://en.wikipedia.org/wiki/Fletcher%27s_checksum
-    uint16_t sum1 = 0;
-    uint16_t sum2 = 0;
-    int index;
-
-    for ( index = 0; ; ++index )
-    {
-        uint8_t x = data[index];
-        if (x == 0) { // string is null terminated
-            break;
-        }
-        sum1 = (sum1 + x   ) % 255;
-        sum2 = (sum2 + sum1) % 255;
-    }
-    
-    return (sum2 << 8) | sum1;
 }

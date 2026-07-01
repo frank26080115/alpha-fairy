@@ -265,7 +265,7 @@ void dualshutter_logSettings()
 class AppDualShutter : public FairyMenuItem
 {
     public:
-        AppDualShutter() : FairyMenuItem("/dualshutter_reg.png")
+        AppDualShutter() : FairyMenuItem(SPRITE_ASSET_DUALSHUTTER_REG)
         {
         };
 
@@ -285,7 +285,7 @@ class AppDualShutter : public FairyMenuItem
             {
                 cpufreq_boost();
                 M5Lcd.setRotation(0);
-                M5Lcd.drawPngFile(SPIFFS, "/dualshutter_shoot.png", _main_img_x, _main_img_y);
+                M5Lcd.drawPngData(sprite_dualshutter_shoot, SPRITE_DUALSHUTTER_SHOOT_BYTES, _main_img_x, _main_img_y);
             }
         };
 

@@ -23,6 +23,14 @@ bool prevent_status_bar_thread = false;
 
 extern bool gui_microphoneActive;
 
+static void gui_drawStatusAsset(sprite_asset_id_t asset_id, int16_t x, int16_t y)
+{
+    const sprite_asset_t* asset = spriteAsset(asset_id);
+    if (asset != NULL) {
+        sprites->draw(asset->data, asset->len, x, y, asset->width, asset->height);
+    }
+}
+
 void gui_drawStatusBar(bool is_black)
 {
     #ifdef DISABLE_STATUS_BAR
@@ -32,11 +40,6 @@ void gui_drawStatusBar(bool is_black)
     static uint8_t li = 0;
     static uint32_t batt_last_time = 0;
     uint32_t now;
-    static const char* txt_white = "_white";
-    static const char* txt_black = "_black";
-    static const char* txt_prefix = "/status_";
-    static const char* txt_suffix = ".png";
-    char fpath[64];
 
     if (((now = millis()) - batt_last_time) > 300 || batt_last_time == 0)
     {
@@ -117,29 +120,27 @@ void gui_drawStatusBar(bool is_black)
     // draw required status icons from left to right
 
     if (batt_status != BATTSTAT_NONE) {
+        sprite_asset_id_t asset_id = SPRITE_ASSET_NONE;
         if (batt_status == BATTSTAT_LOW) {
-            sprintf(fpath, "%slowbatt%s%s", txt_prefix, is_black ? txt_black : txt_white, txt_suffix);
+            asset_id = is_black ? SPRITE_ASSET_STATUS_LOWBATT_BLACK : SPRITE_ASSET_STATUS_LOWBATT_WHITE;
         }
         else if (batt_status == BATTSTAT_FULL) {
-            sprintf(fpath, "%sfullbatt%s%s", txt_prefix, is_black ? txt_black : txt_white, txt_suffix);
+            asset_id = is_black ? SPRITE_ASSET_STATUS_FULLBATT_BLACK : SPRITE_ASSET_STATUS_FULLBATT_WHITE;
         }
         else if (batt_status == BATTSTAT_CHARGING) {
-            sprintf(fpath, "%scharging%s%s", txt_prefix, is_black ? txt_black : txt_white, txt_suffix);
+            asset_id = is_black ? SPRITE_ASSET_STATUS_CHARGING_BLACK : SPRITE_ASSET_STATUS_CHARGING_WHITE;
         }
         else if (batt_status == BATTSTAT_CHARGING_LOW) {
-            sprintf(fpath, "%schglow%s%s", txt_prefix, is_black ? txt_black : txt_white, txt_suffix);
+            asset_id = is_black ? SPRITE_ASSET_STATUS_CHGLOW_BLACK : SPRITE_ASSET_STATUS_CHGLOW_WHITE;
         }
-
-        sprites->draw(fpath, x, y, icon_width, 12);
+        gui_drawStatusAsset(asset_id, x, y);
 
         x += icon_width;
     }
 
     if (airplane_mode)
     {
-        sprintf(fpath, "%sairplane%s%s", txt_prefix, is_black ? txt_black : txt_white, txt_suffix);
-
-        sprites->draw(fpath, x, y, icon_width, 12);
+        gui_drawStatusAsset(is_black ? SPRITE_ASSET_STATUS_AIRPLANE_BLACK : SPRITE_ASSET_STATUS_AIRPLANE_WHITE, x, y);
 
         x += icon_width;
     }
@@ -151,9 +152,7 @@ void gui_drawStatusBar(bool is_black)
             x += icon_width;
         }
         else {
-            sprintf(fpath, "%snocam%s%s", txt_prefix, is_black ? txt_black : txt_white, txt_suffix);
-
-            sprites->draw(fpath, x, y, icon_width, 12);
+            gui_drawStatusAsset(is_black ? SPRITE_ASSET_STATUS_NOCAM_BLACK : SPRITE_ASSET_STATUS_NOCAM_WHITE, x, y);
 
             x += icon_width;
         }
@@ -446,7 +445,7 @@ void show_poweroff()
 
     if (batt_good)
     {
-        M5Lcd.drawPngFile(SPIFFS, "/sleep.png", 0, 0);
+        M5Lcd.drawPngData(sprite_sleep, SPRITE_SLEEP_BYTES, 0, 0);
         delay(500);
 
         // animation is random
@@ -495,7 +494,7 @@ void show_poweroff()
     }
     else // battery is dead
     {
-        M5Lcd.drawPngFile(SPIFFS, "/dead_batt.png", 0, 0);
+        M5Lcd.drawPngData(sprite_dead_batt, SPRITE_DEAD_BATT_BYTES, 0, 0);
         delay(500);
         int b = config_settings.lcd_brightness - 1;
         while (true)

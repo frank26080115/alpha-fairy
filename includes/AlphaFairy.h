@@ -7,6 +7,7 @@
 #include "alfy_conf.h"
 #include "alfy_types.h"
 #include "alfy_defs.h"
+#include "sprites.h"
 
 #include <M5StickCPlus.h>
 #include <M5DisplayExt.h>

@@ -75,7 +75,7 @@ void wifi_onDisconnect(uint8_t x, int reason)
     {
         Serial.printf("WiFi disconnected error, reason %d\r\n", reason);
         wifi_err_reason = reason;
-        critical_error("/wifi_error.png");
+        critical_error(SPRITE_ASSET_WIFI_ERROR);
     }
     else if (x == WIFIDISCON_AUTH_FAIL)
     {
@@ -83,7 +83,7 @@ void wifi_onDisconnect(uint8_t x, int reason)
         wifi_err_reason = reason;
         autoconnect_status = AUTOCONNSTS_FAILED;
         if (autoconnect_active == false) {
-            //force_wifi_config("/wifi_reject.png");
+            //force_wifi_config(SPRITE_ASSET_WIFI_REJECT);
             WiFi.disconnect(); // prevent reconnection attempt
             signal_wifiauthfailed = true; // signal to the GUI thread to show error
         }
@@ -129,7 +129,7 @@ void ptpcam_onCriticalError()
     if (ptpcam.critical_error_cnt > 2) {
         NetMgr_markClientError(ptpcam.getIp());
         if (NetMgr_shouldReportError() && httpcam.isOperating() == false) {
-            critical_error("/crit_error.png");
+            critical_error(SPRITE_ASSET_CRIT_ERROR);
         }
     }
 }
@@ -140,7 +140,7 @@ void httpcam_onCriticalError()
     if (httpcam.critical_error_cnt > 0 && NetMgr_getOpMode() == WIFIOPMODE_STA) {
         NetMgr_markClientError(httpcam.getIp());
         if (NetMgr_shouldReportError() && ptpcam.isOperating() == false) {
-            critical_error("/crit_error.png");
+            critical_error(SPRITE_ASSET_CRIT_ERROR);
         }
     }
 }
@@ -159,7 +159,7 @@ void httpcam_onNoServiceUrl()
 
 void ptpcam_onReject()
 {
-    critical_error("/rejected.png");
+    critical_error(SPRITE_ASSET_REJECTED);
 }
 
 void ptpcam_onConfirmedAvail()
@@ -185,7 +185,7 @@ void handle_user_reauth()
     bool user_quit = false;
 
     M5Lcd.setRotation(0);
-    M5Lcd.drawPngFile(SPIFFS, "/wifi_reject.png", 0, 0);
+    M5Lcd.drawPngData(sprite_wifi_reject, SPRITE_WIFI_REJECT_BYTES, 0, 0);
     while (true)
     {
         autoconnect_poll();

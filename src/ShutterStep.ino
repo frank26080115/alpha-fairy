@@ -6,7 +6,7 @@ extern int32_t infoscr_reqShutter;
 class AppShutterStep : public FairyMenuItem
 {
     public:
-        AppShutterStep() : FairyMenuItem("/shutter_step.png")
+        AppShutterStep() : FairyMenuItem(SPRITE_ASSET_SHUTTER_STEP)
         {
         };
 
@@ -64,7 +64,7 @@ class AppShutterStep : public FairyMenuItem
             uint32_t expo_mode = fairycam.get_exposureMode();
             if (expo_mode != SONYALPHA_EXPOMODE_M && expo_mode != SONYALPHA_EXPOMODE_S)
             {
-                M5Lcd.drawPngFile(SPIFFS, "/tvstep_unable.png", 0, 0);
+                M5Lcd.drawPngData(sprite_tvstep_unable, SPRITE_TVSTEP_UNABLE_BYTES, 0, 0);
                 app_waitAllRelease();
                 set_redraw();
                 return false;

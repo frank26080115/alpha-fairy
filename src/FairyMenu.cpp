@@ -20,23 +20,20 @@ extern void lepton_encClear(void);
 int8_t FairyCfgApp::prev_tilt = 0;
 bool FairyCfgItem::dirty = false;
 
-FairyMenuItem::FairyMenuItem(const char* img_fname, uint16_t id)
+FairyMenuItem::FairyMenuItem(sprite_asset_id_t img_id, uint16_t id)
 {
     _id = id;
-    if (img_fname != NULL) {
-        _main_img = (char*)malloc(strlen(img_fname) + 2);
-        strcpy(_main_img, img_fname);
-    }
-    else {
-        _main_img = NULL;
-    }
+    _main_img = img_id;
 }
 
 void FairyMenuItem::draw_mainImage(void)
 {
     cpufreq_boost();
     M5Lcd.setRotation(0);
-    M5Lcd.drawPngFile(SPIFFS, _main_img, _main_img_x, _main_img_y);
+    const sprite_asset_t* asset = spriteAsset(_main_img);
+    if (asset != NULL) {
+        M5Lcd.drawPngData(asset->data, asset->len, _main_img_x, _main_img_y);
+    }
     // if you need to overlay something else on top of the main image, then override this function, call it first, then do whatever you need to do
 }
 
@@ -45,7 +42,7 @@ void FairyMenuItem::draw_statusBar(void)
     gui_drawStatusBar(false); // if the background is black, then override this virtual function
 }
 
-FairySubmenu::FairySubmenu(const char* img_fname, uint16_t id) : FairyMenuItem(img_fname, id)
+FairySubmenu::FairySubmenu(sprite_asset_id_t img_id, uint16_t id) : FairyMenuItem(img_id, id)
 {
 }
 
@@ -343,10 +340,10 @@ FairyCfgItem::FairyCfgItem(const char* disp_name, int32_t* linked_var, int32_t v
     }
 }
 
-FairyCfgItem::FairyCfgItem(const char* disp_name, bool (*cb)(void*), const char* icon)
+FairyCfgItem::FairyCfgItem(const char* disp_name, bool (*cb)(void*), sprite_asset_id_t icon)
 {
     _cb = cb;
-    if (icon != NULL) {
+    if (icon != SPRITE_ASSET_NONE) {
         set_icon(icon);
     }
     set_name(disp_name);
@@ -359,10 +356,9 @@ void FairyCfgItem::set_name(const char* x)
     set_font(-1);
 }
 
-void FairyCfgItem::set_icon(const char* x)
+void FairyCfgItem::set_icon(sprite_asset_id_t x)
 {
-    _icon_fpath = (char*)malloc(strlen(x) + 2);
-    strcpy(_icon_fpath, x);
+    _icon_id = x;
     _icon_width = GENERAL_ICON_WIDTH;
 }
 
@@ -398,9 +394,12 @@ void FairyCfgItem::draw_name(void)
 
 void FairyCfgItem::draw_icon(void)
 {
-    if (_icon_fpath != NULL && _icon_width > 0)
+    if (_icon_id != SPRITE_ASSET_NONE && _icon_width > 0)
     {
-        M5Lcd.drawPngFile(SPIFFS, _icon_fpath, M5Lcd.width() - _icon_width, 0);
+        const sprite_asset_t* asset = spriteAsset(_icon_id);
+        if (asset != NULL) {
+            M5Lcd.drawPngData(asset->data, asset->len, M5Lcd.width() - _icon_width, 0);
+        }
     }
     FairyCfgApp* p = dynamic_cast<FairyCfgApp*>((FairyCfgApp*)get_parent());
     if (p != NULL)
@@ -655,11 +654,10 @@ int16_t FairyCfgItem::get_y(int8_t linenum)
     return _margin_y + _line0_height + ((linenum - 1) * (M5Lcd.fontHeight(4) + _line_space));
 }
 
-FairyCfgApp::FairyCfgApp(const char* img_fname, const char* icon_fname, uint16_t id) : FairySubmenu(img_fname, id)
+FairyCfgApp::FairyCfgApp(sprite_asset_id_t img_id, sprite_asset_id_t icon_id, uint16_t id) : FairySubmenu(img_id, id)
 {
-    if (icon_fname != NULL) {
-        _icon_fname = (char*)malloc(strlen(icon_fname) + 2);
-        strcpy(_icon_fname, icon_fname);
+    if (icon_id != SPRITE_ASSET_NONE) {
+        _icon_id = icon_id;
         _icon_width = GENERAL_ICON_WIDTH;
     }
     _enc_nav = false;
@@ -667,10 +665,13 @@ FairyCfgApp::FairyCfgApp(const char* img_fname, const char* icon_fname, uint16_t
 
 void FairyCfgApp::draw_icon(void)
 {
-    if (_icon_fname == NULL || _icon_width == 0) {
+    if (_icon_id == SPRITE_ASSET_NONE || _icon_width == 0) {
         return;
     }
-    M5Lcd.drawPngFile(SPIFFS, _icon_fname, M5Lcd.width() - _icon_width, M5Lcd.height() - _icon_width);
+    const sprite_asset_t* asset = spriteAsset(_icon_id);
+    if (asset != NULL) {
+        M5Lcd.drawPngData(asset->data, asset->len, M5Lcd.width() - _icon_width, M5Lcd.height() - _icon_width);
+    }
 }
 
 // this function is similar to FairySubmenu::task(void)

@@ -5,7 +5,7 @@
 class AppTimecodeReset : public FairyMenuItem
 {
     public:
-        AppTimecodeReset() : FairyMenuItem("/timecode_reset.png")
+        AppTimecodeReset() : FairyMenuItem(SPRITE_ASSET_TIMECODE_RESET)
         {
         };
 

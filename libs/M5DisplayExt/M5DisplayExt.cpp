@@ -372,6 +372,13 @@ void M5DisplayExt::drawPngFile(fs::FS &fs, const char *path, uint16_t x, uint16_
   drawPngFileSprite(this, fs, path, x, y, maxWidth, maxHeight, offX, offY, scale, alphaThreshold);
 }
 
+void M5DisplayExt::drawPngData(const uint8_t* data, size_t len, uint16_t x, uint16_t y,
+                            uint16_t maxWidth, uint16_t maxHeight, uint16_t offX,
+                            uint16_t offY, double scale, uint8_t alphaThreshold)
+{
+  drawPngDataSprite(this, data, len, x, y, maxWidth, maxHeight, offX, offY, scale, alphaThreshold);
+}
+
 void M5DisplayExt::drawPngFileSprite(TFT_eSPI* sprite, fs::FS &fs, const char *path, uint16_t x, uint16_t y,
                             uint16_t maxWidth, uint16_t maxHeight, uint16_t offX,
                             uint16_t offY, double scale, uint8_t alphaThreshold)
@@ -425,6 +432,69 @@ void M5DisplayExt::drawPngFileSprite(TFT_eSPI* sprite, fs::FS &fs, const char *p
 
   pngle_destroy(pngle);
   file.close();
+}
+
+void M5DisplayExt::drawPngDataSprite(TFT_eSPI* sprite, const uint8_t* data, size_t len, uint16_t x, uint16_t y,
+                            uint16_t maxWidth, uint16_t maxHeight, uint16_t offX,
+                            uint16_t offY, double scale, uint8_t alphaThreshold)
+{
+  need_boost();
+
+  if (data == NULL || len == 0) {
+    log_e("Missing PNG data");
+    return;
+  }
+
+  pngle_t *pngle = pngle_new();
+
+  png_file_decoder_t png;
+
+  if (!maxWidth) {
+    maxWidth = width() - x;
+  }
+  if (!maxHeight) {
+    maxHeight = height() - y;
+  }
+
+  png.x = x;
+  png.y = y;
+  png.maxWidth = maxWidth;
+  png.maxHeight = maxHeight;
+  png.offX = offX;
+  png.offY = offY;
+  png.scale = scale;
+  png.alphaThreshold = alphaThreshold;
+  png.tft = sprite;
+
+  pngle_set_user_data(pngle, &png);
+  pngle_set_draw_callback(pngle, pngle_draw_callback);
+
+  uint8_t buf[1024];
+  int remain = 0;
+  size_t offset = 0;
+  while (offset < len) {
+    size_t chunk = sizeof(buf) - remain;
+    if (chunk > len - offset) {
+      chunk = len - offset;
+    }
+    memcpy(buf + remain, data + offset, chunk);
+    offset += chunk;
+
+    int fed = pngle_feed(pngle, buf, remain + chunk);
+    if (fed < 0) {
+      log_e("[pngle error] %s", pngle_error(pngle));
+      break;
+    }
+    if (fed == 0 && (remain + chunk) >= sizeof(buf)) {
+      log_e("[pngle error] PNG input buffer full");
+      break;
+    }
+
+    remain = remain + chunk - fed;
+    if (remain > 0) memmove(buf, buf + fed, remain);
+  }
+
+  pngle_destroy(pngle);
 }
 
 M5DisplayExt M5Lcd;

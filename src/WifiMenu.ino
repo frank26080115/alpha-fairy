@@ -18,7 +18,7 @@ bool wifinfo_check_redraw(void)
 class PageHttpInfo : public FairyMenuItem
 {
     public:
-        PageHttpInfo() : FairyMenuItem("/wificfg_head.png", 0)
+        PageHttpInfo() : FairyMenuItem(SPRITE_ASSET_WIFICFG_HEAD, 0)
         {
         };
 
@@ -77,7 +77,7 @@ class PageHttpInfo : public FairyMenuItem
 class PageWifiQr : public FairyMenuItem
 {
     public:
-        PageWifiQr(bool is_wifi, const char* img_fname) : FairyMenuItem(img_fname, 0)
+        PageWifiQr(bool is_wifi, sprite_asset_id_t img_id) : FairyMenuItem(img_id, 0)
         {
             _is_wifi = is_wifi; // is_wifi: true = show WiFi login ; false = show browser URL
         };
@@ -121,7 +121,7 @@ class PageWifiQr : public FairyMenuItem
 class PageWifiSelectProfile : public FairyMenuItem
 {
     public:
-        PageWifiSelectProfile() : FairyMenuItem("/wificfg_selprofile.png", 0)
+        PageWifiSelectProfile() : FairyMenuItem(SPRITE_ASSET_WIFICFG_SELPROFILE, 0)
         {
         };
 
@@ -180,7 +180,7 @@ class PageWifiSelectProfile : public FairyMenuItem
             // press button to save
             config_settings.wifi_profile = _profile_num;
             settings_save();
-            M5Lcd.drawPngFile(SPIFFS, "/wificfg_profilesave.png", 95, 53);
+            M5Lcd.drawPngData(sprite_wificfg_profilesave, SPRITE_WIFICFG_PROFILESAVE_BYTES, 95, 53);
             // hold button to save-and-reboot
             uint32_t now, t = millis();
             while (((now = millis()) - t) < 2000 && btnBig_isPressed()) {
@@ -228,7 +228,7 @@ class PageWifiSelectProfile : public FairyMenuItem
 class PageFactoryReset : public FairyMenuItem
 {
     public:
-        PageFactoryReset() : FairyMenuItem("/wificfg_frst.png", 0)
+        PageFactoryReset() : FairyMenuItem(SPRITE_ASSET_WIFICFG_FRST, 0)
         {
         };
 
@@ -238,7 +238,7 @@ class PageFactoryReset : public FairyMenuItem
             settings_default();
             settings_save();
             wifiprofile_deleteAll();
-            M5Lcd.drawPngFile(SPIFFS, "/wificfg_frstdone.png", 0, 0);
+            M5Lcd.drawPngData(sprite_wificfg_frstdone, SPRITE_WIFICFG_FRSTDONE_BYTES, 0, 0);
             delay(3000);
             if (btnBig_isPressed())
             {
@@ -252,7 +252,7 @@ class PageFactoryReset : public FairyMenuItem
 class PageWifiInfo : public FairyMenuItem
 {
     public:
-        PageWifiInfo(bool show_cam) : FairyMenuItem("/wifiinfo_head.png", 0)
+        PageWifiInfo(bool show_cam) : FairyMenuItem(SPRITE_ASSET_WIFIINFO_HEAD, 0)
         {
             _show_cam = show_cam; // wifi AP info or camera info
         };
@@ -370,11 +370,11 @@ class PageWifiInfo : public FairyMenuItem
 class AppWifiConfig : public FairySubmenu
 {
     public:
-        AppWifiConfig() : FairySubmenu("/wifi_config.png")
+        AppWifiConfig() : FairySubmenu(SPRITE_ASSET_WIFI_CONFIG)
         {
             install(new PageHttpInfo());
-            install(new PageWifiQr(true , "/wificfg_login.png"));
-            install(new PageWifiQr(false, "/wificfg_url.png"));
+            install(new PageWifiQr(true , SPRITE_ASSET_WIFICFG_LOGIN));
+            install(new PageWifiQr(false, SPRITE_ASSET_WIFICFG_URL));
             install(new PageWifiSelectProfile());
             install(new PageFactoryReset());
             _already_running = false;
@@ -415,12 +415,12 @@ class AppWifiConfig : public FairySubmenu
 class AppWifiInfo : public FairySubmenu
 {
     public:
-        AppWifiInfo() : FairySubmenu("/wifiinfo.png")
+        AppWifiInfo() : FairySubmenu(SPRITE_ASSET_WIFIINFO)
         {
             install(new PageWifiInfo(false));
             install(new PageWifiInfo(true));
-            install(new PageWifiQr(true , "/wifiinfo_login.png"));
-            install(new PageWifiQr(false, "/wifiinfo_url.png"));
+            install(new PageWifiQr(true , SPRITE_ASSET_WIFIINFO_LOGIN));
+            install(new PageWifiQr(false, SPRITE_ASSET_WIFIINFO_URL));
         };
 };
 

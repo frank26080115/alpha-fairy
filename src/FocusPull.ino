@@ -44,7 +44,7 @@ void focus_pull(bool live, int bar_y)
 class AppFocusPull : public FairyMenuItem
 {
     public:
-        AppFocusPull() : FairyMenuItem("/focus_pull.png")
+        AppFocusPull() : FairyMenuItem(SPRITE_ASSET_FOCUS_PULL)
         {
             _dir = 0;
         };

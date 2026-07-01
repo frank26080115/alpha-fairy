@@ -46,7 +46,7 @@ FairyItemNode_t;
 class FairyMenuItem : public FairyItem
 {
     public:
-        FairyMenuItem(const char* img_fname, uint16_t id = 0);
+        FairyMenuItem(sprite_asset_id_t img_id = SPRITE_ASSET_NONE, uint16_t id = 0);
         virtual void     reset            (void) {};
         virtual bool     on_execute       (void) { return false; };      // do the thing, return true means "exit submenu" // by default, do nothing and do not exit
         virtual bool     can_navTo        (void) { return true; };       // used to hide an item // by default, do not hide
@@ -58,7 +58,7 @@ class FairyMenuItem : public FairyItem
         virtual bool     check_redraw     (void) { return false; };
         virtual void     draw_mainImage   (void);
         virtual void     draw_statusBar   (void);
-        inline  char*    get_mainImage    (void) { return _main_img; };
+        inline  sprite_asset_id_t get_mainImage(void) { return _main_img; };
         inline  int16_t  get_mainImage_X  (void) { return _main_img_x; };
         inline  int16_t  get_mainImage_Y  (void) { return _main_img_y; };
 
@@ -68,7 +68,7 @@ class FairyMenuItem : public FairyItem
         inline  bool     get_quitToNext   (void)   { return _quitToNext; };
 
     protected:
-        char* _main_img;
+        sprite_asset_id_t _main_img = SPRITE_ASSET_NONE;
         int16_t _main_img_x = 0, _main_img_y = 0;
 
         bool _can_quickEnter = false;
@@ -83,7 +83,7 @@ class FairySubmenu : public FairyMenuItem
 {
     // this class represents a submenu with items that are full screen, mostly white background, in portrait orientation
     public:
-        FairySubmenu(const char* img_fname, uint16_t id = 0);
+        FairySubmenu(sprite_asset_id_t img_id = SPRITE_ASSET_NONE, uint16_t id = 0);
         inline  void set_bigbtn_nav(bool x) { _bigbtn_nav = x; }; // allows the use of the big button as a next button, which disables on_execute completely
         inline  void set_enc_nav(bool x) { _enc_nav = x; };
         virtual void install(FairyItem* itm);                     // adds item to linked list
@@ -116,9 +116,9 @@ class FairyCfgItem : public FairyItem
         FairyCfgItem(const char* disp_name, int32_t* linked_var, int32_t val_min, int32_t val_max, int32_t step_size, uint32_t fmt_flags);
 
         // initialize as a page representing a way to execute action
-        FairyCfgItem(const char* disp_name, bool (*cb)(void*), const char* icon = NULL);
+        FairyCfgItem(const char* disp_name, bool (*cb)(void*), sprite_asset_id_t icon = SPRITE_ASSET_NONE);
 
-               void    set_icon(const char* icon);              // sets the icon for the top-right corner
+               void    set_icon(sprite_asset_id_t icon);        // sets the icon for the top-right corner
                void    set_font(int fn);                        // set the font size of the first line of text, use a negative number for auto-sizing
         inline int32_t get_val (void) { return *_linked_ptr; }; // get the actual value of the configurable item
 
@@ -147,7 +147,7 @@ class FairyCfgItem : public FairyItem
     protected:
         uint16_t _margin_x = SUBMENU_X_OFFSET, _margin_y = SUBMENU_Y_OFFSET, _line0_height = 16, _line_space = 1, _font_num = 4; // default graphic config
         char* _disp_name;
-        char* _icon_fpath = NULL;
+        sprite_asset_id_t _icon_id = SPRITE_ASSET_NONE;
         int16_t _icon_width = 0;
         int32_t* _linked_ptr = NULL;
         bool (*_cb)(void*) = NULL;
@@ -164,15 +164,15 @@ class FairyCfgApp : public FairySubmenu
 {
     // this class represents an app with configurable items, mostly black background with icons, in landscape orientation
     public:
-        FairyCfgApp(const char* img_fname, const char* icon_fname, uint16_t id = 0);
+        FairyCfgApp(sprite_asset_id_t img_id, sprite_asset_id_t icon_id, uint16_t id = 0);
         virtual void install(FairyCfgItem* itm) { FairySubmenu::install((FairyItem*)itm); };
         virtual bool on_execute(void); // this is the app loop, return true means "exit app"
         virtual bool task(void);       // the inner part of the app loop, return true means "exit app"
-        virtual bool has_icon(void) { return _icon_fname != NULL; };
+        virtual bool has_icon(void) { return _icon_id != SPRITE_ASSET_NONE; };
         virtual void draw_icon(void);
 
     protected:
-        char* _icon_fname = NULL;
+        sprite_asset_id_t _icon_id = SPRITE_ASSET_NONE;
         int16_t _icon_width = 0;
         static int8_t prev_tilt;
 };

@@ -55,7 +55,6 @@ void gui_drawConnecting(bool first)
     // this function will blink between a sequence of images that indicates that we are waiting for the camera to connect
     // this code can be tweaked for more animation frames if needed
     // right now it just goes between 0 and 1
-    static char conn_filename[] = "/connecting0.png";
     static int last_idx = -1;
     static uint32_t t;
     if (first) {
@@ -69,10 +68,14 @@ void gui_drawConnecting(bool first)
     cur_idx = dt / 700;
     if (cur_idx != last_idx) {
         last_idx = cur_idx;
-        conn_filename[11] = '0' + cur_idx;
         cpufreq_boost();
         M5Lcd.setRotation(0);
-        M5Lcd.drawPngFile(SPIFFS, conn_filename, 0, 0);
+        if (cur_idx == 0) {
+            M5Lcd.drawPngData(sprite_connecting0, SPRITE_CONNECTING0_BYTES, 0, 0);
+        }
+        else {
+            M5Lcd.drawPngData(sprite_connecting1, SPRITE_CONNECTING1_BYTES, 0, 0);
+        }
     }
     redraw_flag = true;
 }
@@ -383,7 +386,6 @@ void draw_borderRect(int16_t thickness, uint16_t colour)
 
 void interval_drawTimerStart()
 {
-    //M5Lcd.drawPngFile(SPIFFS, "/timer_blank.png", M5Lcd.width() - GENERAL_ICON_WIDTH, M5Lcd.height() - GENERAL_ICON_WIDTH);
     M5Lcd.fillRect(M5Lcd.width() - GENERAL_ICON_WIDTH, M5Lcd.height() - GENERAL_ICON_WIDTH, GENERAL_ICON_WIDTH, GENERAL_ICON_WIDTH, TFT_BLACK);
 }
 

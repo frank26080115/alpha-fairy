@@ -296,7 +296,7 @@ int wifiprofile_autoFind(wifiprofile_t* ptgt)
     return -1;
 }
 
-void force_wifi_config(const char* fp)
+void force_wifi_config(sprite_asset_id_t asset_id)
 {
     prevent_status_bar_thread = true;
 
@@ -304,7 +304,10 @@ void force_wifi_config(const char* fp)
     M5.Axp.GetBtnPress();
     uint32_t t = millis(), now = t;
     M5Lcd.setRotation(0);
-    M5Lcd.drawPngFile(SPIFFS, fp, 0, 0);
+    const sprite_asset_t* asset = spriteAsset(asset_id);
+    if (asset != NULL) {
+        M5Lcd.drawPngData(asset->data, asset->len, 0, 0);
+    }
 
     if (wifi_err_reason != 0)
     {
@@ -466,7 +469,7 @@ bool wifi_newConnectOrPrompt(uint8_t profile_num, wifiprofile_t* profile, bool n
             need_ask = true;
             WiFi.disconnect();
             NetMgr_reset();
-            M5Lcd.drawPngFile(SPIFFS, "/wifi_reject.png", 0, 0);
+            M5Lcd.drawPngData(sprite_wifi_reject, SPRITE_WIFI_REJECT_BYTES, 0, 0);
             while (true)
             {
                 autoconnect_poll();

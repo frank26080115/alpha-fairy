@@ -63,7 +63,7 @@ class PageInterval : public FairyCfgItem
                         _autosave = true;
                     };
 
-        PageInterval(const char* disp_name, bool (*cb)(void*), const char* icon = NULL)
+        PageInterval(const char* disp_name, bool (*cb)(void*), sprite_asset_id_t icon = SPRITE_ASSET_NONE)
                     : FairyCfgItem(disp_name, cb, icon)
                     {
                     };
@@ -436,7 +436,7 @@ bool intervalometer_wait(
             need_blank = false; // do only once
         }
         if (stop_request && need_icon) {
-            M5Lcd.drawPngFile(SPIFFS, "/back_icon.png", M5Lcd.width() - GENERAL_ICON_WIDTH, 0);
+            M5Lcd.drawPngData(sprite_back_icon, SPRITE_BACK_ICON_BYTES, M5Lcd.width() - GENERAL_ICON_WIDTH, 0);
             need_icon = false; // do only once, SPI flash file read and file decoding is extremely slow
         }
         interval_drawTimer(-1);
@@ -460,8 +460,8 @@ class AppIntervalometer : public FairyCfgApp
 {
     public:
         AppIntervalometer(uint16_t id) :
-            FairyCfgApp(id == MENUITEM_INTERVAL ? "/main_interval.png" : "/main_astro.png",
-                        id == MENUITEM_INTERVAL ? "/intervalometer_icon.png" : "/galaxy_icon.png",
+            FairyCfgApp(id == MENUITEM_INTERVAL ? SPRITE_ASSET_MAIN_INTERVAL : SPRITE_ASSET_MAIN_ASTRO,
+                        id == MENUITEM_INTERVAL ? SPRITE_ASSET_INTERVALOMETER_ICON : SPRITE_ASSET_GALAXY_ICON,
                         id
                         )
             {
@@ -477,7 +477,7 @@ class AppIntervalometer : public FairyCfgApp
                 }
                 install(new PageInterval("Start Delay" , (int32_t*)&(config_settings.intv_delay), 0, 10000, 1, TXTFMT_TIME));
                 install(new PageInterval("Num of Shots", (int32_t*)&(config_settings.intv_limit), 0, 10000, 1, TXTFMT_BYTENS));
-                install(new PageInterval("Start", intervalometer_func, "/go_icon.png"));
+                install(new PageInterval("Start", intervalometer_func, SPRITE_ASSET_GO_ICON));
             };
 
         virtual bool on_execute(void)

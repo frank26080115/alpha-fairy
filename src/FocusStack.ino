@@ -4,7 +4,7 @@
 class AppFocusStack : public FairyMenuItem
 {
     public:
-        AppFocusStack() : FairyMenuItem("/focusstack.png")
+        AppFocusStack() : FairyMenuItem(SPRITE_ASSET_FOCUSSTACK)
         {
             _speed = 3;
         };
@@ -211,7 +211,7 @@ class AppFocusStack : public FairyMenuItem
 class AppFocus9Point : public FairyMenuItem
 {
     public:
-        AppFocus9Point() : FairyMenuItem("/focus_9point.png")
+        AppFocus9Point() : FairyMenuItem(SPRITE_ASSET_FOCUS_9POINT)
         {
         };
 
@@ -439,7 +439,7 @@ class AppFocus9Point : public FairyMenuItem
 
         void show_unable(const char* reason)
         {
-            M5Lcd.drawPngFile(SPIFFS, "/9point_unable.png", 0, 0);
+            M5Lcd.drawPngData(sprite_9point_unable, SPRITE_9POINT_UNABLE_BYTES, 0, 0);
             if (reason != NULL)
             {
                 gui_startMenuPrint();

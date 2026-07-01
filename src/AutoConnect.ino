@@ -26,7 +26,7 @@ void autoconnect_poll()
 class AppAutoConnect : public FairyMenuItem
 {
     public:
-        AppAutoConnect() : FairyMenuItem("/main_auto.png")
+        AppAutoConnect() : FairyMenuItem(SPRITE_ASSET_MAIN_AUTO)
         {
         };
 
@@ -89,7 +89,7 @@ class AppAutoConnect : public FairyMenuItem
                     M5Lcd.setRotation(0);
                     M5Lcd.fillRect(0,  39, M5Lcd.width(), 62, TFT_WHITE); // remove old icons
                     M5Lcd.fillRect(0, 141, M5Lcd.width(), 62, TFT_WHITE); // remove old icons
-                    M5Lcd.drawPngFile(SPIFFS, "/autoconn_icon.png", x, y);
+                    M5Lcd.drawPngData(sprite_autoconn_icon, SPRITE_AUTOCONN_ICON_BYTES, x, y);
                     gui_drawStatusBar(false);
                 }
 
@@ -193,7 +193,7 @@ class AppAutoConnect : public FairyMenuItem
                 }
 
                 if (scan_failed_cnt > 5) {
-                    critical_error("/wifi_error.png");
+                    critical_error(SPRITE_ASSET_WIFI_ERROR);
                 }
             }
 
@@ -238,7 +238,7 @@ class AppAutoConnect : public FairyMenuItem
                 // result_profile is zero but the user didn't quit? the only reason should be that the database is now full, but could be another reason
                 // the database is YUGE, so... I'm not going to handle this error gracefully
                 wifi_err_reason = 0;
-                critical_error("/wifi_error.png");
+                critical_error(SPRITE_ASSET_WIFI_ERROR);
             }
 
             all_done_exit:

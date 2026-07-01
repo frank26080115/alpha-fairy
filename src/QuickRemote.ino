@@ -158,7 +158,7 @@ void qikrmt_task(bool freeze_row)
             // if previous was info-view, then redraw the entire background
             if (qikrmt_row_prev == QIKRMT_ROW_INFOSCR) {
                 M5Lcd.setRotation(0);
-                M5Lcd.drawPngFile(SPIFFS, "/qikrmt_active.png", 0, 0);
+                M5Lcd.drawPngData(sprite_qikrmt_active, SPRITE_QIKRMT_ACTIVE_BYTES, 0, 0);
                 tallylite_enable = true;
             }
 
@@ -209,7 +209,7 @@ void qikrmt_drawBox(uint8_t row, uint8_t col, uint16_t colour)
 class AppQuickRemote : public FairyMenuItem
 {
     public:
-        AppQuickRemote() : FairyMenuItem("/qikrmt_faded.png") // main image is the faded version, the loop will draw the active version when required
+        AppQuickRemote() : FairyMenuItem(SPRITE_ASSET_QIKRMT_FADED) // main image is the faded version, the loop will draw the active version when required
         {
             _can_quickEnter = true;
             _quitToNext = true;
@@ -230,7 +230,7 @@ class AppQuickRemote : public FairyMenuItem
         virtual bool on_execute(void)
         {
             reset();
-            M5Lcd.drawPngFile(SPIFFS, "/qikrmt_active.png", 0, 0);
+            M5Lcd.drawPngData(sprite_qikrmt_active, SPRITE_QIKRMT_ACTIVE_BYTES, 0, 0);
             redraw_flag = false;
             app_waitAllRelease();
 
@@ -240,7 +240,7 @@ class AppQuickRemote : public FairyMenuItem
 
                 if (redraw_flag) {
                     if (qikrmt_row != QIKRMT_ROW_INFOSCR) {
-                        M5Lcd.drawPngFile(SPIFFS, "/qikrmt_active.png", 0, 0);
+                        M5Lcd.drawPngData(sprite_qikrmt_active, SPRITE_QIKRMT_ACTIVE_BYTES, 0, 0);
                     }
                 }
 

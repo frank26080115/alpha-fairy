@@ -214,7 +214,7 @@ void record_movie()
 class AppRemoteShutter : public FairyMenuItem
 {
     public:
-        AppRemoteShutter() : FairyMenuItem("/remoteshutter_d.png") {
+        AppRemoteShutter() : FairyMenuItem(SPRITE_ASSET_REMOTESHUTTER_D) {
         };
 
         uint8_t _delay = 2;

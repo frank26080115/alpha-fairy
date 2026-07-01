@@ -173,20 +173,20 @@ void trigger_drawActionIcon(int16_t y)
     int16_t x = M5Lcd.width() - w;
     if (trigger_action == TRIGACT_PHOTO)
     {
-        M5Lcd.drawPngFile(SPIFFS, "/camera_icon.png", x, y);
+        M5Lcd.drawPngData(sprite_camera_icon, SPRITE_CAMERA_ICON_BYTES, x, y);
     }
     else if (trigger_action == TRIGACT_VIDEO)
     {
-        M5Lcd.drawPngFile(SPIFFS, "/vid_icon.png", x, y);
+        M5Lcd.drawPngData(sprite_vid_icon, SPRITE_VID_ICON_BYTES, x, y);
     }
     else if (trigger_action == TRIGACT_INTERVAL)
     {
-        M5Lcd.drawPngFile(SPIFFS, "/intervalometer_icon.png", x, y);
+        M5Lcd.drawPngData(sprite_intervalometer_icon, SPRITE_INTERVALOMETER_ICON_BYTES, x, y);
     }
     else
     {
         M5Lcd.fillRect(x, y, w, w, TFT_BLACK);
-        //M5Lcd.drawPngFile(SPIFFS, "/trap_icon.png", x, y);
+        //M5Lcd.drawPngData(sprite_trap_icon, SPRITE_TRAP_ICON_BYTES, x, y);
     }
 }
 
@@ -195,7 +195,7 @@ class PageTrigger : public FairyCfgItem
     public:
         PageTrigger(const char* disp_name, int32_t* linked_var, int32_t val_min, int32_t val_max, int32_t step_size, uint32_t fmt_flags) : FairyCfgItem(disp_name, linked_var, val_min, val_max, step_size, fmt_flags)
         { this->_margin_y = MICTRIG_LEVEL_MARGIN; this->_autosave = true; };
-        PageTrigger(const char* disp_name, bool (*cb)(void*), const char* icon) : FairyCfgItem(disp_name, cb, icon)
+        PageTrigger(const char* disp_name, bool (*cb)(void*), sprite_asset_id_t icon) : FairyCfgItem(disp_name, cb, icon)
         { this->_margin_y = MICTRIG_LEVEL_MARGIN; this->_autosave = false; };
 
         virtual void on_drawLive (void)
@@ -406,7 +406,7 @@ bool trigger_nullfunc(void* ptr)
 class PageTriggerArm : public PageTrigger
 {
     public:
-        PageTriggerArm() : PageTrigger("Arm?", trigger_nullfunc, "/go_icon.png") {
+        PageTriggerArm() : PageTrigger("Arm?", trigger_nullfunc, SPRITE_ASSET_GO_ICON) {
         };
 
         virtual void on_redraw(void)
@@ -763,7 +763,7 @@ class PageTriggerArm : public PageTrigger
 class AppShutterTrigger : public FairyCfgApp
 {
     public:
-        AppShutterTrigger() : FairyCfgApp("/shuttertrigger.png", "/trap_icon.png", MENUITEM_TRIGGER) {
+        AppShutterTrigger() : FairyCfgApp(SPRITE_ASSET_SHUTTERTRIGGER, SPRITE_ASSET_TRAP_ICON, MENUITEM_TRIGGER) {
             this->install(new PageTriggerSource());
             this->install(new PageTriggerAction());
 
@@ -802,20 +802,20 @@ class AppShutterTrigger : public FairyCfgApp
             int16_t x = M5Lcd.width() - w, y = M5Lcd.height() - w;
             if (trigger_source == TRIGSRC_MIC)
             {
-                M5Lcd.drawPngFile(SPIFFS, "/mic_icon.png", x, y);
+                M5Lcd.drawPngData(sprite_mic_icon, SPRITE_MIC_ICON_BYTES, x, y);
             }
             else if (trigger_source == TRIGSRC_EXINPUT)
             {
-                M5Lcd.drawPngFile(SPIFFS, "/extinput_icon.png", x, y);
+                M5Lcd.drawPngData(sprite_extinput_icon, SPRITE_EXTINPUT_ICON_BYTES, x, y);
             }
             else if (trigger_source == TRIGSRC_IMU)
             {
-                M5Lcd.drawPngFile(SPIFFS, "/imu_icon.png", x, y);
+                M5Lcd.drawPngData(sprite_imu_icon, SPRITE_IMU_ICON_BYTES, x, y);
             }
             #ifdef ENABLE_BUILD_LEPTON
             else if (trigger_source == TRIGSRC_THERMAL)
             {
-                M5Lcd.drawPngFile(SPIFFS, "/lepton_icon.png", x, y);
+                M5Lcd.drawPngData(sprite_lepton_icon, SPRITE_LEPTON_ICON_BYTES, x, y);
             }
             #endif
             else

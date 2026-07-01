@@ -39,7 +39,7 @@ SpriteMgr* sprites;
 AlphaFairyImu imu;
 FairyEncoder  fencoder;
 
-FairySubmenu main_menu(NULL, 0);
+FairySubmenu main_menu(SPRITE_ASSET_NONE, 0);
 
 void setup()
 {
@@ -113,12 +113,12 @@ void loop()
     pwr_shutdown();
 }
 
-FairySubmenu menu_remote  ("/main_remote.png");
-FairySubmenu menu_focus   ("/main_focus.png");
-FairyCfgApp  menu_interval("/main_interval.png", "/intervalometer.png", MENUITEM_INTERVAL);
-FairyCfgApp  menu_astro   ("/main_astro.png"   , "/galaxy_icon.png"   , MENUITEM_ASTRO);
-FairySubmenu menu_utils   ("/main_utils.png");
-FairySubmenu menu_auto    ("/main_auto.png");
+FairySubmenu menu_remote  (SPRITE_ASSET_MAIN_REMOTE);
+FairySubmenu menu_focus   (SPRITE_ASSET_MAIN_FOCUS);
+FairyCfgApp  menu_interval(SPRITE_ASSET_MAIN_INTERVAL, SPRITE_ASSET_INTERVALOMETER, MENUITEM_INTERVAL);
+FairyCfgApp  menu_astro   (SPRITE_ASSET_MAIN_ASTRO   , SPRITE_ASSET_GALAXY_ICON   , MENUITEM_ASTRO);
+FairySubmenu menu_utils   (SPRITE_ASSET_MAIN_UTILS);
+FairySubmenu menu_auto    (SPRITE_ASSET_MAIN_AUTO);
 
 void setup_menus()
 {
@@ -222,7 +222,7 @@ void shutterrelease_task()
 extern int wifi_err_reason;
 extern bool prevent_status_bar_thread;
 
-void critical_error(const char* fp)
+void critical_error(sprite_asset_id_t asset_id)
 {
     prevent_status_bar_thread = true; // critical error can happen from the WiFi thread, so prevent the GUI thread from drawing a status bar over the error screen
 
@@ -236,7 +236,10 @@ void critical_error(const char* fp)
     esp_wifi_stop();
     esp_wifi_deinit();
     M5Lcd.setRotation(0);
-    M5Lcd.drawPngFile(SPIFFS, fp, 0, 0);
+    const sprite_asset_t* asset = spriteAsset(asset_id);
+    if (asset != NULL) {
+        M5Lcd.drawPngData(asset->data, asset->len, 0, 0);
+    }
 
     if (wifi_err_reason != 0)
     {
@@ -280,7 +283,7 @@ void critical_error(const char* fp)
 class AppAboutMe : public FairyMenuItem
 {
     public:
-        AppAboutMe() : FairyMenuItem("/about.png")
+        AppAboutMe() : FairyMenuItem(SPRITE_ASSET_ABOUT)
         {
         };
 

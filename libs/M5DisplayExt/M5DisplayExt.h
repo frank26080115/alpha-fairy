@@ -5,7 +5,6 @@
 #include <Arduino.h>
 #include <FS.h>
 #include <SPI.h>
-#include <SPIFFS.h>
 
 class M5DisplayExt : public M5Display {
   public:
@@ -30,6 +29,14 @@ class M5DisplayExt : public M5Display {
                   uint16_t offX = 0, uint16_t offY = 0,
                   double scale = 1.0, uint8_t alphaThreshold = 127);
     void drawPngFileSprite(TFT_eSPI* sprite, fs::FS &fs, const char *path, uint16_t x = 0, uint16_t y = 0,
+                  uint16_t maxWidth = 0, uint16_t maxHeight = 0,
+                  uint16_t offX = 0, uint16_t offY = 0,
+                  double scale = 1.0, uint8_t alphaThreshold = 127);
+    void drawPngData(const uint8_t* data, size_t len, uint16_t x = 0, uint16_t y = 0,
+                  uint16_t maxWidth = 0, uint16_t maxHeight = 0,
+                  uint16_t offX = 0, uint16_t offY = 0,
+                  double scale = 1.0, uint8_t alphaThreshold = 127);
+    void drawPngDataSprite(TFT_eSPI* sprite, const uint8_t* data, size_t len, uint16_t x = 0, uint16_t y = 0,
                   uint16_t maxWidth = 0, uint16_t maxHeight = 0,
                   uint16_t offX = 0, uint16_t offY = 0,
                   double scale = 1.0, uint8_t alphaThreshold = 127);

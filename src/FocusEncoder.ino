@@ -283,7 +283,7 @@ void focus_calib_write(uint16_t colour)
 class AppFocusCalib : public FairyMenuItem
 {
     public:
-        AppFocusCalib() : FairyMenuItem("/focus_calib.png") {
+        AppFocusCalib() : FairyMenuItem(SPRITE_ASSET_FOCUS_CALIB) {
         };
 
         virtual void on_navTo(void)
@@ -308,7 +308,7 @@ class AppFocusCalib : public FairyMenuItem
                 return false;
             }
 
-            M5Lcd.drawPngFile(SPIFFS, "/focus_calib.png", 0, 0); // clear screen, removes text
+            M5Lcd.drawPngData(sprite_focus_calib, SPRITE_FOCUS_CALIB_BYTES, 0, 0); // clear screen, removes text
             bool success = fenc_calibrate();
             _success = success ? 1 : 2;
             set_redraw();

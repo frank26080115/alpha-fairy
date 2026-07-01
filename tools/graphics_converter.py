@@ -20,6 +20,10 @@ SOURCE_PATH = ROOT_DIR / "src" / "sprites.cpp"
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 
+SPRITE_ASSET_ALIASES = {
+    "SPRITE_ASSET_REJECTED": "SPRITE_ASSET_PAIR_REJECT",
+}
+
 
 @dataclass(frozen=True)
 class Sprite:
@@ -32,6 +36,13 @@ class Sprite:
     @property
     def constant_prefix(self) -> str:
         return self.symbol.upper()
+
+    @property
+    def asset_id(self) -> str:
+        symbol = self.symbol
+        if symbol.startswith("sprite_"):
+            symbol = symbol[len("sprite_") :]
+        return f"SPRITE_ASSET_{symbol.upper()}"
 
 
 def image_files() -> list[Path]:
@@ -137,7 +148,42 @@ def write_header(sprites: list[Sprite]) -> None:
         "#define PROGMEM",
         "#endif",
         "",
+        "typedef struct",
+        "{",
+        "    const uint8_t* data;",
+        "    size_t len;",
+        "    uint16_t width;",
+        "    uint16_t height;",
+        "}",
+        "sprite_asset_t;",
+        "",
+        "typedef enum",
+        "{",
+        "    SPRITE_ASSET_NONE = -1,",
     ]
+
+    for index, sprite in enumerate(sprites):
+        lines.append(f"    {sprite.asset_id} = {index},")
+
+    lines.append("    SPRITE_ASSET_COUNT,")
+
+    for alias, target in SPRITE_ASSET_ALIASES.items():
+        lines.append(f"    {alias} = {target},")
+
+    lines.extend(
+        [
+            "}",
+            "sprite_asset_id_t;",
+            "",
+            "extern const sprite_asset_t sprite_assets[SPRITE_ASSET_COUNT];",
+            "",
+            "static inline const sprite_asset_t* spriteAsset(sprite_asset_id_t id)",
+            "{",
+            "    return (id >= 0 && id < SPRITE_ASSET_COUNT) ? &sprite_assets[id] : NULL;",
+            "}",
+            "",
+        ]
+    )
 
     for sprite in sprites:
         prefix = sprite.constant_prefix
@@ -169,6 +215,26 @@ def write_source(sprites: list[Sprite]) -> None:
                 "",
             ]
         )
+
+    lines.extend(
+        [
+            "const sprite_asset_t sprite_assets[SPRITE_ASSET_COUNT] =",
+            "{",
+        ]
+    )
+
+    for sprite in sprites:
+        prefix = sprite.constant_prefix
+        lines.append(
+            f"    {{ {sprite.symbol}, {prefix}_BYTES, {prefix}_WIDTH, {prefix}_HEIGHT }},"
+        )
+
+    lines.extend(
+        [
+            "};",
+            "",
+        ]
+    )
 
     SOURCE_PATH.write_text("\n".join(lines), encoding="utf-8")
 

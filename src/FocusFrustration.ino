@@ -4,7 +4,7 @@
 class AppFocusFrustration : public FairyMenuItem
 {
     public:
-        AppFocusFrustration() : FairyMenuItem("/focus_frust.png")
+        AppFocusFrustration() : FairyMenuItem(SPRITE_ASSET_FOCUS_FRUST)
         {
         };
 

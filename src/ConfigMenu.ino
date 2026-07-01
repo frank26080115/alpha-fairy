@@ -31,7 +31,7 @@ class PageLcdBrightness : public FairyCfgItem
 class AppConfigMenu : public FairyCfgApp
 {
     public:
-        AppConfigMenu() : FairyCfgApp("/config.png", "/config_icon.png")
+        AppConfigMenu() : FairyCfgApp(SPRITE_ASSET_CONFIG, SPRITE_ASSET_CONFIG_ICON)
         {
 install(new FairyCfgItem("focus pause"            , (int32_t*)&(config_settings.focus_pause_time_ms    ),    0, 1000,    10, TXTFMT_BYTENS   ));
 install(new FairyCfgItem("MF knob steps"          , (int32_t*)&(config_settings.fenc_multi             ), -100,  100,     1, TXTFMT_NONE     ));
@@ -49,7 +49,7 @@ install(new FairyCfgItem("IR en"                  , (int32_t*)&(config_settings.
 install(new FairyCfgItem("camera protocol"        , (int32_t*)&(config_settings.protocol               ),    0,    2,     1, TXTFMT_PROTOCOL ));
 install(new FairyCfgItem("pin - shutter rel."     , (int32_t*)&(config_settings.pin_shutter            ), 0, PINCFG_END - 1, 1, TXTFMT_PINCFG));
 install(new FairyCfgItem("pin - ext input"        , (int32_t*)&(config_settings.pin_exinput            ), 0, PINCFG_END - 1, 1, TXTFMT_PINCFG));
-install(new FairyCfgItem("Save + Exit", config_save_exit, "/back_icon.png"));
+install(new FairyCfgItem("Save + Exit", config_save_exit, SPRITE_ASSET_BACK_ICON));
         };
 
         virtual bool on_execute(void)
