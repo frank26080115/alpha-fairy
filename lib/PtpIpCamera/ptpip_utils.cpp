@@ -141,7 +141,7 @@ uint8_t property_data_get_size(uint16_t data_type)
     return dsz;
 }
 
-bool camera_name_check(char* instr, const char* needle)
+bool camera_name_check(char* instr, const char* needle, bool end_num)
 {
     int slen1 = strlen(instr);
     int slen2 = strlen(needle);
@@ -166,6 +166,29 @@ bool camera_name_check(char* instr, const char* needle)
             }
         }
         if (all_match) {
+            if (end_num)
+            {
+                bool needle_ends_digit = needle[slen2 - 1] >= '0' && needle[slen2 - 1] <= '9';
+                int end_idx = slen2;
+
+                if (needle_ends_digit == false)
+                {
+                    if (shifted_str[end_idx] < '0' || shifted_str[end_idx] > '9') {
+                        continue;
+                    }
+                    while (shifted_str[end_idx] >= '0' && shifted_str[end_idx] <= '9') {
+                        end_idx++;
+                    }
+                }
+
+                char next_c = shifted_str[end_idx];
+                bool has_next = next_c != 0;
+                bool next_is_num = next_c >= '0' && next_c <= '9';
+                bool next_is_alpha = (next_c >= 'A' && next_c <= 'Z') || (next_c >= 'a' && next_c <= 'z');
+                if (has_next && (next_is_num || next_is_alpha)) {
+                    continue;
+                }
+            }
             return true;
         }
     }
