@@ -1,8 +1,32 @@
 #include "SonyCameraInfraredRemote.h"
 #include <stdint.h>
+#include <driver/gpio.h>
+#include <lgfx/boards.hpp>
 
 //#define USE_IRREMOTE
 #define USE_ESP32_RMT
+
+#ifndef M5GFX_BOARD
+#error "M5GFX_BOARD must be defined to choose Sony camera IR TX pin"
+#endif
+
+namespace
+{
+static constexpr lgfx::board_t IR_M5_BOARD = lgfx::M5GFX_BOARD;
+
+static_assert(IR_M5_BOARD == lgfx::board_M5StickCPlus
+           || IR_M5_BOARD == lgfx::board_M5StickCPlus2
+           || IR_M5_BOARD == lgfx::board_M5StickS3,
+              "Sony camera IR TX pin is only mapped for M5StickC Plus, Plus2, and S3");
+
+static constexpr gpio_num_t IR_TX_PIN =
+    (IR_M5_BOARD == lgfx::board_M5StickCPlus ) ? GPIO_NUM_9  :
+    (IR_M5_BOARD == lgfx::board_M5StickCPlus2) ? GPIO_NUM_19 :
+    (IR_M5_BOARD == lgfx::board_M5StickS3    ) ? static_cast<gpio_num_t>(46) :
+                                                  static_cast<gpio_num_t>(-1);
+
+static constexpr int IR_TX_PIN_NUM = static_cast<int>(IR_TX_PIN);
+}
 
 #ifdef USE_IRREMOTE
 
@@ -13,7 +37,6 @@
 #include <IRremote.h>
 #include <ir_Sony.hpp>
 
-#define IR_TX_PIN 9
 //#define IR_TX_PIN 26
 
 #endif
@@ -22,7 +45,6 @@
 #include "driver/rmt.h"
 #include "soc/rmt_reg.h"
 
-#define IR_TX_PIN   GPIO_NUM_9
 //#define IR_TX_PIN   GPIO_NUM_26
 #define RMT_CHANNEL RMT_CHANNEL_3
 
@@ -33,7 +55,7 @@
 void SonyCamIr_Init()
 {
     #ifdef USE_IRREMOTE
-    IrSender.begin(9);
+    IrSender.begin(IR_TX_PIN_NUM);
     #endif
     #ifdef USE_ESP32_RMT
     rmt_config_t rmt_tx;
