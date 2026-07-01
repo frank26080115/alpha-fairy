@@ -42,7 +42,7 @@ void app_waitAllReleaseGfx(uint8_t waitgfx)
             last_time = millis();
         }
     }
-    while ((last_time - (now = millis())) < BTN_DEBOUNCE);
+    while (((now = millis()) - last_time) < BTN_DEBOUNCE);
 
     redraw_flag = true;
 
@@ -121,7 +121,7 @@ int focus_tiltToStepSize(int8_t tilt)
 {
     // translate tilt into Sony's focus step sizes
     int atilt = tilt < 0 ? -tilt : tilt;
-    int n = (atilt ==  2) ?  SONYALPHA_FOCUSSTEP_FARTHER_MEDIUM : ((atilt ==  3) ?  SONYALPHA_FOCUSSTEP_FARTHER_LARGE : n);
+    int n = (atilt ==  2) ?  SONYALPHA_FOCUSSTEP_FARTHER_MEDIUM : ((atilt ==  3) ?  SONYALPHA_FOCUSSTEP_FARTHER_LARGE : SONYALPHA_FOCUSSTEP_FARTHER_SMALL);
     return (tilt < 0) ? -n : n;
 }
 

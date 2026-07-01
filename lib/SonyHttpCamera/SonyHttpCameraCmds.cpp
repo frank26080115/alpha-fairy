@@ -231,6 +231,7 @@ void SonyHttpCamera::cmd_ManualFocusMode(bool onoff, bool precheck)
     sprintf(cmd_buffer, cmd_generic_strparam_fmt, "setFocusMode", onoff ? "MF" : str_afmode, req_id);
     cmd_send(cmd_buffer);
     is_manuallyfocused_v = onoff;
+    req_id++;
 }
 
 void SonyHttpCamera::cmd_ManualFocusToggle(bool onoff)
@@ -243,4 +244,5 @@ void SonyHttpCamera::cmd_AutoFocus(bool onoff)
     cmd_prep();
     sprintf(cmd_buffer, cmd_generic_fmt, onoff ? "actHalfPressShutter" : "cancelHalfPressShutter", req_id);
     cmd_send(cmd_buffer);
+    req_id++;
 }

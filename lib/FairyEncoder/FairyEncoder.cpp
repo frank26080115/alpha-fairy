@@ -17,6 +17,7 @@ FairyEncoder::FairyEncoder(TwoWire* wire, uint8_t i2c_addr, uint32_t chk_intv_fa
     _chkintv_sleep = chk_intv_sleep;
     _check_interval = _chkintv_slow;
     _has_begun = false;
+    _avail = false;
 }
 
 void FairyEncoder::begin()
@@ -48,11 +49,12 @@ void FairyEncoder::task()
     bool prev_avail = _avail;
     int16_t x;
 
-    readBytes(ENCODER_REG, (uint8_t*)&x, 2);
-    _last_cnt = x;
-    if (_last_cnt != _last_read) {
-        _last_move_time = now;
-        _check_interval = _chkintv_fast;
+    if (readBytes(ENCODER_REG, (uint8_t*)&x, 2)) {
+        _last_cnt = x;
+        if (_last_cnt != _last_read) {
+            _last_move_time = now;
+            _check_interval = _chkintv_fast;
+        }
     }
 
     if ((now - _last_move_time) >= _chkintv_sleep) {
@@ -91,6 +93,9 @@ void FairyEncoder::writeBytes(uint8_t reg, uint8_t* buffer, uint8_t length)
         _wire->write(*(buffer + i));
     }
     if (_wire->endTransmission() == 0) {
+        _avail = true;
+    }
+    else {
         _avail = false;
     }
 }

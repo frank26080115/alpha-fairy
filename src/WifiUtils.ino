@@ -193,7 +193,7 @@ void wifiprofile_deleteProfile(uint8_t idx)
         wifiprofile_getIdxFname(idx, (char*)fname);
         wifiprofile_getIdxFname(idx + 1, (char*)fname2);
         if (ALFY_FS.exists(fname2)) {
-            ALFY_FS.rename(fname, fname2);
+            ALFY_FS.rename(fname2, fname);
         }
     }
 }
@@ -280,11 +280,11 @@ int wifiprofile_autoFind(wifiprofile_t* ptgt)
                 {
                     if (strcmp(pfile.ssid, pscan.ssid) == 0)
                     {
-                        Serial.printf("\t; matches profile #%d\r\n", i);
+                        Serial.printf("\t; matches profile #%d\r\n", j);
                         if (ptgt != NULL) {
                             memcpy(ptgt, &pfile, sizeof(wifiprofile_t));
                         }
-                        return i;
+                        return j;
                     }
                 }
             }

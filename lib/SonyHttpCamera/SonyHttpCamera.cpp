@@ -238,10 +238,10 @@ bool SonyHttpCamera::parse_event(char* data, int32_t maxlen)
     found = scan_json_for_key(rx_buff, maxlen, "currentShootMode", &i, &j, (char*)res_buff, 64);
     if (found && strlen(res_buff) > 0) {
         if (memcmp("still", res_buff, 5) == 0) {
-            shoot_mode == SHOOTMODE_STILLS;
+            shoot_mode = SHOOTMODE_STILLS;
         }
         else if (memcmp("movie", res_buff, 5) == 0) {
-            shoot_mode == SHOOTMODE_MOVIE;
+            shoot_mode = SHOOTMODE_MOVIE;
         }
         dbgser_devprop_dump->printf("httpcam event key \"currentShootMode\" = \"%s\"\r\n", res_buff);
         ret |= true;
