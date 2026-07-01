@@ -194,18 +194,37 @@ void PtpIpSonyAlphaCamera::decode_properties()
 #define PROP_TRYPOPULATETABLE(_tbl, _propcode, _dsz, _enumcnt, _txt) do \
                 {\
                     if (propcode == (_propcode) && dsz == (_dsz) && (_enumcnt) != 0) {\
-                        if ((_tbl) != NULL) {\
-                            if ((_enumcnt) > (_tbl)[0]) {\
-                                free((_tbl)); \
-                                (_tbl) = NULL; \
-                                dbgser_events->printf(_txt " free'd\r\n");\
+                        uint32_t _enumbytes = (_enumcnt) * dsz;\
+                        bool _can_store = true;\
+                        bool _created = false;\
+                        bool _resized = false;\
+                        uint32_t _oldcnt = ((_tbl) != NULL) ? (_tbl)[0] : 0;\
+                        if ((_tbl) == NULL) {\
+                            (_tbl) = (uint32_t*)malloc(_enumbytes + sizeof(uint32_t));\
+                            _created = true;\
+                            _can_store = ((_tbl) != NULL);\
+                        }\
+                        else if ((_enumcnt) > _oldcnt) {\
+                            uint32_t* _newtbl = (uint32_t*)realloc((_tbl), _enumbytes + sizeof(uint32_t));\
+                            if (_newtbl != NULL) {\
+                                (_tbl) = _newtbl;\
+                                _resized = true;\
+                            }\
+                            else {\
+                                _can_store = false;\
+                                dbgser_events->printf(_txt " resize failed %u -> %u\r\n", _oldcnt, (_enumcnt));\
                             }\
                         }\
-                        if ((_tbl) == NULL) {\
-                            (_tbl) = (uint32_t*)malloc(((_enumcnt) * dsz) + sizeof(uint32_t));\
-                            memcpy((void*)&((_tbl)[1]), (void*)&(p[i]), (_enumcnt) * dsz);\
-                            (_tbl)[0] = (_enumcnt);\
-                            dbgser_events->printf(_txt " created %u\r\n", (_enumcnt));\
+                        if (_can_store) {\
+                            bool _changed = (_oldcnt != (_enumcnt));\
+                            if (_changed == false) {\
+                                _changed = (memcmp((void*)&((_tbl)[1]), (void*)&(p[i]), _enumbytes) != 0);\
+                            }\
+                            if (_changed) {\
+                                memcpy((void*)&((_tbl)[1]), (void*)&(p[i]), _enumbytes);\
+                                (_tbl)[0] = (_enumcnt);\
+                                dbgser_events->printf(_txt " %s %u\r\n", _created ? "created" : (_resized ? "resized" : "updated"), (_enumcnt));\
+                            }\
                         }\
                     }\
                 } while (0)\

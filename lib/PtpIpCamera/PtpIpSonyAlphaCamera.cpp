@@ -74,6 +74,8 @@ PtpIpSonyAlphaCamera::PtpIpSonyAlphaCamera(char* host_name, uint16_t* interested
     propdecode_weird_form   = true;
 
     table_shutter_speed = NULL;
+    table_iso = NULL;
+    table_aperture = NULL;
 
     check_props_time = 0;
     need_check_properties = false;
