@@ -45,6 +45,8 @@ enum
 
 #define PTP_GUID_LEN 16
 
+#define PTP_MAX_INTERESTED_PROPERTIES 255 // the tables that use these are null terminated anyways, this is just a secondary limit case of a bug
+
 //#define USE_ASYNC_SOCK
 #ifdef USE_ASYNC_SOCK
 #include <AsyncTCP.h>

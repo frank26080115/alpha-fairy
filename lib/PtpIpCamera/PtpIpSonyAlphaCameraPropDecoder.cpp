@@ -22,7 +22,7 @@ void PtpIpSonyAlphaCamera::decode_properties()
     Serial.println();
     #endif
 
-    for (i = 0, j = 0; i < len && (j <= totalprops || i == 0); )
+    for (i = 0, j = 0; i < len && (j <= totalprops || i == 0); ) // for the entire buffer, basically for all properties
     {
         if (i == 0)
         {
@@ -33,7 +33,7 @@ void PtpIpSonyAlphaCamera::decode_properties()
             continue;
         }
 
-        j += 1;
+        j += 1; // count the number of properties decoded so far
 
         dbgser_devprop_dump->printf("\r\n");
         uint16_t propcode = *(uint16_t*)(&(p[i]));
@@ -42,16 +42,10 @@ void PtpIpSonyAlphaCamera::decode_properties()
 
         uint16_t datatype = *(uint16_t*)(&(p[i]));
         i += 2;
-        if (datatype == 0x0000)
+        if (datatype == 0x0000 || propcode == 0x0000)
         {
             i += 4;
-            dbgser_devprop_dump->printf(" unknown data type 0");
-            continue;
-        }
-        if (propcode == 0x0000)
-        {
-            i += 4;
-            dbgser_devprop_dump->printf(" unknown prop code 0");
+            dbgser_devprop_dump->printf(" unknown data-type / prop-code: %u / %u", datatype, propcode);
             continue;
         }
 
@@ -60,11 +54,24 @@ void PtpIpSonyAlphaCamera::decode_properties()
         uint8_t* dptr = nullptr;
         int      dsz  = 1;
 
-        if (datatype <= 0x0A)
+        if (datatype <= 0x0A) // simple integers
+        {
+            dbgser_devprop_dump->printf("[DT 0x%X, SZ %d]", datatype, dsz);
+        }
+        else if (datatype == 0xFFFF)
+        {
+            dbgser_devprop_dump->printf("[DT STR]");
+        }
+        else if ((datatype & 0x4000) != 0)
+        {
+            dbgser_devprop_dump->printf("[DT ARR]");
+        }
+        else
         {
             dbgser_devprop_dump->printf("[DT 0x%X]", datatype);
         }
 
+        // check datatype's indicated size
         switch (datatype & 0x0F)
         {
             case 0x0001:
@@ -107,7 +114,7 @@ void PtpIpSonyAlphaCamera::decode_properties()
                 i += 1;
                 dbgser_devprop_dump->printf("[STR %u]: ", elecnt);
                 uint32_t j;
-                for (j = 0; j < (elecnt * 2); j+= 2)
+                for (j = 0; j < (elecnt * 2); j += 2) // for all unicode characters, print them as ASCII if possible
                 {
                     char uc = p[i + j];
                     if (uc != 0)
@@ -229,6 +236,9 @@ void PtpIpSonyAlphaCamera::decode_properties()
                     }\
                 } while (0)\
 
+                // populate the tables for the properties we care about
+                // don't worry, it's not actually doing all 4 operations, the macro will only execute the one that matches the propcode and dsz
+
                 PROP_TRYPOPULATETABLE(table_shutter_speed, SONYALPHA_PROPCODE_ShutterSpeed, 4, enumcnt, "table_shutter_speed");
                 PROP_TRYPOPULATETABLE(table_iso          , SONYALPHA_PROPCODE_ISO         , 4, enumcnt, "table_iso");
                 PROP_TRYPOPULATETABLE(table_aperture     , SONYALPHA_PROPCODE_Aperture    , 2, enumcnt, "table_aperture");
@@ -240,9 +250,13 @@ void PtpIpSonyAlphaCamera::decode_properties()
             }
             else
             {
-                // weird form, seems to have two forms
+                // weird form, seems to have two tables
+                // the first table is the "default" table, the second table is the "current" table
                 uint16_t enumcnt = *(uint16_t*)(&(p[i]));
                 i += 2;
+
+                // populate the tables for the properties we care about
+                // don't worry, it's not actually doing all 4 operations, the macro will only execute the one that matches the propcode and dsz
 
                 PROP_TRYPOPULATETABLE(table_shutter_speed, SONYALPHA_PROPCODE_ShutterSpeed, 4, enumcnt, "table_shutter_speed");
                 PROP_TRYPOPULATETABLE(table_iso          , SONYALPHA_PROPCODE_ISO         , 4, enumcnt, "table_iso");
@@ -251,11 +265,14 @@ void PtpIpSonyAlphaCamera::decode_properties()
 
                 i += enumcnt * dsz;
                 uint16_t enumcnt2 = *(uint16_t*)(&(p[i]));
-                i += 2;
-                PROP_TRYPOPULATETABLE(table_shutter_speed, SONYALPHA_PROPCODE_ShutterSpeed, 4, enumcnt2, "table_shutter_speed");
-                PROP_TRYPOPULATETABLE(table_iso          , SONYALPHA_PROPCODE_ISO         , 4, enumcnt2, "table_iso");
-                PROP_TRYPOPULATETABLE(table_aperture     , SONYALPHA_PROPCODE_Aperture    , 2, enumcnt2, "table_aperture");
-                PROP_TRYPOPULATETABLE(table_aperture     , SONYALPHA_PROPCODE_Aperture    , 4, enumcnt2, "table_aperture");
+                if (enumcnt2 > 0 && enumcnt2 <= 0x0200) // suggested upper limit, just in case
+                {
+                    i += 2;
+                    PROP_TRYPOPULATETABLE(table_shutter_speed, SONYALPHA_PROPCODE_ShutterSpeed, 4, enumcnt2, "table_shutter_speed");
+                    PROP_TRYPOPULATETABLE(table_iso          , SONYALPHA_PROPCODE_ISO         , 4, enumcnt2, "table_iso");
+                    PROP_TRYPOPULATETABLE(table_aperture     , SONYALPHA_PROPCODE_Aperture    , 2, enumcnt2, "table_aperture");
+                    PROP_TRYPOPULATETABLE(table_aperture     , SONYALPHA_PROPCODE_Aperture    , 4, enumcnt2, "table_aperture");
+                }
                 i += enumcnt2 * dsz;
                 dbgser_devprop_dump->printf(" [FRM ENUMx2 %d]", (enumcnt + enumcnt2));
             }
@@ -294,7 +311,7 @@ bool PtpIpSonyAlphaCamera::update_property(uint16_t prop_code, uint16_t data_typ
     }
 
     bool is_interested = false;
-    for (i = 0; i < 255; i++) {
+    for (i = 0; i < PTP_MAX_INTERESTED_PROPERTIES; i++) {
         uint16_t intprop = p_interested_properties[i];
         if (intprop != 0) // not end of table
         {
@@ -374,19 +391,19 @@ uint32_t PtpIpSonyAlphaCamera::get_property_enum(uint16_t prop_code, uint32_t cu
     }
     uint32_t cnt = tbl[0];
     int32_t i, j;
-    for (i = 1; i <= cnt; i++)
+    for (i = 1; i <= cnt; i++) // for all table entries, skip the first entry which is the count
     {
         uint32_t x = tbl[i], y;
-        if (x == cur_val)
+        if (x == cur_val) // found the current value
         {
-            j = i + step;
+            j = i + step; // next adjacent value is here, can be negative or positive
             y = tbl[j];
-            if (j >= cnt || j <= 1)
+            if (j >= cnt || j <= 1) // next adjacent value is out of bounds, try to find the closest value
             {
-                j = (j >= cnt) ? cnt : j;
-                j = (j <=   1) ?   1 : j;
+                j = (j >= cnt) ? cnt : j; // limit to the last valid entry
+                j = (j <=   1) ?   1 : j; // limit to the last valid entry
                 y = tbl[j];
-                if (y == 0 || y == 0xFFFFFFFF) {
+                if (y == 0 || y == 0xFFFFFFFF) { // if the next adjacent value is invalid, try to find the closest valid value
                     j += (j >= cnt) ? (-1) : j;
                     j += (j <=   1) ? ( 1) : j;
                     y = tbl[j];
