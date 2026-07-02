@@ -60,9 +60,9 @@ static inline uint8_t m5gfx_fromLegacyBrightness(int32_t brightness)
     }
     if (brightness <= 12) {
         brightness = brightness < 5 ? 5 : brightness;
-        return 16 + ((brightness - 5) * (255 - 16)) / (12 - 5);
+        return 16 + ((brightness - 5) * (M5LCD_BRIGHTNESS_MAX - 16)) / (12 - 5);
     }
-    return brightness > 255 ? 255 : brightness;
+    return brightness > M5LCD_BRIGHTNESS_MAX ? M5LCD_BRIGHTNESS_MAX : brightness;
 }
 
 static inline void m5gfx_setBrightness(int32_t brightness)

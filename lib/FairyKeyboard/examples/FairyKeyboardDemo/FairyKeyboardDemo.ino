@@ -41,7 +41,7 @@ void setup()
 
     M5.Display.setBrightness(0);
     M5Lcd.begin();
-    M5Lcd.setBrightness(255);
+    M5Lcd.setBrightness(M5LCD_BRIGHTNESS_MAX);
     M5Lcd.fillScreen(TFT_WHITE);
 
     pinMode(PIN_BTN_SIDE, INPUT_PULLUP);

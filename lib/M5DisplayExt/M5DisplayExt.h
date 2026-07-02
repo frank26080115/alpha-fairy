@@ -6,6 +6,8 @@
 #include <FS.h>
 #include <SPI.h>
 
+static constexpr uint8_t M5LCD_BRIGHTNESS_MAX = 255;
+
 typedef enum {
   JPEG_DIV_NONE,
   JPEG_DIV_2,
