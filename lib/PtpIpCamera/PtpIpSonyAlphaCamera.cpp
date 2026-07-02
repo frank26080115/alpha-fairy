@@ -85,91 +85,92 @@ PtpIpSonyAlphaCamera::PtpIpSonyAlphaCamera(char* host_name, uint16_t* interested
 bool PtpIpSonyAlphaCamera::check_name()
 {
     this->cam_model = SONYALPHAMODEL_NONE;
-    if (camera_name_check(this->cam_name, "A1M2", true) || camera_name_check(this->cam_name, "ILCE-1M2", true)) {
+    // Names ending in 0 with end_num=true use that final digit as a wildcard for future model generations.
+    if (camera_name_check(this->cam_name, "A1M2") || camera_name_check(this->cam_name, "ILCE-1M2")) {
         this->cam_model = SONYALPHAMODEL_A1M2;
     }
-    else if (camera_name_check(this->cam_name, "A1M", true) || camera_name_check(this->cam_name, "ILCE-1M", true)) {
+    else if (camera_name_check(this->cam_name, "A1M0", true) || camera_name_check(this->cam_name, "ILCE-1M0", true)) {
         this->cam_model = SONYALPHAMODEL_A1MX;
     }
-    else if (camera_name_check(this->cam_name, "A1", true) || camera_name_check(this->cam_name, "ILCE-1", true)) {
+    else if (camera_name_check(this->cam_name, "A1") || camera_name_check(this->cam_name, "ILCE-1")) {
         this->cam_model = SONYALPHAMODEL_A1;
     }
-    else if (camera_name_check(this->cam_name, "A9M3", true) || camera_name_check(this->cam_name, "ILCE-9M3", true)) {
+    else if (camera_name_check(this->cam_name, "A9M3") || camera_name_check(this->cam_name, "ILCE-9M3")) {
         this->cam_model = SONYALPHAMODEL_A9M3;
     }
-    else if (camera_name_check(this->cam_name, "A9M2", true) || camera_name_check(this->cam_name, "ILCE-9M2", true)) {
+    else if (camera_name_check(this->cam_name, "A9M2") || camera_name_check(this->cam_name, "ILCE-9M2")) {
         this->cam_model = SONYALPHAMODEL_A9M2;
     }
-    else if (camera_name_check(this->cam_name, "A9M", true) || camera_name_check(this->cam_name, "ILCE-9M", true)) {
+    else if (camera_name_check(this->cam_name, "A9M0", true) || camera_name_check(this->cam_name, "ILCE-9M0", true)) {
         this->cam_model = SONYALPHAMODEL_A9MX;
     }
-    else if (camera_name_check(this->cam_name, "A7SM3", true) || camera_name_check(this->cam_name, "ILCE-7SM3", true)) {
+    else if (camera_name_check(this->cam_name, "A7SM3") || camera_name_check(this->cam_name, "ILCE-7SM3")) {
         this->cam_model = SONYALPHAMODEL_A7SM3;
     }
     else if (camera_name_check(this->cam_name, "A7M4A") || camera_name_check(this->cam_name, "ILCE-7M4A")) {
         this->cam_model = SONYALPHAMODEL_A7M4A;
     }
-    else if (camera_name_check(this->cam_name, "A7M6", true) || camera_name_check(this->cam_name, "ILCE-7M6", true)) {
+    else if (camera_name_check(this->cam_name, "A7M6") || camera_name_check(this->cam_name, "ILCE-7M6")) {
         this->cam_model = SONYALPHAMODEL_A7M6;
     }
-    else if (camera_name_check(this->cam_name, "A7M5", true) || camera_name_check(this->cam_name, "ILCE-7M5", true)) {
+    else if (camera_name_check(this->cam_name, "A7M5") || camera_name_check(this->cam_name, "ILCE-7M5")) {
         this->cam_model = SONYALPHAMODEL_A7M5;
     }
-    else if (camera_name_check(this->cam_name, "A7M4", true) || camera_name_check(this->cam_name, "ILCE-7M4", true)) {
+    else if (camera_name_check(this->cam_name, "A7M4") || camera_name_check(this->cam_name, "ILCE-7M4")) {
         this->cam_model = SONYALPHAMODEL_A7M4;
     }
-    else if (camera_name_check(this->cam_name, "A7M", true) || camera_name_check(this->cam_name, "ILCE-7M", true)) {
+    else if (camera_name_check(this->cam_name, "A7M0", true) || camera_name_check(this->cam_name, "ILCE-7M0", true)) {
         this->cam_model = SONYALPHAMODEL_A7MX;
     }
-    else if (camera_name_check(this->cam_name, "A7RM6", true) || camera_name_check(this->cam_name, "ILCE-7RM6", true)) {
+    else if (camera_name_check(this->cam_name, "A7RM6") || camera_name_check(this->cam_name, "ILCE-7RM6")) {
         this->cam_model = SONYALPHAMODEL_A7RM6;
     }
-    else if (camera_name_check(this->cam_name, "A7RM5", true) || camera_name_check(this->cam_name, "ILCE-7RM5", true)) {
+    else if (camera_name_check(this->cam_name, "A7RM5") || camera_name_check(this->cam_name, "ILCE-7RM5")) {
         this->cam_model = SONYALPHAMODEL_A7RM5;
     }
-    else if (camera_name_check(this->cam_name, "A7RM4", true) || camera_name_check(this->cam_name, "ILCE-7RM4", true)) {
+    else if (camera_name_check(this->cam_name, "A7RM4") || camera_name_check(this->cam_name, "ILCE-7RM4")) {
         this->cam_model = SONYALPHAMODEL_A7RM4;
     }
-    else if (camera_name_check(this->cam_name, "A7RM", true) || camera_name_check(this->cam_name, "ILCE-7RM", true)) {
+    else if (camera_name_check(this->cam_name, "A7RM0", true) || camera_name_check(this->cam_name, "ILCE-7RM0", true)) {
         this->cam_model = SONYALPHAMODEL_A7RMX;
     }
-    else if (camera_name_check(this->cam_name, "A7CM2", true) || camera_name_check(this->cam_name, "ILCE-7CM2", true)) {
+    else if (camera_name_check(this->cam_name, "A7CM2") || camera_name_check(this->cam_name, "ILCE-7CM2")) {
         this->cam_model = SONYALPHAMODEL_A7CM2;
     }
-    else if (camera_name_check(this->cam_name, "A7CM", true) || camera_name_check(this->cam_name, "ILCE-7CM", true)) {
+    else if (camera_name_check(this->cam_name, "A7CM0", true) || camera_name_check(this->cam_name, "ILCE-7CM0", true)) {
         this->cam_model = SONYALPHAMODEL_A7CMX;
     }
     else if (camera_name_check(this->cam_name, "A7C") || camera_name_check(this->cam_name, "ILCE-7C")) {
         this->cam_model = SONYALPHAMODEL_A7C;
     }
-    else if (camera_name_check(this->cam_name, "ZV-E10", true) || camera_name_check(this->cam_name, "ZVE10", true)) { // confirmed "ZV-E10"
+    else if (camera_name_check(this->cam_name, "ZV-E10") || camera_name_check(this->cam_name, "ZVE10")) { // confirmed "ZV-E10"
         this->cam_model = SONYALPHAMODEL_ZVE10;
     }
-    else if (camera_name_check(this->cam_name, "ZV1", true) || camera_name_check(this->cam_name, "ZV-1", true)) {
+    else if (camera_name_check(this->cam_name, "ZV1") || camera_name_check(this->cam_name, "ZV-1")) {
         this->cam_model = SONYALPHAMODEL_ZV1;
     }
-    else if (camera_name_check(this->cam_name, "A6700", true) || camera_name_check(this->cam_name, "ILCE-6700", true)) {
+    else if (camera_name_check(this->cam_name, "A6700") || camera_name_check(this->cam_name, "ILCE-6700")) {
         this->cam_model = SONYALPHAMODEL_A6700;
     }
-    else if (camera_name_check(this->cam_name, "A6600", true) || camera_name_check(this->cam_name, "ILCE-6600", true)) {
+    else if (camera_name_check(this->cam_name, "A6600") || camera_name_check(this->cam_name, "ILCE-6600")) {
         this->cam_model = SONYALPHAMODEL_A6600;
     }
-    else if (camera_name_check(this->cam_name, "A6500", true) || camera_name_check(this->cam_name, "ILCE-6500", true)) {
+    else if (camera_name_check(this->cam_name, "A6500") || camera_name_check(this->cam_name, "ILCE-6500")) {
         this->cam_model = SONYALPHAMODEL_A6500;
     }
-    else if (camera_name_check(this->cam_name, "A6400", true) || camera_name_check(this->cam_name, "ILCE-6400", true)) {
+    else if (camera_name_check(this->cam_name, "A6400") || camera_name_check(this->cam_name, "ILCE-6400")) {
         this->cam_model = SONYALPHAMODEL_A6400;
     }
-    else if (camera_name_check(this->cam_name, "A6300", true) || camera_name_check(this->cam_name, "ILCE-6300", true)) {
+    else if (camera_name_check(this->cam_name, "A6300") || camera_name_check(this->cam_name, "ILCE-6300")) {
         this->cam_model = SONYALPHAMODEL_A6300;
     }
-    else if (camera_name_check(this->cam_name, "A6200", true) || camera_name_check(this->cam_name, "ILCE-6200", true)) {
+    else if (camera_name_check(this->cam_name, "A6200") || camera_name_check(this->cam_name, "ILCE-6200")) {
         this->cam_model = SONYALPHAMODEL_A6200;
     }
-    else if (camera_name_check(this->cam_name, "A6100", true) || camera_name_check(this->cam_name, "ILCE-6100", true)) {
+    else if (camera_name_check(this->cam_name, "A6100") || camera_name_check(this->cam_name, "ILCE-6100")) {
         this->cam_model = SONYALPHAMODEL_A6100;
     }
-    else if (camera_name_check(this->cam_name, "A6000", true) || camera_name_check(this->cam_name, "ILCE-6000", true)) {
+    else if (camera_name_check(this->cam_name, "A6000") || camera_name_check(this->cam_name, "ILCE-6000")) {
         this->cam_model = SONYALPHAMODEL_A6000;
     }
     return true;

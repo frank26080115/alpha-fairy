@@ -145,6 +145,11 @@ bool camera_name_check(char* instr, const char* needle, bool end_num)
 {
     int slen1 = strlen(instr);
     int slen2 = strlen(needle);
+    // end_num treats the final digit in needle as a one-digit wildcard.
+    bool needle_ends_digit = slen2 > 0 && needle[slen2 - 1] >= '0' && needle[slen2 - 1] <= '9';
+    if (end_num && needle_ends_digit == false) {
+        return false;
+    }
     if (slen2 > slen1) {
         return false;
     }
@@ -153,8 +158,9 @@ bool camera_name_check(char* instr, const char* needle, bool end_num)
         bool all_match = true;
         char* shifted_str = &instr[i];
         int slen3 = strlen(shifted_str);
+        int cmp_len = end_num ? (slen2 - 1) : slen2;
         int j;
-        for (j = 0; j < slen3 && j < slen2; j++)
+        for (j = 0; j < slen3 && j < cmp_len; j++)
         {
             char c1 = shifted_str[j];
             char c2 = needle[j];
@@ -168,20 +174,11 @@ bool camera_name_check(char* instr, const char* needle, bool end_num)
         if (all_match) {
             if (end_num)
             {
-                bool needle_ends_digit = needle[slen2 - 1] >= '0' && needle[slen2 - 1] <= '9';
-                int end_idx = slen2;
-
-                if (needle_ends_digit == false)
-                {
-                    if (shifted_str[end_idx] < '0' || shifted_str[end_idx] > '9') {
-                        continue;
-                    }
-                    while (shifted_str[end_idx] >= '0' && shifted_str[end_idx] <= '9') {
-                        end_idx++;
-                    }
+                if (shifted_str[cmp_len] < '0' || shifted_str[cmp_len] > '9') {
+                    continue;
                 }
 
-                char next_c = shifted_str[end_idx];
+                char next_c = shifted_str[slen2];
                 bool has_next = next_c != 0;
                 bool next_is_num = next_c >= '0' && next_c <= '9';
                 bool next_is_alpha = (next_c >= 'A' && next_c <= 'Z') || (next_c >= 'a' && next_c <= 'z');
