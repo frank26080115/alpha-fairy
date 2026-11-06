@@ -163,6 +163,7 @@ void setup_menus()
 
     setup_wifimenus();
     setup_configmenu();
+    setup_timemenu();
     setup_focuscalib();
     setup_aboutme();
 }
@@ -181,6 +182,7 @@ bool app_poll()
         httpsrv_poll();
         #endif
     }
+    time_task();
 
     // do low priority tasks if the networking is not busy
     if (ptpcam.isKindaBusy() == false || airplane_mode != false || busy_cnt > 1) {

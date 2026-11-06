@@ -57,6 +57,7 @@ void settings_default() {
   config_settings.fenc_large = 10;
 
   config_settings.tallylite = TALLYLITE_SCREEN;
+  config_settings.time_auto_sync = 0;
   config_settings.infoscr_mode = INFOSCR_LANDSCAPE_BLACK;
 
   #ifdef ENABLE_BUILD_LEPTON
@@ -83,7 +84,8 @@ bool settings_load() {
   EEPROM.readBytes(0, (void*)(&config_settings), sizeof(configsettings_t));
   uint32_t crc_calced = CHECKSUM(&config_settings, sizeof(configsettings_t) - sizeof(uint32_t));
   // if the data is invalid, report so
-  if (config_settings.magic != CONFIGSETTINGS_MAGIC || crc_calced != config_settings.crc32) {
+  if (config_settings.magic != CONFIGSETTINGS_MAGIC || config_settings.len != sizeof(configsettings_t)
+      || crc_calced != config_settings.crc32) {
     Serial.printf("settings not valid, magic 0x%08X, CRC 0x%08X ?= 0x%08X\r\n", config_settings.magic, crc_calced, config_settings.crc32);
     return false;
   }

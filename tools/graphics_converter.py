@@ -15,7 +15,7 @@ except ImportError as exc:
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 SOURCE_DIR = ROOT_DIR / "gfx" / "screens_240"
-HEADER_PATH = ROOT_DIR / "includes" / "sprites.h"
+HEADER_PATH = ROOT_DIR / "include" / "sprites.h"
 SOURCE_PATH = ROOT_DIR / "src" / "sprites.cpp"
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}

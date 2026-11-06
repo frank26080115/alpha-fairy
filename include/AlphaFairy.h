@@ -53,11 +53,19 @@ void autoconnect_start(void);
 
 // RTC/local wall-time policy and deferred camera clock synchronization (TimeMgt.cpp).
 bool time_rtc_valid(const ptpip_datetime_t& value);
-bool time_get_rtc(ptpip_datetime_t* value);
+// require_valid=false permits displaying old/low-voltage calendar values, never automatic writes.
+bool time_get_rtc(ptpip_datetime_t* value, bool require_valid = true);
 // Explicit camera -> RTC copy, with readback. Returns whole-second local wall time.
 bool time_sync_rtc_from_camera(ptpip_datetime_t* synced_time = NULL);
 void time_camera_connected(void);
 void time_camera_properties_updated(void);
+void time_task(void);
+void time_clock_view_active(bool active);
+// Offset is camera minus RTC, sampled at the last successful camera read, in tenths of a second.
+bool time_get_camera_offset(int64_t* deciseconds);
+// Queue one manual operation; returns false if unavailable or another manual request is pending.
+bool time_request_sync_camera_from_rtc(void);
+bool time_request_sync_rtc_from_camera(void);
 
 #define ALFY_FS LittleFS
 static constexpr const char* ALFY_FS_LABEL = "littlefs";

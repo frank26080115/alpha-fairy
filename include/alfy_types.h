@@ -52,6 +52,8 @@ typedef struct
 
   int32_t tallylite;
 
+  int32_t time_auto_sync;
+
   int32_t protocol;
 
   int32_t pin_shutter;

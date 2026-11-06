@@ -3,11 +3,21 @@
 #include <string.h>
 
 static constexpr int64_t RTC_BUILD_TOLERANCE_SECONDS = 2 * 60 * 60;
-static constexpr int64_t CAMERA_SYNC_LAG_SECONDS = 72 * 60 * 60;
+static constexpr int64_t CAMERA_SYNC_DIFFERENCE_DS = 30 * 10;
 static constexpr uint32_t CAMERA_SYNC_INTERVAL_MS = 10 * 60 * 1000;
 static constexpr uint32_t CAMERA_CLOCK_TIMEOUT_MS = 1000;
 
-static bool check_on_next_properties = true;
+enum class ClockOperation { None, Offset, Periodic, ToRtc, AutoWrite, ManualWrite };
+enum class ManualSync { None, ToCamera, ToRtc };
+static ClockOperation operation = ClockOperation::None;
+static ManualSync manual_sync = ManualSync::None;
+static bool first_properties = true;
+static bool initial_sync_failed = false;
+static bool auto_write_pending = false, periodic_pending = false;
+static bool view_active = false, refresh_pending = false;
+static bool offset_valid = false;
+static int64_t offset_ds = 0;
+static uint32_t session = 0, operation_session = 0;
 static uint32_t last_check_ms = 0;
 
 static int64_t compile_time_seconds()
@@ -34,7 +44,7 @@ bool time_rtc_valid(const ptpip_datetime_t& value)
 
 static bool read_rtc_calendar(ptpip_datetime_t* value)
 {
-    if (!value || !M5.Rtc.isEnabled() || M5.Rtc.getVoltLow()) return false;
+    if (!value || !M5.Rtc.isEnabled()) return false;
     m5::rtc_datetime_t rtc;
     if (!M5.Rtc.getDateTime(&rtc)) return false;
     ptpip_datetime_t current = {(uint16_t)rtc.date.year, (uint8_t)rtc.date.month, (uint8_t)rtc.date.date,
@@ -44,20 +54,18 @@ static bool read_rtc_calendar(ptpip_datetime_t* value)
     return true;
 }
 
-bool time_get_rtc(ptpip_datetime_t* value)
+bool time_get_rtc(ptpip_datetime_t* value, bool require_valid)
 {
     ptpip_datetime_t current;
-    if (!value || !read_rtc_calendar(&current) || !time_rtc_valid(current)) return false;
+    if (!value || !read_rtc_calendar(&current)) return false;
+    if (require_valid && (M5.Rtc.getVoltLow() || !time_rtc_valid(current))) return false;
     *value = current;
     return true;
 }
 
-bool time_sync_rtc_from_camera(ptpip_datetime_t* synced_time)
+static bool write_rtc(const ptpip_datetime_t& camera, ptpip_datetime_t* synced_time)
 {
-    if (!ptpcam.isOperating() || !M5.Rtc.isEnabled()) return false;
-    char text[22];
-    ptpip_datetime_t camera;
-    if (!ptpcam.get_time(text, sizeof(text)) || !ptpip_datetime_parse(text, &camera)
+    if (!M5.Rtc.isEnabled() || !ptpip_datetime_valid(camera)
         || camera.year < 2000 || camera.year > 2099) return false;
 
     // Explicitly copy the camera wall time, even if the existing RTC is invalid.
@@ -67,35 +75,80 @@ bool time_sync_rtc_from_camera(ptpip_datetime_t* synced_time)
     rtc.time = m5::rtc_time_t(camera.hour, camera.minute, camera.second);
     M5.Rtc.setDateTime(rtc);
     ptpip_datetime_t actual;
-    if (!read_rtc_calendar(&actual)) return false;
+    if (!read_rtc_calendar(&actual) || M5.Rtc.getVoltLow()) return false;
     int64_t delta = ptpip_datetime_seconds(actual) - ptpip_datetime_seconds(camera);
     if (delta < 0 || delta > 1) return false;
     if (synced_time) *synced_time = actual;
     return true;
 }
 
+static void cache_offset(const ptpip_datetime_t& camera)
+{
+    ptpip_datetime_t rtc;
+    offset_valid = time_get_rtc(&rtc, false);
+    if (offset_valid) offset_ds = (ptpip_datetime_seconds(camera) - ptpip_datetime_seconds(rtc)) * 10 + camera.decisecond;
+}
+
+bool time_get_camera_offset(int64_t* deciseconds)
+{
+    if (!deciseconds || !offset_valid || !ptpcam.isOperating()) return false;
+    *deciseconds = offset_ds;
+    return true;
+}
+
+bool time_sync_rtc_from_camera(ptpip_datetime_t* synced_time)
+{
+    if (!ptpcam.isOperating() || !M5.Rtc.isEnabled()) return false;
+    char text[22];
+    ptpip_datetime_t camera;
+    if (!ptpcam.get_time(text, sizeof(text)) || !ptpip_datetime_parse(text, &camera)) return false;
+    bool success = write_rtc(camera, synced_time);
+    cache_offset(camera);
+    return success;
+}
+
 static void camera_time_written(bool success, const char* datetime)
 {
-    // Best effort: no messages, verification traffic or immediate retries.
-    (void)success;
     (void)datetime;
+    if (operation != ClockOperation::AutoWrite && operation != ClockOperation::ManualWrite) return;
+    operation = ClockOperation::None;
+    if (operation_session != session || !ptpcam.isOperating()) return;
+    if (success) {
+        initial_sync_failed = false;
+        auto_write_pending = periodic_pending = false;
+        offset_valid = false;
+    }
+    if (view_active) refresh_pending = true;
 }
 
 static void camera_time_read(bool success, const char* datetime)
 {
-    if (!success || !datetime || !ptpcam.isOperating()) return;
+    ClockOperation completed = operation;
+    if (completed != ClockOperation::Offset && completed != ClockOperation::Periodic && completed != ClockOperation::ToRtc) return;
+    operation = ClockOperation::None;
+    if (operation_session != session || !ptpcam.isOperating()) return;
+    offset_valid = false;
     ptpip_datetime_t camera, rtc;
-    if (!ptpip_datetime_parse(datetime, &camera) || !time_get_rtc(&rtc)) return;
-    if (ptpip_datetime_seconds(rtc) - ptpip_datetime_seconds(camera) <= CAMERA_SYNC_LAG_SECONDS) return;
-    char text[20];
-    if (ptpip_datetime_format(rtc, text, sizeof(text))) {
-        ptpcam.request_set_time(text, camera_time_written, CAMERA_CLOCK_TIMEOUT_MS);
+    if (!success || !datetime || !ptpip_datetime_parse(datetime, &camera)) return;
+    if (completed == ClockOperation::ToRtc) write_rtc(camera, NULL);
+    cache_offset(camera);
+    if (completed == ClockOperation::Periodic && config_settings.time_auto_sync
+        && manual_sync == ManualSync::None && time_get_rtc(&rtc)) {
+        int64_t difference = (ptpip_datetime_seconds(camera) - ptpip_datetime_seconds(rtc)) * 10 + camera.decisecond;
+        if (difference <= -CAMERA_SYNC_DIFFERENCE_DS || difference >= CAMERA_SYNC_DIFFERENCE_DS) auto_write_pending = true;
     }
 }
 
 void time_camera_connected(void)
 {
-    check_on_next_properties = true;
+    ++session;
+    operation = ClockOperation::None;
+    manual_sync = ManualSync::None;
+    first_properties = true;
+    initial_sync_failed = false;
+    auto_write_pending = periodic_pending = offset_valid = false;
+    refresh_pending = view_active;
+    last_check_ms = millis();
     // Request an initial snapshot now, rather than waiting for the periodic interval.
     ptpcam.need_check_properties = true;
 }
@@ -104,10 +157,88 @@ void time_camera_properties_updated(void)
 {
     if (!ptpcam.isOperating()) return;
     uint32_t now = millis();
-    if (!check_on_next_properties && (uint32_t)(now - last_check_ms) < CAMERA_SYNC_INTERVAL_MS) return;
-    check_on_next_properties = false;
+    bool initial = first_properties;
+    if (!initial && (uint32_t)(now - last_check_ms) < CAMERA_SYNC_INTERVAL_MS) return;
+    first_properties = false;
     last_check_ms = now; // Throttle failures and invalid RTCs too.
     ptpip_datetime_t rtc;
-    if (!time_get_rtc(&rtc)) return;
-    ptpcam.request_time(camera_time_read, CAMERA_CLOCK_TIMEOUT_MS);
+    if (config_settings.time_auto_sync && time_get_rtc(&rtc)) {
+        if (initial || initial_sync_failed) {
+            if (initial) initial_sync_failed = true; // Remains set if starting or completing the write fails.
+            auto_write_pending = true;
+        } else {
+            periodic_pending = true;
+        }
+    }
+    if (view_active && !initial) refresh_pending = true;
+}
+
+void time_clock_view_active(bool active)
+{
+    if (active && !view_active) refresh_pending = true;
+    if (!active) refresh_pending = false;
+    view_active = active;
+}
+
+bool time_request_sync_camera_from_rtc(void)
+{
+    ptpip_datetime_t rtc;
+    if (!ptpcam.isOperating() || manual_sync != ManualSync::None
+        || operation == ClockOperation::ToRtc || operation == ClockOperation::ManualWrite || !time_get_rtc(&rtc)) return false;
+    manual_sync = ManualSync::ToCamera;
+    return true;
+}
+
+bool time_request_sync_rtc_from_camera(void)
+{
+    if (!ptpcam.isOperating() || !M5.Rtc.isEnabled() || manual_sync != ManualSync::None
+        || operation == ClockOperation::ToRtc || operation == ClockOperation::ManualWrite) return false;
+    manual_sync = ManualSync::ToRtc;
+    return true;
+}
+
+void time_task(void)
+{
+    if (!ptpcam.isOperating()) {
+        operation = ClockOperation::None;
+        manual_sync = ManualSync::None;
+        auto_write_pending = periodic_pending = refresh_pending = offset_valid = false;
+        return;
+    }
+    if (!config_settings.time_auto_sync) auto_write_pending = periodic_pending = false;
+    if (operation != ClockOperation::None || !ptpcam.canSend() || ptpcam.properties_pending || ptpcam.objinfo_pending) return;
+
+    ClockOperation next = ClockOperation::None;
+    if (manual_sync != ManualSync::None) {
+        next = manual_sync == ManualSync::ToCamera ? ClockOperation::ManualWrite : ClockOperation::ToRtc;
+        manual_sync = ManualSync::None;
+    } else if (auto_write_pending) {
+        auto_write_pending = false;
+        next = ClockOperation::AutoWrite;
+    } else if (periodic_pending) {
+        periodic_pending = refresh_pending = false; // One read serves the periodic comparison and visible offset.
+        next = ClockOperation::Periodic;
+    } else if (refresh_pending) {
+        refresh_pending = false;
+        next = ClockOperation::Offset;
+    }
+    if (next == ClockOperation::None) return;
+    if (next == ClockOperation::ToRtc) refresh_pending = false;
+
+    bool started = false;
+    operation = next;
+    operation_session = session;
+    if (next == ClockOperation::AutoWrite || next == ClockOperation::ManualWrite) {
+        ptpip_datetime_t rtc;
+        char text[20];
+        if (time_get_rtc(&rtc) && ptpip_datetime_format(rtc, text, sizeof(text))) {
+            started = ptpcam.request_set_time(text, camera_time_written, CAMERA_CLOCK_TIMEOUT_MS);
+        }
+    } else if (next != ClockOperation::ToRtc || M5.Rtc.isEnabled()) {
+        started = ptpcam.request_time(camera_time_read, CAMERA_CLOCK_TIMEOUT_MS);
+    }
+    if (!started) {
+        operation = ClockOperation::None;
+        if (next == ClockOperation::Offset || next == ClockOperation::Periodic || next == ClockOperation::ToRtc) offset_valid = false;
+    }
 }
