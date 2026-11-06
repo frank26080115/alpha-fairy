@@ -49,6 +49,7 @@ void setup()
 
     settings_init();
     btns_init();
+    const bool boot_autoconnect = btnBig_isPressed();
     SonyCamIr_Init();
 
     auto m5cfg = M5.config();
@@ -109,6 +110,10 @@ void setup()
     btnAny_clrPressed();
 
     srand(lroundf(imu.accX) + lroundf(imu.accY) + lroundf(imu.accZ));
+
+    if (boot_autoconnect) {
+        autoconnect_start();
+    }
 }
 
 void loop()

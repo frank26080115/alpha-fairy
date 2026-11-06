@@ -263,9 +263,19 @@ class AppAutoConnect : public FairyMenuItem
         };
 };
 
+static AppAutoConnect autoconnect_app;
+
 extern FairySubmenu main_menu;
 void setup_autoconnect()
 {
-    static AppAutoConnect app;
-    main_menu.install(&app);
+    main_menu.install(&autoconnect_app);
+}
+
+void autoconnect_start(void)
+{
+    sprites->unload_all();
+    autoconnect_app.on_navTo();
+    autoconnect_app.on_execute();
+    sprites->unload_all();
+    autoconnect_app.on_navOut();
 }

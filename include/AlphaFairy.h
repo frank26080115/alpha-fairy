@@ -48,6 +48,9 @@ extern
 
 extern bool app_poll(void);
 
+// Run the same auto-connect workflow used by the main menu, after setup_menus().
+void autoconnect_start(void);
+
 // RTC/local wall-time policy and deferred camera clock synchronization (TimeMgt.cpp).
 bool time_rtc_valid(const ptpip_datetime_t& value);
 bool time_get_rtc(ptpip_datetime_t* value);
