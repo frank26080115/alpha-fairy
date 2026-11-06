@@ -63,6 +63,11 @@ void time_task(void);
 void time_clock_view_active(bool active);
 // Offset is camera minus RTC, sampled at the last successful camera read, in tenths of a second.
 bool time_get_camera_offset(int64_t* deciseconds);
+// Cached warning; no RTC or camera I/O. Uses the same 30-second threshold as automatic sync.
+bool time_camera_needs_sync(void);
+// Notify the time service of explicit serial clock changes/reads (NULL means an unreadable camera clock).
+void time_invalidate_clock_comparison(void);
+void time_note_camera_time(const char* datetime);
 // Queue one manual operation; returns false if unavailable or another manual request is pending.
 bool time_request_sync_camera_from_rtc(void);
 bool time_request_sync_rtc_from_camera(void);

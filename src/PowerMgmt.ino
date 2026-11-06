@@ -115,6 +115,14 @@ void gui_drawStatusBar(bool is_black)
     uint32_t icon_height = 14; // should be 12, but 14 looks better
     uint32_t x = 0;
     uint32_t y = M5Lcd.height() - icon_height;
+    bool show_time_warning = !airplane_mode && time_camera_needs_sync();
+    static int16_t previous_time_x = -1;
+    uint32_t time_x = batt_status != BATTSTAT_NONE ? icon_width : 0;
+    if (previous_time_x >= 0 && (!show_time_warning || (uint32_t)previous_time_x != time_x)) {
+        // Erase before drawing other icons: ZZZ may move into this slot when the warning clears.
+        M5Lcd.fillRect(previous_time_x, y, icon_width, icon_height, is_black ? TFT_BLACK : TFT_WHITE);
+    }
+    previous_time_x = -1;
 
     // draw required status icons from left to right
 
@@ -155,6 +163,15 @@ void gui_drawStatusBar(bool is_black)
 
             x += icon_width;
         }
+    }
+
+    else if (show_time_warning)
+    {
+        // Reserve the usual slot and erase all of it; this icon is only 25 pixels wide.
+        M5Lcd.fillRect(x, y, icon_width, icon_height, is_black ? TFT_BLACK : TFT_WHITE);
+        gui_drawStatusAsset(is_black ? SPRITE_ASSET_TIME_WRONG_SMALL_BLACK : SPRITE_ASSET_TIME_WRONG_SMALL_WHITE, x, y);
+        previous_time_x = x;
+        x += icon_width;
     }
 
 #ifndef DISABLE_POWER_SAVE

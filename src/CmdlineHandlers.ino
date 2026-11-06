@@ -141,6 +141,7 @@ void rtcset_func(void* cmd, char* argstr, Stream* stream)
     m5::rtc_datetime_t rtc;
     rtc.date = m5::rtc_date_t(value.year, value.month, value.day); // M5Unified computes weekday.
     rtc.time = m5::rtc_time_t(value.hour, value.minute, value.second);
+    time_invalidate_clock_comparison();
     M5.Rtc.setDateTime(rtc);
     ptpip_datetime_t actual;
     if (!clock_read_rtc(&actual, stream, "rtcset")) return;
@@ -171,9 +172,11 @@ void camtimeget_func(void* cmd, char* argstr, Stream* stream)
     if (!clock_no_args(argstr, stream, "camtimeget") || !clock_camera_connected(stream, "camtimeget")) return;
     char formatted[22];
     if (!ptpcam.get_time(formatted, sizeof(formatted))) {
+        time_note_camera_time(NULL);
         stream->println("ERROR camtimeget: camera clock read failed (unsupported, busy, disconnected or timed out)");
         return;
     }
+    time_note_camera_time(formatted);
     stream->printf("CAMERA %s\r\n", formatted);
 }
 
@@ -194,11 +197,14 @@ void camtimeset_func(void* cmd, char* argstr, Stream* stream)
         stream->println("ERROR camtimeset: camera clock write failed (unsupported, busy, disconnected or timed out)");
         return;
     }
+    time_invalidate_clock_comparison();
     ptpip_datetime_t actual, rtc_now;
     if (!ptpcam.get_time(formatted, sizeof(formatted)) || !ptpip_datetime_parse(formatted, &actual)) {
+        time_note_camera_time(NULL);
         stream->println("ERROR camtimeset: write acknowledged, but camera clock readback failed");
         return;
     }
+    time_note_camera_time(formatted);
     if (!clock_read_rtc(&rtc_now, stream, "camtimeset")) return;
     int64_t delta = ptpip_datetime_seconds(actual) - ptpip_datetime_seconds(rtc_now);
     if (delta < -2 || delta > 2) {
