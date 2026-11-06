@@ -4,6 +4,8 @@
 #define ALFY_VERSION            "2.1.00"    // change this with every new build
 
 //#define WIFI_AP_UNIQUE_NAME
+//#define ADD_PERSONAL_PRELOADED_PROFILE 1 // Enabled by the -personal PlatformIO environments.
+//#define ADD_PERSONAL_PRELOADED_PROFILE 1 // Enabled by the -personal PlatformIO environments.
 #ifndef WIFI_AP_UNIQUE_NAME
 #define WIFI_DEFAULT_SSID "fairywifi"
 #else

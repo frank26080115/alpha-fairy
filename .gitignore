@@ -130,5 +130,9 @@ dmypy.json
 #PlatformIO
 .pio
 .vscode
+/src/*.ino.cpp
 
 tests
+
+# Local personal defaults and Wi-Fi credentials
+/src/PersonalPreloadedProfile.ino

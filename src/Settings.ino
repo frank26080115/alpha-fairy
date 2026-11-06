@@ -76,6 +76,13 @@ void settings_default() {
   config_settings.lepton_trigtemp = 35;
   config_settings.lepton_trigzone = 160;
   #endif
+
+  #if defined(ADD_PERSONAL_PRELOADED_PROFILE) && ADD_PERSONAL_PRELOADED_PROFILE
+  settings_default_personal();
+  if (wifiprofile_firstSlotEmpty()) {
+    preload_first_wifi_profile();
+  }
+  #endif
 }
 
 bool settings_load() {

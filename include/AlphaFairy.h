@@ -51,6 +51,14 @@ extern bool app_poll(void);
 // Run the same auto-connect workflow used by the main menu, after setup_menus().
 void autoconnect_start(void);
 
+// First saved profile is slot 1; slot 0 is the built-in AP. Checks only the first SSID byte.
+bool wifiprofile_firstSlotEmpty(void);
+
+#if defined(ADD_PERSONAL_PRELOADED_PROFILE) && ADD_PERSONAL_PRELOADED_PROFILE
+void settings_default_personal(void);
+void preload_first_wifi_profile(void);
+#endif
+
 // RTC/local wall-time policy and deferred camera clock synchronization (TimeMgt.cpp).
 bool time_rtc_valid(const ptpip_datetime_t& value);
 // require_valid=false permits displaying old/low-voltage calendar values, never automatic writes.

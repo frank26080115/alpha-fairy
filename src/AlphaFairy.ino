@@ -47,7 +47,6 @@ void setup()
 
     cpufreq_init();
 
-    settings_init();
     btns_init();
     const bool boot_autoconnect = btnBig_isPressed();
     SonyCamIr_Init();
@@ -71,9 +70,10 @@ void setup()
     M5Lcd.begin(); // our own extended LCD object
     M5Lcd.setBrightness(0);
     M5Lcd.fillScreen(TFT_BLACK);
-    m5gfx_setBrightness(config_settings.lcd_brightness);
 
     storage_init();
+    settings_init(); // Personal defaults may preload a profile, so LittleFS must already be mounted.
+    m5gfx_setBrightness(config_settings.lcd_brightness);
 
     #ifdef PMIC_LOG_ON_BOOT
     pmic_startCoulombCount();
@@ -382,6 +382,7 @@ void storage_init(void)
 
     Serial.println("LittleFS Mount Failed");
 
+    m5gfx_setBrightness(10); // Show the error even though settings have not been loaded yet.
     gui_startAppPrint();
     M5Lcd.setTextColor(TFT_RED, TFT_BLACK);
     M5Lcd.setTextFont(4);

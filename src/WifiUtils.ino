@@ -198,6 +198,15 @@ void wifiprofile_deleteProfile(uint8_t idx)
     }
 }
 
+bool wifiprofile_firstSlotEmpty(void)
+{
+    File f = ALFY_FS.open("/wifipro_1.txt", FILE_READ);
+    if (!f) return true;
+    int first = f.read(); // Only inspect the first byte of the SSID, not the whole profile.
+    f.close();
+    return first <= 0 || first == '\r' || first == '\n';
+}
+
 bool wifiprofile_isBlank(uint8_t idx)
 {
     wifiprofile_t p;
