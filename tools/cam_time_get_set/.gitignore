@@ -1,0 +1,7 @@
+*.exe
+*.obj
+*.pdb
+__pycache__/
+build_clock*.txt
+# Generated camera experiment transcripts
+*.jsonl

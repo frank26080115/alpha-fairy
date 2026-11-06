@@ -21,7 +21,7 @@ bool PtpIpCamera::send_oper_req(uint32_t opcode, uint32_t* params, uint8_t param
     pktstruct->op_code = opcode;
     pktstruct->transaction_id = transaction_id;
 
-    memcpy(params_dest, params, params_cnt * sizeof(uint32_t));
+    if (params_cnt) memcpy(params_dest, params, params_cnt * sizeof(uint32_t));
     len = sizeof(ptpip_pkt_operreq_t) + (params_cnt * sizeof(uint32_t));
     pktstruct->header.length = len;
 

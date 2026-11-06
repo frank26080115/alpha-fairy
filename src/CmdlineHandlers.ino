@@ -7,6 +7,11 @@ this is used only for testing
 */
 
 void factory_reset_func(void* cmd, char* argstr, Stream* stream);
+void rtcset_func    (void* cmd, char* argstr, Stream* stream);
+void rtcget_func    (void* cmd, char* argstr, Stream* stream);
+void camtimeget_func(void* cmd, char* argstr, Stream* stream);
+void camtimeset_func(void* cmd, char* argstr, Stream* stream);
+void rtcfromcam_func(void* cmd, char* argstr, Stream* stream);
 #ifndef DISABLE_CMD_LINE
 void focuscalib_func(void* cmd, char* argstr, Stream* stream);
 void shoot_func     (void* cmd, char* argstr, Stream* stream);
@@ -33,6 +38,11 @@ void readhex_func   (void* cmd, char* argstr, Stream* stream);
 
 const cmd_def_t cmds[] = {
   { "factoryreset", factory_reset_func},
+  { "rtcset"   , rtcset_func },
+  { "rtcget"   , rtcget_func },
+  { "camtimeget", camtimeget_func },
+  { "camtimeset", camtimeset_func },
+  { "rtcfromcam", rtcfromcam_func },
   #ifndef DISABLE_CMD_LINE
   { "focuscalib", focuscalib_func },
   { "shoot"    , shoot_func },
@@ -69,6 +79,151 @@ void factory_reset_func(void* cmd, char* argstr, Stream* stream)
   settings_default();
   settings_save();
   stream->println("factory reset performed");
+}
+
+// Clock commands intentionally remain available with DISABLE_CMD_LINE defined.
+static char* clock_trim(char* text)
+{
+    while (*text == ' ' || *text == '\t') ++text;
+    size_t len = strlen(text);
+    while (len && (text[len - 1] == ' ' || text[len - 1] == '\t')) text[--len] = '\0';
+    return text;
+}
+
+static bool clock_no_args(char* args, Stream* stream, const char* name)
+{
+    if (*clock_trim(args) == '\0') return true;
+    stream->printf("ERROR %s: no arguments expected\r\n", name);
+    return false;
+}
+
+static bool clock_read_rtc(ptpip_datetime_t* value, Stream* stream, const char* name)
+{
+    if (!M5.Rtc.isEnabled()) {
+        stream->printf("ERROR %s: RTC unavailable on this device\r\n", name);
+        return false;
+    }
+    m5::rtc_datetime_t rtc;
+    if (!M5.Rtc.getDateTime(&rtc)) {
+        stream->printf("ERROR %s: RTC read failed\r\n", name);
+        return false;
+    }
+    ptpip_datetime_t t = {(uint16_t)rtc.date.year, (uint8_t)rtc.date.month, (uint8_t)rtc.date.date,
+        (uint8_t)rtc.time.hours, (uint8_t)rtc.time.minutes, (uint8_t)rtc.time.seconds, 0};
+    if (M5.Rtc.getVoltLow() || !ptpip_datetime_valid(t) || t.year < 2000 || t.year > 2099) {
+        stream->printf("ERROR %s: RTC time invalid; use rtcset YYYY-MM-DD HH:MM:SS\r\n", name);
+        return false;
+    }
+    *value = t;
+    return true;
+}
+
+static bool clock_camera_connected(Stream* stream, const char* name)
+{
+    if (ptpcam.isOperating()) return true;
+    stream->printf("ERROR %s: no PTP/IP camera connected\r\n", name);
+    return false;
+}
+
+void rtcset_func(void* cmd, char* argstr, Stream* stream)
+{
+    pwr_tick(true);
+    char* text = clock_trim(argstr);
+    ptpip_datetime_t value;
+    if (strlen(text) != 19 || !ptpip_datetime_parse(text, &value) || value.year < 2000 || value.year > 2099) {
+        stream->println("ERROR rtcset: use YYYY-MM-DD HH:MM:SS; year 2000-2099, valid calendar date required");
+        return;
+    }
+    if (!M5.Rtc.isEnabled()) {
+        stream->println("ERROR rtcset: RTC unavailable on this device");
+        return;
+    }
+    m5::rtc_datetime_t rtc;
+    rtc.date = m5::rtc_date_t(value.year, value.month, value.day); // M5Unified computes weekday.
+    rtc.time = m5::rtc_time_t(value.hour, value.minute, value.second);
+    M5.Rtc.setDateTime(rtc);
+    ptpip_datetime_t actual;
+    if (!clock_read_rtc(&actual, stream, "rtcset")) return;
+    int64_t delta = ptpip_datetime_seconds(actual) - ptpip_datetime_seconds(value);
+    if (delta < 0 || delta > 1) {
+        stream->println("ERROR rtcset: RTC write did not match readback");
+        return;
+    }
+    char formatted[20];
+    ptpip_datetime_format(actual, formatted, sizeof(formatted));
+    stream->printf("OK rtcset %s\r\n", formatted);
+}
+
+void rtcget_func(void* cmd, char* argstr, Stream* stream)
+{
+    pwr_tick(true);
+    if (!clock_no_args(argstr, stream, "rtcget")) return;
+    ptpip_datetime_t value;
+    if (!clock_read_rtc(&value, stream, "rtcget")) return;
+    char formatted[20];
+    ptpip_datetime_format(value, formatted, sizeof(formatted));
+    stream->printf("RTC %s\r\n", formatted);
+}
+
+void camtimeget_func(void* cmd, char* argstr, Stream* stream)
+{
+    pwr_tick(true);
+    if (!clock_no_args(argstr, stream, "camtimeget") || !clock_camera_connected(stream, "camtimeget")) return;
+    char formatted[22];
+    if (!ptpcam.get_time(formatted, sizeof(formatted))) {
+        stream->println("ERROR camtimeget: camera clock read failed (unsupported, busy, disconnected or timed out)");
+        return;
+    }
+    stream->printf("CAMERA %s\r\n", formatted);
+}
+
+void camtimeset_func(void* cmd, char* argstr, Stream* stream)
+{
+    pwr_tick(true);
+    if (!clock_no_args(argstr, stream, "camtimeset") || !clock_camera_connected(stream, "camtimeset")) return;
+    ptpcam.wait_while_busy(0, DEFAULT_SAVE_TIMEOUT);
+    ptpip_datetime_t value;
+    if (!clock_read_rtc(&value, stream, "camtimeset")) return;
+    if (!time_rtc_valid(value)) {
+        stream->println("ERROR camtimeset: RTC is at least 2 hours older than firmware build time; use rtcset");
+        return;
+    }
+    char formatted[22];
+    ptpip_datetime_format(value, formatted, sizeof(formatted));
+    if (!ptpcam.set_time(formatted)) {
+        stream->println("ERROR camtimeset: camera clock write failed (unsupported, busy, disconnected or timed out)");
+        return;
+    }
+    ptpip_datetime_t actual, rtc_now;
+    if (!ptpcam.get_time(formatted, sizeof(formatted)) || !ptpip_datetime_parse(formatted, &actual)) {
+        stream->println("ERROR camtimeset: write acknowledged, but camera clock readback failed");
+        return;
+    }
+    if (!clock_read_rtc(&rtc_now, stream, "camtimeset")) return;
+    int64_t delta = ptpip_datetime_seconds(actual) - ptpip_datetime_seconds(rtc_now);
+    if (delta < -2 || delta > 2) {
+        stream->printf("ERROR camtimeset: camera readback %s differs from RTC\r\n", formatted);
+        return;
+    }
+    stream->printf("OK camtimeset %s (from RTC; camera timezone/DST unchanged)\r\n", formatted);
+}
+
+void rtcfromcam_func(void* cmd, char* argstr, Stream* stream)
+{
+    pwr_tick(true);
+    if (!clock_no_args(argstr, stream, "rtcfromcam") || !clock_camera_connected(stream, "rtcfromcam")) return;
+    if (!M5.Rtc.isEnabled()) {
+        stream->println("ERROR rtcfromcam: RTC unavailable on this device");
+        return;
+    }
+    ptpip_datetime_t actual;
+    if (!time_sync_rtc_from_camera(&actual)) {
+        stream->println("ERROR rtcfromcam: camera clock read, date validation or RTC write/readback failed");
+        return;
+    }
+    char formatted[20];
+    ptpip_datetime_format(actual, formatted, sizeof(formatted));
+    stream->printf("OK rtcfromcam %s (from camera)\r\n", formatted);
 }
 
 #ifndef DISABLE_CMD_LINE

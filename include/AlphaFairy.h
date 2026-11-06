@@ -48,6 +48,14 @@ extern
 
 extern bool app_poll(void);
 
+// RTC/local wall-time policy and deferred camera clock synchronization (TimeMgt.cpp).
+bool time_rtc_valid(const ptpip_datetime_t& value);
+bool time_get_rtc(ptpip_datetime_t* value);
+// Explicit camera -> RTC copy, with readback. Returns whole-second local wall time.
+bool time_sync_rtc_from_camera(ptpip_datetime_t* synced_time = NULL);
+void time_camera_connected(void);
+void time_camera_properties_updated(void);
+
 #define ALFY_FS LittleFS
 static constexpr const char* ALFY_FS_LABEL = "littlefs";
 static constexpr const char* ALFY_FS_BASE_PATH = "/littlefs";

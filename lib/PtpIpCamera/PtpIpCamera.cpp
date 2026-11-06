@@ -370,6 +370,13 @@ bool PtpIpCamera::try_decode_pkt(uint8_t buff[], uint32_t* buff_idx, uint32_t bu
     bool did_stuff = false;
     ptpip_pkthdr_t* hdr = (ptpip_pkthdr_t*)buff;
 
+    if (*buff_idx >= 8 && hdr->length >= 8
+        && discard_pkt(buff, *buff_idx < hdr->length ? *buff_idx : hdr->length)) {
+        if (*buff_idx < hdr->length) return false;
+        buffer_consume(buff, buff_idx, hdr->length, buff_max);
+        return true;
+    }
+
     if (stream_state != PTPSTREAMSTATE_NONE && pending_data > 0) // stream has started and also STARTDATA has been received, this check takes priority
     {
         if (hdr->pkt_type == PTP_PKTTYPE_DATA && stream_state == PTPSTREAMSTATE_START)
@@ -461,6 +468,13 @@ bool PtpIpCamera::try_decode_pkt(uint8_t buff[], uint32_t* buff_idx, uint32_t bu
             }
             else if (hdr->pkt_type == PTP_PKTTYPE_ENDDATA || hdr->pkt_type == PTP_PKTTYPE_CANCELDATA)
             {
+                // PTP/IP permits the last (or only) payload in EndData itself.
+                if (hdr->pkt_type == PTP_PKTTYPE_ENDDATA && hdr->length > 12) {
+                    uint32_t copy_size = hdr->length - 12;
+                    if (copy_size > DATA_BUFFER_SIZE - databuff_idx) copy_size = DATA_BUFFER_SIZE - databuff_idx;
+                    memcpy(databuff + databuff_idx, buff + 12, copy_size);
+                    databuff_idx += copy_size;
+                }
                 pending_data = 0;
                 did_stuff |= try_decode_pkt(buff, buff_idx, buff_max, false); // no chance of infinite recursion due to pending_data = 0
             }

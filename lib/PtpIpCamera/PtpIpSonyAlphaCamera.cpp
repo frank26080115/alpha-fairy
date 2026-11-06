@@ -45,7 +45,7 @@ static const uint16_t interested_properties_default[] = {
 
 PtpIpSonyAlphaCamera::PtpIpSonyAlphaCamera(char* host_name, uint16_t* interested_properties) : PtpIpCamera(host_name) {
     // make the properties table based on how many properties we are interested in
-    uint8_t i, j;
+    uint8_t i, j = 0;
     // so count first
     for (i = 0; i < PTP_MAX_INTERESTED_PROPERTIES; i++) {
         if (interested_properties_default[i] == 0) { // end of table
@@ -80,10 +80,16 @@ PtpIpSonyAlphaCamera::PtpIpSonyAlphaCamera(char* host_name, uint16_t* interested
     check_props_time = 0;
     need_check_properties = false;
     properties_pending = false;
+    need_check_object = false;
+    objinfo_pending = false;
 }
 
 bool PtpIpSonyAlphaCamera::check_name()
 {
+    // Transaction IDs restart with a new PTP/IP session.
+    camera_time.reset_session();
+    properties_request_pending = false;
+    properties_updated = false;
     this->cam_model = SONYALPHAMODEL_NONE;
     // Names ending in 0 with end_num=true use that final digit as a wildcard for future model generations.
     if (camera_name_check(this->cam_name, "A1M2") || camera_name_check(this->cam_name, "ILCE-1M2")) {
@@ -181,6 +187,17 @@ bool PtpIpSonyAlphaCamera::decode_pkt(uint8_t buff[], uint32_t buff_len)
     ptpip_pkthdr_t* hdr = (ptpip_pkthdr_t*)buff;
     uint32_t pkt_len = hdr->length;
     uint32_t pkt_type = hdr->pkt_type;
+    if (properties_request_pending && pkt_type == PTP_PKTTYPE_OPERRESP && pkt_len >= 14) {
+        uint32_t id;
+        uint16_t response;
+        memcpy(&id, buff + 10, sizeof(id));
+        memcpy(&response, buff + 8, sizeof(response));
+        if (id == properties_transaction_id) {
+            properties_request_pending = false;
+            properties_updated = response == PTP_RESPCODE_OK;
+        }
+    }
+    if (camera_time.decode_pkt(*this, buff, buff_len)) return true;
     if (pkt_type == PTP_PKTTYPE_OPERRESP && state >= PTPSTATE_POLLING)
     {
         state &= 0xFFFFFFFE;
@@ -219,8 +236,12 @@ bool PtpIpSonyAlphaCamera::check_dev_props()
 {
     bool success;
     wait_while_busy(0, DEFAULT_BUSY_TIMEOUT);
+    if (!canSend() || camera_time.busy()) return false;
     need_check_properties = false;
+    databuff_idx = 0;
+    properties_transaction_id = transaction_id;
     success = send_oper_req(SONYALPHA_OPCODE_GetAllDevicePropData, NULL, 0, NULL, -1);
+    properties_request_pending = success;
     if (success != false) {
         check_props_time = millis();
         properties_pending = true;
@@ -273,14 +294,24 @@ void PtpIpSonyAlphaCamera::task()
         }
         #endif
         #endif
-        if (need_check_object != false && canSend()) {
+        if (need_check_object != false && canSend() && !camera_time.busy()) {
             check_get_object();
         }
-        else if (need_check_properties != false && canSend()) {
+        else if (need_check_properties != false && canSend() && !camera_time.busy()) {
             check_dev_props();
         }
     }
     PtpIpCamera::task();
+    camera_time.task(*this);
+    if (state >= PTPSTATE_POLLING && state < PTPSTATE_DISCONNECT) {
+        if (properties_updated) {
+            properties_updated = false;
+            if (cb_onPropertiesUpdated) cb_onPropertiesUpdated();
+        }
+    } else {
+        properties_updated = false;
+        properties_request_pending = false;
+    }
 }
 
 bool PtpIpSonyAlphaCamera::is_manuallyfocused()

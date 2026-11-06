@@ -152,6 +152,7 @@ class PtpIpCamera
             #endif
                 );
         virtual bool decode_pkt    (uint8_t buff[], uint32_t buff_len);
+        virtual bool discard_pkt(const uint8_t*, uint32_t) { return false; }
         bool         try_decode_pkt(uint8_t buff[], uint32_t* buff_idx, uint32_t buff_max, bool can_force);
         virtual bool check_name    (void);
         void         fill_guid     (char*);

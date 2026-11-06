@@ -3,6 +3,7 @@
 
 #include "PtpIpCamera.h"
 #include "ptpsonycodes.h"
+#include "PtpIpCameraTime.h"
 
 #define SONYCAM_DEFAULT_SHUTTER_TIME 250
 
@@ -90,6 +91,18 @@ class PtpIpSonyAlphaCamera : public PtpIpCamera
         bool cmd_ExpoCompSet(int32_t x);         // input parameter expects value to be x * 1000 where x is stops of light, but with 2nd decimal place 0, example: +1.7 ev must be specified as 1700, 1666 should be rounded to 1700
         bool cmd_arb(uint32_t opcode, uint32_t propcode, uint8_t* payload, uint32_t payload_len);
 
+        // Blocking, bounded clock transactions. ASCII local wall time, no zone conversion.
+        // get_time requires at least 22 bytes and returns YYYY-MM-DD HH:MM:SS.s.
+        bool get_time(char* datetime, size_t size, uint32_t timeout_ms = DEFAULT_SAVE_TIMEOUT);
+        bool set_time(const char* datetime, uint32_t timeout_ms = DEFAULT_SAVE_TIMEOUT);
+
+        // Nonblocking, best-effort variants. Callbacks run from task(), outside packet decoding.
+        // Read callback text is valid only during the callback; write callback text is NULL.
+        typedef PtpIpSonyClock::time_callback_t time_callback_t;
+        bool request_time(time_callback_t callback, uint32_t timeout_ms = DEFAULT_SAVE_TIMEOUT);
+        bool request_set_time(const char* datetime, time_callback_t callback, uint32_t timeout_ms = DEFAULT_SAVE_TIMEOUT);
+        void (*cb_onPropertiesUpdated)(void) = NULL;
+
         #if 0
         bool get_jpg(void (*cb_s)(uint8_t*, uint32_t), void (*cb_d)(void));
         #endif
@@ -112,6 +125,14 @@ class PtpIpSonyAlphaCamera : public PtpIpCamera
         uint32_t* table_shutter_speed;
         uint32_t* table_iso;
         uint32_t* table_aperture;
+
+    private:
+        friend class PtpIpSonyClock;
+        PtpIpSonyClock camera_time;
+        bool discard_pkt(const uint8_t* buff, uint32_t size) override;
+        bool properties_request_pending = false;
+        uint32_t properties_transaction_id = 0;
+        bool properties_updated = false;
 };
 
 #endif

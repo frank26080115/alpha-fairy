@@ -14,6 +14,7 @@ void cam_cb_setup()
     ptpcam.cb_onConfirmedAvail = ptpcam_onConfirmedAvail;
     ptpcam.cb_onEvent          = ptpcam_onEvent;
     ptpcam.cb_onRxAct          = cpufreq_boost;
+    ptpcam.cb_onPropertiesUpdated = time_camera_properties_updated;
 
     httpcam.cb_onConnect       = ptpcam_onConnect;
     httpcam.cb_onDisconnect    = httpcam_onDisconnect;
@@ -98,6 +99,7 @@ void ptpcam_onConnect()
     if (ptpcam.isOperating()) {
         NetMgr_markClientCameraPtp(ptpcam.getIp());
         httpcam.setForbidden();
+        time_camera_connected();
     }
 }
 

@@ -13,6 +13,7 @@ enum
     SONYALPHA_OPCODE_GetControlDeviceDesc   = 0x9206,
     SONYALPHA_OPCODE_SetControlDeviceB      = 0x9207,
     SONYALPHA_OPCODE_GetAllDevicePropData   = 0x9209,
+    SONYALPHA_OPCODE_GetDateTime            = 0x9248,
 };
 
 enum
@@ -43,6 +44,7 @@ enum
     SONYALPHA_PROPCODE_ABFilter           = 0xD21C,
     SONYALPHA_PROPCODE_Recording          = 0xD21D,
     SONYALPHA_PROPCODE_ISO                = 0xD21E,
+    SONYALPHA_PROPCODE_DateTimeSet        = 0xD223,
     SONYALPHA_PROPCODE_AutoFocus          = 0xD2C1,
     SONYALPHA_PROPCODE_FocusMode          = PTP_PROPCODE_FocusMode,
     SONYALPHA_PROPCODE_Capture            = 0xD2C2,
