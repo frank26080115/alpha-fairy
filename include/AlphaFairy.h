@@ -131,8 +131,16 @@ static inline float m5power_getVBusCurrent(void)
     return -1.0f;
 }
 
+void btnPwr_init(void);
+#if defined(CONFIG_IDF_TARGET_ESP32S3)
+uint8_t btnPwr_readStickS3(void);
+#endif
+
 static inline uint8_t m5power_getButtonPress(void)
 {
+    #if defined(CONFIG_IDF_TARGET_ESP32S3)
+    if (M5.getBoard() == m5::board_t::board_M5StickS3) return btnPwr_readStickS3();
+    #endif
     return M5.Power.getKeyState();
 }
 

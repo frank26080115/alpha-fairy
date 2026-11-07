@@ -25,6 +25,65 @@ extern uint32_t pwr_last_tick;
 extern uint32_t lcddim_last_tick;
 extern void pwr_lcdUndim(void);
 
+#if defined(CONFIG_IDF_TARGET_ESP32S3)
+// M5PM1 button registers, matching m5stack/M5PM1 (BTN_CFG_1/2 and BTN_STATUS).
+// Use M5Unified's shared bus so this works with both older and newer M5Unified versions.
+static constexpr uint8_t STICKS3_PM1_ADDRESS = 0x6E;
+static constexpr uint32_t STICKS3_PM1_I2C_HZ = 100000;
+static bool sticks3_power_button_ready = false;
+static bool sticks3_power_button_sampled = false, sticks3_power_button_down = false;
+#endif
+
+void btnPwr_init(void)
+{
+    #if defined(CONFIG_IDF_TARGET_ESP32S3)
+    if (M5.getBoard() != m5::board_t::board_M5StickS3) return;
+    sticks3_power_button_ready = false;
+    sticks3_power_button_sampled = false;
+    sticks3_power_button_down = false;
+    uint8_t single_config, double_config;
+    if (!M5.In_I2C.readRegister(STICKS3_PM1_ADDRESS, 0x49, &single_config, 1, STICKS3_PM1_I2C_HZ)
+        || !M5.In_I2C.readRegister(STICKS3_PM1_ADDRESS, 0x4A, &double_config, 1, STICKS3_PM1_I2C_HZ)) {
+        Serial.println("StickS3 Back: PMIC configuration read failed");
+        return;
+    }
+    // Disable single-click reset; preserve timing and hardware download/recovery settings.
+    single_config |= 0x01;
+    double_config &= ~0x01; // Keep hardware double-click power-off enabled.
+    if (!M5.In_I2C.writeRegister8(STICKS3_PM1_ADDRESS, 0x49, single_config, STICKS3_PM1_I2C_HZ)
+        || !M5.In_I2C.writeRegister8(STICKS3_PM1_ADDRESS, 0x4A, double_config, STICKS3_PM1_I2C_HZ)) {
+        Serial.println("StickS3 Back: PMIC configuration write failed");
+        return;
+    }
+    // Discard the power-on press. BTN_STATUS bit 7 is a press latch, cleared by reading it.
+    uint8_t status;
+    if (M5.In_I2C.readRegister(STICKS3_PM1_ADDRESS, 0x48, &status, 1, STICKS3_PM1_I2C_HZ)) {
+        sticks3_power_button_sampled = true;
+        sticks3_power_button_down = (status & 0x01) != 0;
+    }
+    sticks3_power_button_ready = true;
+    #endif
+}
+
+#if defined(CONFIG_IDF_TARGET_ESP32S3)
+uint8_t btnPwr_readStickS3(void)
+{
+    if (!sticks3_power_button_ready) return 0;
+    uint8_t status;
+    if (!M5.In_I2C.readRegister(STICKS3_PM1_ADDRESS, 0x48, &status, 1, STICKS3_PM1_I2C_HZ)) return 0;
+    bool down = (status & 0x01) != 0;
+    bool was_down = sticks3_power_button_down;
+    sticks3_power_button_down = down;
+    if (!sticks3_power_button_sampled) {
+        sticks3_power_button_sampled = true;
+        return 0; // If the initial sample failed, do not turn the boot press into Back later.
+    }
+    // Report a new press once, or a complete tap missed between polls (latched bit 7).
+    // No hold timer or repeat action. Hardware double-click shutdown remains independent.
+    return !was_down && (down || (status & 0x80)) ? 2 : 0;
+}
+#endif
+
 void IRAM_ATTR btnSide_isr()
 {
     if (digitalRead(PIN_BTN_SIDE) != LOW) {

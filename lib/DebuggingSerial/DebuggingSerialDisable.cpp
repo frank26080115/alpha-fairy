@@ -1,7 +1,7 @@
 #include "DebuggingSerial.h"
 
 
-DebuggingSerialDisabled::DebuggingSerialDisabled(HardwareSerial* s) : HardwareSerial(0)
+DebuggingSerialDisabled::DebuggingSerialDisabled(Stream* s) : HardwareSerial(0)
 {
     this->ser_obj = s;
 }

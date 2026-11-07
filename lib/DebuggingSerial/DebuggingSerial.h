@@ -1,5 +1,5 @@
 /*
-this is a wrapper around a HardwareSerial object but with an enable flag
+this is a wrapper around a serial Stream (UART or native USB) with an enable flag
 so that an application can put print statements everywhere without messy conditional statements before each print call
 */
 
@@ -12,19 +12,19 @@ so that an application can put print statements everywhere without messy conditi
 class DebuggingSerial : public HardwareSerial
 {
     public:
-        DebuggingSerial(HardwareSerial* s);
+        DebuggingSerial(Stream* s);
         bool enabled;
         // override the functions that HardwareSerial have that calls a real UART function
         size_t write(uint8_t c);
         size_t write(const uint8_t *buffer, size_t size);
     protected:
-        HardwareSerial* ser_obj;
+        Stream* ser_obj;
 };
 
 class DebuggingSerialDisabled : public HardwareSerial
 {
     public:
-        DebuggingSerialDisabled(HardwareSerial* s);
+        DebuggingSerialDisabled(Stream* s);
         bool enabled;
         // override the functions that HardwareSerial have that calls a real UART function
         size_t write(uint8_t c);
@@ -60,7 +60,7 @@ class DebuggingSerialDisabled : public HardwareSerial
         size_t println(struct tm * timeinfo, const char * format = NULL);
         size_t println(void);
     protected:
-        HardwareSerial* ser_obj;
+        Stream* ser_obj;
 };
 
 #endif

@@ -362,7 +362,6 @@ void btncnt_func(void* cmd, char* argstr, Stream* stream)
 }
 
 
-extern DebuggingSerial dbg_ser;
 void debug_func(void* cmd, char* argstr, Stream* stream)
 {
     pwr_tick(true);

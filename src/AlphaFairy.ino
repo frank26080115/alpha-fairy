@@ -63,8 +63,14 @@ void setup()
     m5cfg.external_rtc = false;
 #if defined(M5GFX_BOARD)
     m5cfg.fallback_board = static_cast<m5::board_t>(m5gfx::M5GFX_BOARD);
+    #if defined(CONFIG_IDF_TARGET_ESP32S3)
+    if (m5cfg.fallback_board == m5::board_t::board_M5StickS3) {
+        m5cfg.pmic_button = false; // Read raw PMIC presses ourselves; no M5Unified power-button hold handling.
+    }
+    #endif
 #endif
     M5.begin(m5cfg);
+    btnPwr_init();
 
     M5.Display.setBrightness(0); // turn off the LCD backlight while initializing, avoids junk being shown on the screen
     M5Lcd.begin(); // our own extended LCD object

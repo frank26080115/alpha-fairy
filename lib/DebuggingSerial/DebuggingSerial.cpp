@@ -1,6 +1,6 @@
 #include <DebuggingSerial.h>
 
-DebuggingSerial::DebuggingSerial(HardwareSerial* s) : HardwareSerial(0)
+DebuggingSerial::DebuggingSerial(Stream* s) : HardwareSerial(0)
 {
     this->ser_obj = s;
 }
@@ -10,7 +10,7 @@ DebuggingSerial::DebuggingSerial(HardwareSerial* s) : HardwareSerial(0)
 size_t DebuggingSerial::write(uint8_t c)
 {
     if (this->enabled) {
-        ((HardwareSerial*)this->ser_obj)->write(c);
+        this->ser_obj->write(c);
     }
     #if ARDUINO >= 100
     return 1;
@@ -20,7 +20,7 @@ size_t DebuggingSerial::write(uint8_t c)
 size_t DebuggingSerial::write(const uint8_t *buffer, size_t size)
 {
     if (this->enabled) {
-        return ((HardwareSerial*)this->ser_obj)->write(buffer, size);
+        return this->ser_obj->write(buffer, size);
     }
     return 0;
 }
