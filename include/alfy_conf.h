@@ -5,7 +5,6 @@
 
 //#define WIFI_AP_UNIQUE_NAME
 //#define ADD_PERSONAL_PRELOADED_PROFILE 1 // Enabled by the -personal PlatformIO environments.
-//#define ADD_PERSONAL_PRELOADED_PROFILE 1 // Enabled by the -personal PlatformIO environments.
 #ifndef WIFI_AP_UNIQUE_NAME
 #define WIFI_DEFAULT_SSID "fairywifi"
 #else
@@ -16,7 +15,7 @@
 //#define DISABLE_STATUS_BAR
 //#define DISABLE_POWER_SAVE
 //#define DISABLE_CMD_LINE
-#define DISABLE_ALL_MSG
+//#define DISABLE_ALL_MSG
 #define MUTE_NETMSG_ON_BOOT
 //#define HTTP_MOCKBTNS_ENABLE
 //#define HTTP_ON_BOOT
