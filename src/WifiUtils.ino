@@ -374,15 +374,20 @@ int wifi_promptForPassword(char* ssid, char* existingPassword, char* newPassword
         }
     }
 
+    // Render before accepting input, then discard presses queued while
+    // scanning, opening the prompt or drawing it (including PMIC events).
+    kbd.update(imu.roll, imu.pitch);
+    btnPwr_quickPoll();
+    btnAny_clrPressed();
+
     while (true)
     {
         cpufreq_boost();
         autoconnect_poll();
         kbd.update(imu.roll, imu.pitch);
-        if (btnSide_hasPressed())
-        {
-            kbd.toggleLowerCase();
+        if (btnSide_hasPressed()) {
             btnSide_clrPressed();
+            kbd.toggleLowerCase();
         }
         if (btnBig_hasPressed())
         {

@@ -2,6 +2,14 @@
 
 #include <WiFi.h>
 #include "esp_wifi.h"
+#include "../../include/alfy_conf.h"
+#include <DebuggingSerial.h>
+
+#ifdef DISABLE_ALL_MSG
+extern DebuggingSerialDisabled dbg_ser;
+#else
+extern DebuggingSerial dbg_ser;
+#endif
 
 #ifndef WIFI_STRING_LEN
 #define WIFI_STRING_LEN 30
@@ -47,19 +55,64 @@ wificli_classifier_t wificli_table[WIFICLI_TABLE_SIZE];
 
 void NetMgr_beginAP(char* ssid, char* password)
 {
-    if (wifi_op_mode != WIFIOPMODE_NONE)
-    {
+    const size_t ssid_len = strlen(ssid);
+    const size_t key_len = strlen(password);
+    if (ssid_len == 0 || ssid_len > 32 || (key_len != 0 && (key_len < 8 || key_len > 63))) {
+        dbg_ser.println("WiFi AP: invalid SSID/passphrase length");
+        return;
+    }
+    if (wifi_op_mode != WIFIOPMODE_NONE) {
         esp_wifi_disconnect();
     }
-
     wifi_op_mode = WIFIOPMODE_AP;
     NetMgr_reset();
 
-    strncpy(NetMgr_ssid    , ssid    , WIFI_STRING_LEN);
-    strncpy(NetMgr_password, password, WIFI_STRING_LEN);
+    // Reboot passes these cached strings back in; avoid overlapping strncpy.
+    if (ssid != NetMgr_ssid) {
+        strncpy(NetMgr_ssid, ssid, WIFI_STRING_LEN);
+        NetMgr_ssid[WIFI_STRING_LEN] = 0;
+    }
+    if (password != NetMgr_password) {
+        strncpy(NetMgr_password, password, WIFI_STRING_LEN);
+        NetMgr_password[WIFI_STRING_LEN] = 0;
+    }
 
-    WiFi.mode(WIFI_AP);
-    WiFi.softAP(ssid, password);
+    // Profiles are stored by NetMgr, not by the Wi-Fi driver's NVS cache.
+    // Restart the interface and always apply the complete AP configuration.
+    WiFi.persistent(false);
+    if (!WiFi.mode(WIFI_OFF) || !WiFi.mode(WIFI_AP)) {
+        dbg_ser.println("WiFi AP setup failed");
+        return;
+    }
+    wifi_config_t requested = {};
+    memcpy(requested.ap.ssid, ssid, ssid_len);
+    memcpy(requested.ap.password, password, key_len);
+    requested.ap.ssid_len = ssid_len;
+    requested.ap.channel = 1;
+    requested.ap.max_connection = WIFICLI_TABLE_SIZE;
+    requested.ap.beacon_interval = 100;
+    requested.ap.authmode = key_len ? WIFI_AUTH_WPA2_PSK : WIFI_AUTH_OPEN;
+    requested.ap.pairwise_cipher = key_len ? WIFI_CIPHER_TYPE_CCMP : WIFI_CIPHER_TYPE_NONE;
+    esp_err_t err = esp_wifi_set_config(WIFI_IF_AP, &requested);
+    if (err != ESP_OK) {
+        dbg_ser.printf("WiFi AP config write failed: %d\r\n", (int)err);
+        return;
+    }
+    wifi_config_t config = {};
+    err = esp_wifi_get_config(WIFI_IF_AP, &config);
+    if (err != ESP_OK) {
+        dbg_ser.printf("WiFi AP config read failed: %d\r\n", (int)err);
+        return;
+    }
+    // Read back the driver's actual settings; never print the passphrase.
+    dbg_ser.printf("WiFi AP: SSID=%.*s channel=%u auth=%d cipher=%d clients=%u\r\n",
+        (int)sizeof(config.ap.ssid), (const char*)config.ap.ssid,
+        config.ap.channel, (int)config.ap.authmode,
+        (int)config.ap.pairwise_cipher, config.ap.max_connection);
+    dbg_ser.printf("WiFi AP: key_length=%u key_matches=%s MAC=%s\r\n",
+        (unsigned)key_len,
+        memcmp(config.ap.password, requested.ap.password, sizeof(config.ap.password)) == 0 ? "yes" : "NO",
+        WiFi.softAPmacAddress().c_str());
 }
 
 void NetMgr_beginSTA(char* ssid, char* password)
@@ -82,6 +135,7 @@ void NetMgr_beginSTA(char* ssid, char* password)
 
 void NetMgr_regCallback(void(*cb_evt)(void), void(*cb_disconn)(uint8_t, int))
 {
+    WiFi.onEvent(NetMgr_eventHandler, WiFiEvent_t::ARDUINO_EVENT_WIFI_AP_STACONNECTED);
     WiFi.onEvent(NetMgr_eventHandler, WiFiEvent_t::ARDUINO_EVENT_WIFI_AP_STAIPASSIGNED);
     WiFi.onEvent(NetMgr_eventHandler, WiFiEvent_t::ARDUINO_EVENT_WIFI_AP_STADISCONNECTED);
     WiFi.onEvent(NetMgr_eventHandler, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_GOT_IP);
@@ -148,6 +202,15 @@ void NetMgr_taskSTA()
 void NetMgr_eventHandler(WiFiEvent_t event, WiFiEventInfo_t info)
 {
     if (wifi_op_mode == WIFIOPMODE_AP) {
+        if (event == ARDUINO_EVENT_WIFI_AP_STACONNECTED) {
+            dbg_ser.println("WiFi AP: client associated");
+        }
+        else if (event == ARDUINO_EVENT_WIFI_AP_STAIPASSIGNED) {
+            dbg_ser.println("WiFi AP: client received IP address");
+        }
+        else if (event == ARDUINO_EVENT_WIFI_AP_STADISCONNECTED) {
+            dbg_ser.println("WiFi AP: client disconnected");
+        }
         NetMgr_taskAP();
     }
     else if (wifi_op_mode == WIFIOPMODE_STA) {
@@ -164,19 +227,19 @@ void NetMgr_eventHandler(WiFiEvent_t event, WiFiEventInfo_t info)
         }
         #endif
         if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED && (reason == 202 || reason == 203 || reason == 23 || reason == 15)) {
-            Serial.printf("STA disconnect auth fail %d\r\n", reason);
+            dbg_ser.printf("STA disconnect auth fail %d\r\n", reason);
             if (disconnect_callback != NULL) {
                 disconnect_callback(WIFIDISCON_AUTH_FAIL, reason);
             }
         }
         else if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED && (reason < 200 && reason != 3 && reason != 8 && reason != 7)) {
-            Serial.printf("STA disconnect error %d\r\n", reason);
+            dbg_ser.printf("STA disconnect error %d\r\n", reason);
             if (disconnect_callback != NULL) {
                 disconnect_callback(WIFIDISCON_AUTH_ERROR, reason);
             }
         }
         else if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED && (reason == 3 || reason == 8)) {
-            Serial.printf("STA disconnect normal %d\r\n", reason);
+            dbg_ser.printf("STA disconnect normal %d\r\n", reason);
             if (disconnect_callback != NULL) {
                 disconnect_callback(WIFIDISCON_NORMAL, reason);
             }
@@ -408,13 +471,13 @@ void NetMgr_reset()
 
 void NetMgr_reboot()
 {
+    if (wifi_op_mode == WIFIOPMODE_AP) {
+        NetMgr_beginAP(NetMgr_ssid, NetMgr_password);
+        return;
+    }
     NetMgr_reset();
     esp_wifi_disconnect();
-    if (wifi_op_mode == WIFIOPMODE_AP) {
-        WiFi.mode(WIFI_AP);
-        WiFi.softAP(NetMgr_ssid, NetMgr_password);
-    }
-    else if (wifi_op_mode == WIFIOPMODE_STA) {
+    if (wifi_op_mode == WIFIOPMODE_STA) {
         WiFi.mode(WIFI_STA);
         WiFi.begin(NetMgr_ssid, NetMgr_password);
         last_sta_reconn_time = millis();

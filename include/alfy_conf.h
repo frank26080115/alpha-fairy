@@ -40,7 +40,7 @@
 #define GENERAL_ICON_WIDTH     60
 #define CLOCK_ANG_DIV          18
 
-#define BTN_DEBOUNCE 50
+#define BTN_DEBOUNCE 100 // Minimum stable release before accepting another press.
 
 //#define SERIAL_PORT_BAUDRATE   500000
 //#define SERIAL_PORT_BAUDRATE   250000

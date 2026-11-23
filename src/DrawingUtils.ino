@@ -22,7 +22,7 @@ void gui_drawVerticalDots(int x_offset, int y_margin, int y_offset, int dot_radi
     for (i = 0; i < dot_cnt; i++)
     {
         int y = y_margin + y_offset + ((y_span * i) / (dot_cnt - 1));
-        uint32_t color = (i == (dot_idx % dot_cnt)) ? fore_color : back_color;
+        uint16_t color = (i == (dot_idx % dot_cnt)) ? fore_color : back_color;
         M5Lcd.fillCircle(x, y, dot_radius, color);
     }
 }

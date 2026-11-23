@@ -63,7 +63,12 @@ void FairyKeyboard::lcd_setup()
     _lcd->setRotation(_cur_rot);
     _screen_width  = _lcd->width();
     _screen_height = _lcd->height();
+    _lcd->setTextSize(1);
+    _lcd->setTextWrap(false, false);
     _lcd->setFreeFont(&KBD_FONT_MAIN);
+    // The original TFT_eSPI layout uses baselines for FreeFonts. M5GFX
+    // defaults to top-left positioning, including for write()/print().
+    _lcd->setTextDatum(L_BASELINE);
     _lcd->setTextColor(_colour_fade, _colour_back);
 }
 
@@ -99,6 +104,8 @@ void FairyKeyboard::draw_base()
             }
         }
     }
+    // Bitmap fonts and the caller's prompt use top-left coordinates.
+    _lcd->setTextDatum(TL_DATUM);
     if (redraw_cb != NULL) {
         redraw_cb();
     }
@@ -316,6 +323,7 @@ void FairyKeyboard::update(float roll, float pitch)
     _prev_char = _cur_char;
     _prev_rot  = _cur_rot;
     _prev_lowercase = _is_lowercase;
+    _lcd->setTextDatum(TL_DATUM);
 }
 
 void FairyKeyboard::toggleLowerCase()
@@ -384,24 +392,16 @@ void FairyKeyboard::draw_inputstr()
     uint32_t tspan = now - _start_time;
     int col_span = KBD_GET_COL_SPAN(0);
     int x = ((_screen_width - (KBD_CHAR_WIDTH * col_span)) / 2);
-    _lcd->setCursor(x, KBD_TYPE_Y);
-    _lcd->setTextColor(_colour_fore, _colour_back);
     if (_recent_click)
     {
-        // a recent click leaves the risk of leaving the carrot
-        int i;
-        // write out every character except the last one
-        for (i = 0; i < _str_idx - 1; i++) {
-            _lcd->write(_str[i]);
-        }
-        // blank out the space underneat the last character
-        _lcd->fillRect(_lcd->getCursorX(), KBD_DIVIDER_Y - KBD_LINE_SPACING, KBD_CHAR_WIDTH * 2, KBD_LINE_SPACING, _colour_back); // blank a little section
-        _lcd->write(_str[_str_idx - 1]); // write the last character
+        // Clear the old caret and deleted characters, including when the
+        // last character was deleted. There is no _str[_str_idx - 1] then.
+        _lcd->fillRect(0, KBD_DIVIDER_Y - KBD_LINE_SPACING, _screen_width, KBD_LINE_SPACING, _colour_back);
         _recent_click = false;
     }
-    else {
-        _lcd->print(_str); // no risk, print the string normally
-    }
+    _lcd->setCursor(x, KBD_TYPE_Y);
+    _lcd->setTextColor(_colour_fore, _colour_back);
+    _lcd->print(_str);
 
     if (_str_idx < KBD_STR_LEN)
     {
@@ -433,13 +433,14 @@ void FairyKeyboard::draw_backspace(bool sel)
     char c;
     get_char_coords(row, col, &c, &x, &y);
     _lcd->setTextFont(2);
+    _lcd->setTextDatum(TL_DATUM);
     _lcd->setCursor(x + 7, y - KBD_LINE_SPACING + 10);
     #define KBD_BACKSPACE_BOX_COORDS(xxx, yyy) (xxx) - 1, (yyy) - KBD_LINE_SPACING + 5, (KBD_CHAR_WIDTH * 2) - 1, KBD_LINE_SPACING + 1
     if (sel)
     {
         set_sel_colour();
         if ((_colour_box & KBD_COLOURFLAG_MASK) == KBD_COLOURFLAG_BOXBACKFILL) {
-            _lcd->fillRect(KBD_BACKSPACE_BOX_COORDS(x, y), _colour_box & KBD_COLOUR_MASK);
+            _lcd->fillRect(KBD_BACKSPACE_BOX_COORDS(x, y), static_cast<uint16_t>(_colour_box & KBD_COLOUR_MASK));
         }
     }
     else
@@ -457,7 +458,7 @@ void FairyKeyboard::draw_backspace(bool sel)
     if (sel)
     {
         if ((_colour_box & KBD_COLOURFLAG_MASK) == KBD_COLOURFLAG_BOXBORDER) {
-            _lcd->drawRect(KBD_BACKSPACE_BOX_COORDS(x, y), _colour_box & KBD_COLOUR_MASK);
+            _lcd->drawRect(KBD_BACKSPACE_BOX_COORDS(x, y), static_cast<uint16_t>(_colour_box & KBD_COLOUR_MASK));
         }
     }
     else
@@ -465,6 +466,7 @@ void FairyKeyboard::draw_backspace(bool sel)
         _lcd->drawRect(KBD_BACKSPACE_BOX_COORDS(x, y), _colour_back);
     }
     _lcd->setFreeFont(&KBD_FONT_MAIN);
+    _lcd->setTextDatum(L_BASELINE);
 };
 
 void FairyKeyboard::draw_enter(bool sel)
@@ -473,13 +475,14 @@ void FairyKeyboard::draw_enter(bool sel)
     char c;
     get_char_coords(row, col, &c, &x, &y);
     _lcd->setTextFont(2);
+    _lcd->setTextDatum(TL_DATUM);
     _lcd->setCursor(x + 1, y - KBD_LINE_SPACING + 9);
     #define KBD_ENTERKEY_BOX_COORDS(xxx, yyy) (xxx) - 1, (yyy) - KBD_LINE_SPACING + 5, (KBD_CHAR_WIDTH * 2) + 2, KBD_LINE_SPACING + 1
     if (sel)
     {
         set_sel_colour();
         if ((_colour_box & KBD_COLOURFLAG_MASK) == KBD_COLOURFLAG_BOXBACKFILL) {
-            _lcd->fillRect(KBD_ENTERKEY_BOX_COORDS(x, y), _colour_box & KBD_COLOUR_MASK);
+            _lcd->fillRect(KBD_ENTERKEY_BOX_COORDS(x, y), static_cast<uint16_t>(_colour_box & KBD_COLOUR_MASK));
         }
     }
     else
@@ -496,7 +499,7 @@ void FairyKeyboard::draw_enter(bool sel)
     if (sel)
     {
         if ((_colour_box & KBD_COLOURFLAG_MASK) == KBD_COLOURFLAG_BOXBORDER) {
-            _lcd->drawRect(KBD_ENTERKEY_BOX_COORDS(x, y), _colour_box & KBD_COLOUR_MASK);
+            _lcd->drawRect(KBD_ENTERKEY_BOX_COORDS(x, y), static_cast<uint16_t>(_colour_box & KBD_COLOUR_MASK));
         }
     }
     else
@@ -504,23 +507,28 @@ void FairyKeyboard::draw_enter(bool sel)
         _lcd->drawRect(KBD_ENTERKEY_BOX_COORDS(x, y), _colour_back);
     }
     _lcd->setFreeFont(&KBD_FONT_MAIN);
+    _lcd->setTextDatum(L_BASELINE);
 };
 
 void FairyKeyboard::set_sel_colour()
 {
+    // M5GFX interprets uint32_t colors as RGB888, but these flag-bearing
+    // settings contain RGB565. Narrow them before calling its templates.
+    const uint16_t hilite = static_cast<uint16_t>(_colour_hilite & KBD_COLOUR_MASK);
+    const uint16_t box = static_cast<uint16_t>(_colour_box & KBD_COLOUR_MASK);
     if ((_colour_hilite & KBD_COLOURFLAG_MASK) == KBD_COLOURFLAG_HLACTIVE)
     {
         if ((_colour_box & KBD_COLOURFLAG_MASK) == KBD_COLOURFLAG_BOXBACKFILL) {
-            _lcd->setTextColor(_colour_hilite & KBD_COLOUR_MASK, _colour_box & KBD_COLOUR_MASK);
+            _lcd->setTextColor(hilite, box);
         }
         else {
-            _lcd->setTextColor(_colour_hilite & KBD_COLOUR_MASK, _colour_back);
+            _lcd->setTextColor(hilite, _colour_back);
         }
     }
     else
     {
         if ((_colour_box & KBD_COLOURFLAG_MASK) == KBD_COLOURFLAG_BOXBACKFILL) {
-            _lcd->setTextColor(_colour_fore, _colour_box & KBD_COLOUR_MASK);
+            _lcd->setTextColor(_colour_fore, box);
         }
         else {
             _lcd->setTextColor(_colour_fore, _colour_back);
@@ -536,9 +544,7 @@ void FairyKeyboard::register_redraw_cb(void(*cb)(void))
 void FairyKeyboard::set_str(char* x)
 {
     strncpy(_str, x, KBD_STR_LEN);
+    _str[KBD_STR_LEN] = 0;
     _str_idx = strlen(_str);
-    if (_str_idx >= KBD_STR_LEN) {
-        _str_idx = KBD_STR_LEN;
-        _str[_str_idx] = 0;
-    }
+    _recent_click = true;
 }

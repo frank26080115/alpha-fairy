@@ -4,14 +4,18 @@
 #include "button_pins.h"
 
 /*
-interrupts are used to catch new button press events
-a simple debounce algorithm is used
+interrupts track both edges so short taps are captured between polls
+each new press requires a stable release first; holds never repeat
 */
 
 //#define BTNS_DEBUG
 
 volatile uint32_t btnSide_downTime = 0;
 volatile uint32_t btnBig_downTime  = 0;
+static volatile uint32_t btnSide_upTime = 0;
+static volatile uint32_t btnBig_upTime  = 0;
+static volatile bool btnSide_down = false;
+static volatile bool btnBig_down  = false;
 volatile uint32_t btnSide_clrTime  = 0;
 volatile uint32_t btnBig_clrTime   = 0;
 volatile uint32_t btnSide_cnt      = 0;
@@ -86,78 +90,64 @@ uint8_t btnPwr_readStickS3(void)
 
 void IRAM_ATTR btnSide_isr()
 {
-    if (digitalRead(PIN_BTN_SIDE) != LOW) {
-        // guard against ESP32 hardware bug 
-        // https://github.com/espressif/arduino-esp32/issues/5055
-        // https://github.com/espressif/esp-idf/commit/d890a516a1097f0a07788e203fdb1a82bb83520e
-        return;
-    }
-
     #if defined(ENABLE_LIGHT_SLEEP) && defined(ENABLE_LIGHT_SLEEP_GPIOWAKE)
-    // if we went to sleep, then the mode is GPIO_INTR_LOW_LEVEL, we need to change it back to GPIO_INTR_NEGEDGE
-    gpio_set_intr_type(GPIO_BTN_SIDE, GPIO_INTR_NEGEDGE);
+    // Restore both edges after low-level GPIO wakeup.
+    gpio_set_intr_type(GPIO_BTN_SIDE, GPIO_INTR_ANYEDGE);
     #endif
 
+    bool down = digitalRead(PIN_BTN_SIDE) == LOW;
+    // Ignore spurious/duplicate interrupts; trust the actual pin level.
+    if (down == btnSide_down) return;
+    btnSide_down = down;
     uint32_t now = millis();
-    if ((now - btnSide_downTime) > BTN_DEBOUNCE) {
-        btnSide_cnt++;
+    if (down) {
+        if ((now - btnSide_upTime) >= BTN_DEBOUNCE) btnSide_cnt++;
+        btnSide_downTime = now;
     }
-    btnSide_downTime = now;
+    else {
+        btnSide_upTime = now;
+    }
 }
 
 void IRAM_ATTR btnBig_isr()
 {
-    if (digitalRead(PIN_BTN_BIG) != LOW) {
-        // guard against ESP32 hardware bug 
-        // https://github.com/espressif/arduino-esp32/issues/5055
-        // https://github.com/espressif/esp-idf/commit/d890a516a1097f0a07788e203fdb1a82bb83520e
-        return;
-    }
-
     #if defined(ENABLE_LIGHT_SLEEP) && defined(ENABLE_LIGHT_SLEEP_GPIOWAKE)
-    // if we went to sleep, then the mode is GPIO_INTR_LOW_LEVEL, we need to change it back to GPIO_INTR_NEGEDGE
-    gpio_set_intr_type(GPIO_BTN_BIG, GPIO_INTR_NEGEDGE);
+    gpio_set_intr_type(GPIO_BTN_BIG, GPIO_INTR_ANYEDGE);
     #endif
 
+    bool down = digitalRead(PIN_BTN_BIG) == LOW;
+    if (down == btnBig_down) return;
+    btnBig_down = down;
     uint32_t now = millis();
-    if ((now - btnBig_downTime) > BTN_DEBOUNCE) {
-        btnBig_cnt++;
+    if (down) {
+        if ((now - btnBig_upTime) >= BTN_DEBOUNCE) btnBig_cnt++;
+        btnBig_downTime = now;
     }
-    btnBig_downTime = now;
+    else {
+        btnBig_upTime = now;
+    }
 }
 
 void btns_init()
 {
     pinMode(PIN_BTN_SIDE, INPUT_PULLUP);
-    attachInterrupt(PIN_BTN_SIDE, btnSide_isr, FALLING);
     pinMode(PIN_BTN_BIG, INPUT_PULLUP);
-    attachInterrupt(PIN_BTN_BIG, btnBig_isr, FALLING);
+    // A button held at boot is not a new press. Its release starts debounce.
+    btnSide_down = digitalRead(PIN_BTN_SIDE) == LOW;
+    btnBig_down = digitalRead(PIN_BTN_BIG) == LOW;
+    btnSide_upTime = btnBig_upTime = millis();
+    attachInterrupt(PIN_BTN_SIDE, btnSide_isr, CHANGE);
+    attachInterrupt(PIN_BTN_BIG, btnBig_isr, CHANGE);
 }
 
 void btns_poll()
 {
     #ifdef TRY_CATCH_MISSED_GPIO_ISR
-    // this function attempts to catch missed ISRs
-    static char prev_side = HIGH;
-    static char prev_big  = HIGH;
-    char x;
-
-    volatile uint32_t now = millis();
-
-    if ((x = digitalRead(PIN_BTN_SIDE)) != prev_side) {
-        if (x == LOW && btnSide_downTime == 0 && (now - btnSide_clrTime) > 100) {
-            btnSide_cnt++;
-            btnSide_downTime = now;
-        }
-        prev_side = x;
-    }
-    if ((x = digitalRead(PIN_BTN_BIG)) != prev_big) {
-        if (x == LOW && btnBig_downTime == 0 && (now - btnBig_clrTime) > 100) {
-            btnBig_cnt++;
-            btnBig_downTime = now;
-        }
-        prev_big = x;
-    }
+    // Share the edge tracking with the ISR without processing an edge twice.
+    noInterrupts();
+    btnSide_isr();
+    btnBig_isr();
+    interrupts();
     #endif
 }
 
@@ -197,7 +187,6 @@ void btnSide_clrPressed() {
     Serial.printf("clr btnSide_cnt %u %u\r\n", btnSide_cnt, btnSide_cnt_prev);
     #endif
     btnSide_cnt_prev = btnSide_cnt;
-    //btnSide_downTime = 0;
     btnSide_clrTime  = now;
     pwr_last_tick    = now;
     lcddim_last_tick = now;
@@ -239,7 +228,6 @@ void btnBig_clrPressed() {
     Serial.printf("clr btnBig_cnt %u %u\r\n", btnBig_cnt, btnBig_cnt_prev);
     #endif
     btnBig_cnt_prev  = btnBig_cnt;
-    //btnBig_downTime  = 0;
     btnBig_clrTime   = now;
     pwr_last_tick    = now;
     lcddim_last_tick = now;
@@ -267,7 +255,7 @@ bool btnBig_isPressed() {
 }
 
 bool btnBoth_hasPressed() {
-    bool x;
+    bool x = false;
     x |= btnSide_hasPressed();
     x |= btnBig_hasPressed();
     return x;
@@ -279,7 +267,7 @@ void btnBoth_clrPressed() {
 }
 
 bool btnAny_hasPressed() {
-    bool x;
+    bool x = false;
     x |= btnSide_hasPressed();
     x |= btnBig_hasPressed();
     x |= btnPwr_hasPressed();
