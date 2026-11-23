@@ -21,10 +21,13 @@ static int64_t offset_ds = 0;
 static uint32_t session = 0, operation_session = 0;
 static bool operation_auto_sync = false;
 static uint32_t last_check_ms = 0;
+static bool verify_write_pending = false;
+static int32_t written_utc_offset = 0;
 
-static int64_t compile_time_seconds()
+static int64_t compile_time_seconds(ptpip_datetime_t* calendar = NULL)
 {
-    // __DATE__/__TIME__ and the RTC are compared as local wall time, without DST conversion.
+    // The build records the host's offset; the RTC uses the configured offset.
+    // Convert between those fixed offsets, without consulting runtime DST rules.
     char month[4];
     unsigned year, day, hour, minute, second;
     if (sscanf(__DATE__, "%3s %u %u", month, &day, &year) != 3
@@ -34,12 +37,20 @@ static int64_t compile_time_seconds()
     if (!found) return 0;
     ptpip_datetime_t value = {(uint16_t)year, (uint8_t)((found - months) / 3 + 1), (uint8_t)day,
         (uint8_t)hour, (uint8_t)minute, (uint8_t)second, 0};
-    return ptpip_datetime_valid(value) ? ptpip_datetime_seconds(value) : 0;
+    if (!ptpip_datetime_valid(value)) return 0;
+    #ifdef ALFY_BUILD_UTC_OFFSET_MINUTES
+    if (!ptpip_utc_offset_valid(config_settings.time_utc_offset_minutes)
+        || !ptpip_datetime_shift_minutes(&value,
+            config_settings.time_utc_offset_minutes - ALFY_BUILD_UTC_OFFSET_MINUTES)) return 0;
+    #endif
+    if (calendar) *calendar = value;
+    return ptpip_datetime_seconds(value);
 }
 
 bool time_rtc_valid(const ptpip_datetime_t& value)
 {
-    static const int64_t built_at = compile_time_seconds();
+    // Do not cache the converted value: users may change the RTC UTC offset.
+    const int64_t built_at = compile_time_seconds();
     return built_at != 0 && ptpip_datetime_valid(value) && value.year >= 2000 && value.year <= 2099
         && ptpip_datetime_seconds(value) > built_at - RTC_BUILD_TOLERANCE_SECONDS;
 }
@@ -91,13 +102,34 @@ static bool write_rtc(const ptpip_datetime_t& camera, ptpip_datetime_t* synced_t
     return true;
 }
 
+void time_init(void)
+{
+    ptpip_datetime_t current;
+    if (!M5.Rtc.isEnabled()) {
+        dbg_ser.println("RTC unavailable; build-time fallback cannot be stored");
+        return;
+    }
+    if (time_get_rtc(&current)) return;
+    ptpip_datetime_t built_at;
+    if (compile_time_seconds(&built_at) && write_rtc(built_at, NULL)) {
+        dbg_ser.println("RTC initialized from firmware build time");
+    } else {
+        dbg_ser.println("RTC build-time initialization failed");
+    }
+}
+
 static void cache_offset(const ptpip_datetime_t& camera)
 {
     ptpip_datetime_t rtc;
     offset_valid = time_get_rtc(&rtc, false);
     if (offset_valid) offset_ds = (ptpip_datetime_seconds(camera) - ptpip_datetime_seconds(rtc)) * 10 + camera.decisecond;
+    ptpip_sony_clock_info_t info;
+    bool wrong_zone = ptpcam.last_time_info(&info)
+        && info.utc_offset_minutes != config_settings.time_utc_offset_minutes;
+    // Equal clock digits do not imply equal time: the NY/Pacific bug had exactly
+    // that symptom. Check the returned numeric zone as well as wall-clock drift.
     camera_needs_sync = offset_valid && !M5.Rtc.getVoltLow() && time_rtc_valid(rtc)
-        && (offset_ds <= -CAMERA_SYNC_DIFFERENCE_DS || offset_ds >= CAMERA_SYNC_DIFFERENCE_DS);
+        && (wrong_zone || offset_ds <= -CAMERA_SYNC_DIFFERENCE_DS || offset_ds >= CAMERA_SYNC_DIFFERENCE_DS);
 }
 
 bool time_get_camera_offset(int64_t* deciseconds)
@@ -130,14 +162,42 @@ bool time_sync_rtc_from_camera(ptpip_datetime_t* synced_time)
 {
     if (!ptpcam.isOperating() || !M5.Rtc.isEnabled()) return false;
     char text[22];
-    ptpip_datetime_t camera;
-    if (!ptpcam.get_time(text, sizeof(text)) || !ptpip_datetime_parse(text, &camera)) {
+    ptpip_sony_clock_info_t info;
+    if (!ptpcam.get_time_info(&info) || !ptpip_utc_offset_valid(info.utc_offset_minutes)) {
         time_note_camera_time(NULL);
         return false;
     }
-    bool success = write_rtc(camera, synced_time);
+    bool success = write_rtc(info.datetime, synced_time);
+    // Explicit camera -> RTC sync copies local wall time AND its offset metadata.
+    // Otherwise pulling New York time into an RTC labelled Pacific creates the
+    // same three-hour error on the next camera write. No DST rule is inferred.
+    if (success && config_settings.time_utc_offset_minutes != info.utc_offset_minutes) {
+        config_settings.time_utc_offset_minutes = info.utc_offset_minutes;
+        settings_save();
+    }
+    ptpip_datetime_format(info.datetime,text,sizeof(text),true);
     time_note_camera_time(text);
     return success;
+}
+
+bool time_set_utc_offset(int32_t minutes)
+{
+    if (!ptpip_utc_offset_valid(minutes)) return false;
+    int32_t previous = config_settings.time_utc_offset_minutes;
+    if (minutes == previous) return true;
+    // A seasonal change must shift valid RTC wall time by the offset difference
+    // to preserve the instant. Changing only the label would move the camera's
+    // underlying time by an hour on the next sync. Called only on config Save.
+    ptpip_datetime_t rtc;
+    if (time_get_rtc(&rtc)) {
+        if (!ptpip_utc_offset_valid(previous)
+            || !ptpip_datetime_shift_minutes(&rtc, minutes-previous)
+            || !write_rtc(rtc,NULL)) return false;
+    }
+    config_settings.time_utc_offset_minutes = minutes;
+    time_invalidate_clock_comparison();
+    if (config_settings.time_auto_sync) auto_write_pending = true;
+    return true; // Caller persists settings; an invalid/unavailable RTC is not fabricated.
 }
 
 static void camera_time_written(bool success, const char* datetime)
@@ -147,9 +207,11 @@ static void camera_time_written(bool success, const char* datetime)
     operation = ClockOperation::None;
     if (operation_session != session || !ptpcam.isOperating()) return;
     if (success) {
-        initial_sync_failed = false;
+        verify_write_pending = true; // ACK alone is insufficient (Z was ACKed but misapplied).
         auto_write_pending = periodic_pending = false;
         offset_valid = camera_needs_sync = false;
+    } else {
+        initial_sync_failed = true;
     }
     background_refresh_pending = true;
 }
@@ -162,18 +224,38 @@ static void camera_time_read(bool success, const char* datetime)
     if (operation_session != session || !ptpcam.isOperating()) return;
     offset_valid = camera_needs_sync = false;
     ptpip_datetime_t camera, rtc;
-    if (!success || !datetime || !ptpip_datetime_parse(datetime, &camera)) return;
-    if (completed == ClockOperation::ToRtc) write_rtc(camera, NULL);
+    if (!success || !datetime || !ptpip_datetime_parse(datetime, &camera)) {
+        if (verify_write_pending) initial_sync_failed = true;
+        verify_write_pending = false;
+        return;
+    }
+    ptpip_sony_clock_info_t info;
+    bool has_info = ptpcam.last_time_info(&info);
+    if (completed == ClockOperation::ToRtc) {
+        if (has_info && ptpip_utc_offset_valid(info.utc_offset_minutes) && write_rtc(camera, NULL)
+            && config_settings.time_utc_offset_minutes != info.utc_offset_minutes) {
+            config_settings.time_utc_offset_minutes = info.utc_offset_minutes;
+            settings_save();
+        }
+    }
     cache_offset(camera);
-    if (completed == ClockOperation::Periodic && operation_auto_sync && config_settings.time_auto_sync
+    if (view_active) refresh_pending = false; // This read also supplies the screen-entry refresh.
+    if (verify_write_pending) {
+        bool verified = has_info && info.utc_offset_minutes == written_utc_offset
+            && time_get_rtc(&rtc) && offset_ds >= -20 && offset_ds <= 20;
+        initial_sync_failed = !verified;
+        dbg_ser.println(verified ? "Camera clock and UTC offset verified" : "Camera clock/UTC offset readback mismatch");
+        verify_write_pending = false;
+    }
+    if (completed == ClockOperation::Periodic && !view_active && operation_auto_sync && config_settings.time_auto_sync
         && manual_sync == ManualSync::None && time_get_rtc(&rtc)) {
-        int64_t difference = (ptpip_datetime_seconds(camera) - ptpip_datetime_seconds(rtc)) * 10 + camera.decisecond;
-        if (difference <= -CAMERA_SYNC_DIFFERENCE_DS || difference >= CAMERA_SYNC_DIFFERENCE_DS) auto_write_pending = true;
+        if (camera_needs_sync) auto_write_pending = true;
     }
 }
 
 void time_camera_connected(void)
 {
+    verify_write_pending = false;
     ++session;
     operation = ClockOperation::None;
     manual_sync = ManualSync::None;
@@ -197,7 +279,7 @@ void time_camera_properties_updated(void)
     ptpip_datetime_t rtc;
     bool rtc_valid = time_get_rtc(&rtc);
     if (!rtc_valid) camera_needs_sync = false;
-    if (config_settings.time_auto_sync && rtc_valid && (initial || initial_sync_failed)) {
+    if (!view_active && config_settings.time_auto_sync && rtc_valid && (initial || initial_sync_failed)) {
         if (initial) initial_sync_failed = true; // Remains set if starting or completing the write fails.
         auto_write_pending = true;
         background_refresh_pending = true; // Read after the attempt, without scheduling another write.
@@ -209,7 +291,16 @@ void time_camera_properties_updated(void)
 
 void time_clock_view_active(bool active)
 {
-    if (active && !view_active) refresh_pending = true;
+    if (active && !view_active) {
+        // Let the camera act as the user's clock/area editor while this screen
+        // is open. Cancel queued automatic writes and prevent an in-flight
+        // periodic read from scheduling one; explicit sync buttons still work.
+        // A write already sent over PTP cannot be recalled, so it may finish.
+        auto_write_pending = false;
+        periodic_pending = false;
+        operation_auto_sync = false;
+        refresh_pending = true;
+    }
     if (!active) refresh_pending = false;
     view_active = active;
 }
@@ -234,12 +325,13 @@ bool time_request_sync_rtc_from_camera(void)
 void time_task(void)
 {
     if (!ptpcam.isOperating()) {
+        verify_write_pending = false;
         operation = ClockOperation::None;
         manual_sync = ManualSync::None;
         auto_write_pending = periodic_pending = refresh_pending = background_refresh_pending = offset_valid = camera_needs_sync = false;
         return;
     }
-    if (!config_settings.time_auto_sync) auto_write_pending = false;
+    if (view_active || !config_settings.time_auto_sync) auto_write_pending = false;
     if (operation != ClockOperation::None || !ptpcam.canSend() || ptpcam.properties_pending || ptpcam.objinfo_pending) return;
     if (first_properties && manual_sync == ManualSync::None) return;
 
@@ -268,7 +360,9 @@ void time_task(void)
         ptpip_datetime_t rtc;
         char text[20];
         if (time_get_rtc(&rtc) && ptpip_datetime_format(rtc, text, sizeof(text))) {
-            started = ptpcam.request_set_time(text, camera_time_written, CAMERA_CLOCK_TIMEOUT_MS);
+            written_utc_offset = config_settings.time_utc_offset_minutes;
+            verify_write_pending = false;
+            started = ptpcam.request_set_time(text, written_utc_offset, camera_time_written, CAMERA_CLOCK_TIMEOUT_MS);
         }
     } else if (next != ClockOperation::ToRtc || M5.Rtc.isEnabled()) {
         started = ptpcam.request_time(camera_time_read, CAMERA_CLOCK_TIMEOUT_MS);

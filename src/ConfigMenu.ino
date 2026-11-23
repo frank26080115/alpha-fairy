@@ -2,9 +2,16 @@
 #include "FairyMenu.h"
 
 static bool has_saved = false;
+// Keep timezone edits staged: app_poll can sync the camera while this menu is
+// open. Apply the RTC adjustment once on Save, never while browsing or Cancel.
+static int32_t pending_utc_offset = 0;
 
 bool config_save_exit(void*)
 {
+    if (!time_set_utc_offset(pending_utc_offset)) {
+        dbg_ser.println("UTC offset save failed: RTC adjustment/readback failed");
+        return false;
+    }
     has_saved = true;
     settings_save();
     return true;
@@ -49,6 +56,7 @@ install(new FairyCfgItem("IR en"                  , (int32_t*)&(config_settings.
 install(new FairyCfgItem("camera protocol"        , (int32_t*)&(config_settings.protocol               ),    0,    2,     1, TXTFMT_PROTOCOL ));
 install(new FairyCfgItem("pin - shutter rel."     , (int32_t*)&(config_settings.pin_shutter            ), 0, PINCFG_END - 1, 1, TXTFMT_PINCFG));
 install(new FairyCfgItem("pin - ext input"        , (int32_t*)&(config_settings.pin_exinput            ), 0, PINCFG_END - 1, 1, TXTFMT_PINCFG));
+install(new FairyCfgItem("RTC UTC offset", &pending_utc_offset, -720, 840, 15, TXTFMT_UTC_OFFSET));
 install(new FairyCfgItem("Save + Exit", config_save_exit, SPRITE_ASSET_BACK_ICON));
         };
 
@@ -59,6 +67,7 @@ install(new FairyCfgItem("Save + Exit", config_save_exit, SPRITE_ASSET_BACK_ICON
                 _backup = (configsettings_t*)malloc(sizeof(configsettings_t));
             }
             memcpy(_backup, &config_settings, sizeof(configsettings_t)); // allows for changes to be undone
+            pending_utc_offset = config_settings.time_utc_offset_minutes;
 
             bool exit = FairyCfgApp::on_execute();
 

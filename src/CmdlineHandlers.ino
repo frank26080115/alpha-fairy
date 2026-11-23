@@ -12,6 +12,9 @@ void rtcget_func    (void* cmd, char* argstr, Stream* stream);
 void camtimeget_func(void* cmd, char* argstr, Stream* stream);
 void camtimeset_func(void* cmd, char* argstr, Stream* stream);
 void rtcfromcam_func(void* cmd, char* argstr, Stream* stream);
+void camtimeinfo_func(void* cmd, char* argstr, Stream* stream);
+void camtimewrite_func(void* cmd, char* argstr, Stream* stream);
+void camautosync_func(void* cmd, char* argstr, Stream* stream);
 #ifndef DISABLE_CMD_LINE
 void focuscalib_func(void* cmd, char* argstr, Stream* stream);
 void shoot_func     (void* cmd, char* argstr, Stream* stream);
@@ -43,6 +46,9 @@ const cmd_def_t cmds[] = {
   { "camtimeget", camtimeget_func },
   { "camtimeset", camtimeset_func },
   { "rtcfromcam", rtcfromcam_func },
+  { "camtimeinfo", camtimeinfo_func },
+  { "camtimewrite", camtimewrite_func },
+  { "camautosync", camautosync_func },
   #ifndef DISABLE_CMD_LINE
   { "focuscalib", focuscalib_func },
   { "shoot"    , shoot_func },
@@ -82,6 +88,7 @@ void factory_reset_func(void* cmd, char* argstr, Stream* stream)
 }
 
 // Clock commands intentionally remain available with DISABLE_CMD_LINE defined.
+// Diagnostic handlers below share the strict argument and connection checks.
 static char* clock_trim(char* text)
 {
     while (*text == ' ' || *text == '\t') ++text;
@@ -193,25 +200,30 @@ void camtimeset_func(void* cmd, char* argstr, Stream* stream)
     }
     char formatted[22];
     ptpip_datetime_format(value, formatted, sizeof(formatted));
-    if (!ptpcam.set_time(formatted)) {
+    int32_t requested_offset = config_settings.time_utc_offset_minutes;
+    if (!ptpcam.set_time(formatted, requested_offset)) {
         stream->println("ERROR camtimeset: camera clock write failed (unsupported, busy, disconnected or timed out)");
         return;
     }
     time_invalidate_clock_comparison();
-    ptpip_datetime_t actual, rtc_now;
-    if (!ptpcam.get_time(formatted, sizeof(formatted)) || !ptpip_datetime_parse(formatted, &actual)) {
+    ptpip_datetime_t rtc_now;
+    ptpip_sony_clock_info_t info;
+    if (!ptpcam.get_time_info(&info)) {
         time_note_camera_time(NULL);
         stream->println("ERROR camtimeset: write acknowledged, but camera clock readback failed");
         return;
     }
+    ptpip_datetime_format(info.datetime, formatted, sizeof(formatted), true);
     time_note_camera_time(formatted);
     if (!clock_read_rtc(&rtc_now, stream, "camtimeset")) return;
-    int64_t delta = ptpip_datetime_seconds(actual) - ptpip_datetime_seconds(rtc_now);
-    if (delta < -2 || delta > 2) {
-        stream->printf("ERROR camtimeset: camera readback %s differs from RTC\r\n", formatted);
+    int64_t delta = ptpip_datetime_seconds(info.datetime) - ptpip_datetime_seconds(rtc_now);
+    if (delta < -2 || delta > 2 || info.utc_offset_minutes != requested_offset) {
+        stream->printf("ERROR camtimeset: readback=%s offset_minutes=%d requested_offset=%ld differs from RTC/config\r\n",
+            formatted, info.utc_offset_minutes, (long)requested_offset);
         return;
     }
-    stream->printf("OK camtimeset %s (from RTC; camera timezone/DST unchanged)\r\n", formatted);
+    stream->printf("OK camtimeset %s offset_minutes=%d dst=%u (clock and offset verified; DST rules are manual)\r\n",
+        formatted, info.utc_offset_minutes, info.dst);
 }
 
 void rtcfromcam_func(void* cmd, char* argstr, Stream* stream)
@@ -229,7 +241,84 @@ void rtcfromcam_func(void* cmd, char* argstr, Stream* stream)
     }
     char formatted[20];
     ptpip_datetime_format(actual, formatted, sizeof(formatted));
-    stream->printf("OK rtcfromcam %s (from camera)\r\n", formatted);
+    stream->printf("OK rtcfromcam %s offset_minutes=%ld (from camera)\r\n", formatted,
+        (long)config_settings.time_utc_offset_minutes);
+}
+
+static bool clock_print_camera_info(Stream* stream, const char* label)
+{
+    ptpip_sony_clock_info_t info;
+    if (!ptpcam.get_time_info(&info)) {
+        stream->printf("ERROR %s: camera clock read failed\r\n", label);
+        return false;
+    }
+    char text[22];
+    ptpip_datetime_format(info.datetime, text, sizeof(text), true);
+    int minutes = info.utc_offset_minutes;
+    unsigned magnitude = minutes < 0 ? -minutes : minutes;
+    stream->printf("%s datetime=%s offset=%c%02u%02u offset_minutes=%d dst=%u\r\n",
+        label, text, minutes < 0 ? '-' : '+', magnitude/60, magnitude%60, minutes, info.dst);
+    stream->print("CLOCK_RAW");
+    for (uint8_t byte : info.raw) stream->printf(" %02X", byte);
+    stream->println();
+    time_note_camera_time(text);
+    return true;
+}
+
+void camtimeinfo_func(void* cmd, char* argstr, Stream* stream)
+{
+    (void)cmd;
+    pwr_tick(true);
+    if (!clock_no_args(argstr, stream, "camtimeinfo") || !clock_camera_connected(stream, "camtimeinfo")) return;
+    // Report the camera's offset and DST separately; do not assume whether DST is included in its offset.
+    clock_print_camera_info(stream, "CAMERA_CLOCK");
+}
+
+void camautosync_func(void* cmd, char* argstr, Stream* stream)
+{
+    (void)cmd;
+    char* text = clock_trim(argstr);
+    if (*text) {
+        if (strcmp(text,"on") && strcmp(text,"off")) {
+            stream->println("ERROR camautosync: use on, off, or no arguments");
+            return;
+        }
+        config_settings.time_auto_sync = !strcmp(text,"on");
+        settings_save();
+        time_invalidate_clock_comparison();
+    }
+    stream->printf("CLOCK_CONFIG autosync=%ld rtc_offset_minutes=%ld\r\n",
+        (long)config_settings.time_auto_sync, (long)config_settings.time_utc_offset_minutes);
+}
+
+void camtimewrite_func(void* cmd, char* argstr, Stream* stream)
+{
+    (void)cmd;
+    pwr_tick(true);
+    char* text = clock_trim(argstr);
+    uint8_t payload[47];
+    size_t length;
+    if (!ptpip_sony_clock_encode_test(text, payload, sizeof(payload), &length)) {
+        stream->println("ERROR camtimewrite: use YYYYMMDDTHHMMSS.s optionally followed by Z or +/-HHMM");
+        return;
+    }
+    if (config_settings.time_auto_sync) {
+        stream->println("ERROR camtimewrite: first run camautosync off so automatic writes do not overwrite the test");
+        return;
+    }
+    if (!clock_camera_connected(stream,"camtimewrite")) return;
+    if (!clock_print_camera_info(stream,"BEFORE")) return;
+    stream->printf("CLOCK_TEST opcode=0x9205 property=0xD223 text=%s bytes=%u\r\n", text, (unsigned)length);
+    if (!ptpcam.test_time_write(text)) {
+        time_invalidate_clock_comparison();
+        stream->println("ERROR camtimewrite: write failed; camera state may have changed, inspect with camtimeinfo");
+        return;
+    }
+    time_invalidate_clock_comparison();
+    stream->println("ACK camtimewrite (acknowledgement alone does not prove the time or timezone changed)");
+    if (!clock_print_camera_info(stream,"AFTER")) {
+        stream->println("ERROR camtimewrite: write acknowledged but readback failed");
+    }
 }
 
 #ifndef DISABLE_CMD_LINE

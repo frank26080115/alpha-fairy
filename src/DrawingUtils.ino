@@ -126,7 +126,12 @@ void gui_showVal(int32_t x, uint32_t txtfmt, Print* printer)
 {
     char str[64]; int i = 0;
     uint32_t txtfmt_masked = txtfmt & TXTFMT_BASEMASK;
-    if (txtfmt_masked == TXTFMT_BOOL) {
+    if (txtfmt_masked == TXTFMT_UTC_OFFSET) {
+        int64_t magnitude = x < 0 ? -(int64_t)x : x;
+        i += sprintf(str, "UTC%c%02u:%02u", x < 0 ? '-' : '+',
+            (unsigned)(magnitude/60), (unsigned)(magnitude%60));
+    }
+    else if (txtfmt_masked == TXTFMT_BOOL) {
         if (x == 0) {
             i += sprintf(&(str[i]), "NO");
         }

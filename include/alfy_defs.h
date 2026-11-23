@@ -32,6 +32,7 @@ enum
   TXTFMT_TRIGACT                  ,
   TXTFMT_PINCFG                   ,
   TXTFMT_TALLEYLITE               ,
+  TXTFMT_UTC_OFFSET              ,
   TXTFMT_BYTENS         =   0x0100,
   TXTFMT_AUTOCFG        =   0xFF00,
   TXTFMT_ALLCAPS        = 0x010000,

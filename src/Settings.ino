@@ -58,6 +58,13 @@ void settings_default() {
 
   config_settings.tallylite = TALLYLITE_SCREEN;
   config_settings.time_auto_sync = 0;
+  // Compiler-local timezone is the fallback only. Personal defaults run below
+  // and may override it (e.g. fixed PST even when the build host uses PDT).
+  #if defined(ALFY_BUILD_UTC_OFFSET_MINUTES) && ALFY_BUILD_UTC_OFFSET_MINUTES >= -720 && ALFY_BUILD_UTC_OFFSET_MINUTES <= 840 && ALFY_BUILD_UTC_OFFSET_MINUTES % 15 == 0
+  config_settings.time_utc_offset_minutes = ALFY_BUILD_UTC_OFFSET_MINUTES;
+  #else
+  config_settings.time_utc_offset_minutes = TIMEZONE_UTC;
+  #endif
   config_settings.infoscr_mode = INFOSCR_LANDSCAPE_BLACK;
 
   #ifdef ENABLE_BUILD_LEPTON

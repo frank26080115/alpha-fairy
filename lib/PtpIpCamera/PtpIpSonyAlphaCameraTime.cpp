@@ -53,12 +53,12 @@ bool PtpIpSonyClock::request_time(PtpIpSonyAlphaCamera& camera, time_callback_t 
     return true;
 }
 
-bool PtpIpSonyClock::request_set_time(PtpIpSonyAlphaCamera& camera, const char* datetime,
+bool PtpIpSonyClock::request_set_time(PtpIpSonyAlphaCamera& camera, const char* datetime, int32_t utc_offset_minutes,
     time_callback_t cb, uint32_t wait_ms)
 {
     ptpip_datetime_t date;
-    uint8_t payload[37];
-    if (!cb || !ptpip_datetime_parse(datetime, &date) || !ptpip_sony_clock_encode(date, payload)) return false;
+    uint8_t payload[47];
+    if (!cb || !ptpip_datetime_parse(datetime, &date) || !ptpip_sony_clock_encode(date, utc_offset_minutes, payload)) return false;
     uint32_t property = SONYALPHA_PROPCODE_DateTimeSet;
     if (!start_transaction(camera, SONYALPHA_OPCODE_SetControlDeviceA, &property, 1, payload, sizeof(payload))) return false;
     callback = cb;
@@ -117,7 +117,8 @@ bool PtpIpSonyClock::decode_pkt(PtpIpSonyAlphaCamera& camera, uint8_t* buff, uin
         if (id == transaction_id) {
             memcpy(&response, buff + 8, sizeof(response));
             if (reading && response == PTP_RESPCODE_OK && data_active && data_complete && camera.pending_data == 0) {
-                data_valid = ptpip_sony_clock_decode(camera.databuff, camera.databuff_idx, &value);
+                data_valid = ptpip_sony_clock_decode_info(camera.databuff, camera.databuff_idx, &info);
+                if (data_valid) value = info.datetime;
             }
             pending = false;
             camera.PtpIpCamera::decode_pkt(buff, size);
@@ -153,11 +154,11 @@ bool PtpIpSonyClock::get_time(PtpIpSonyAlphaCamera& camera, char* datetime, size
     return ptpip_datetime_format(value, datetime, size, true);
 }
 
-bool PtpIpSonyClock::set_time(PtpIpSonyAlphaCamera& camera, const char* datetime, uint32_t wait_ms)
+bool PtpIpSonyClock::set_time(PtpIpSonyAlphaCamera& camera, const char* datetime, int32_t utc_offset_minutes, uint32_t wait_ms)
 {
     ptpip_datetime_t date;
-    uint8_t payload[37];
-    if (!ptpip_datetime_parse(datetime, &date) || !ptpip_sony_clock_encode(date, payload)) return false;
+    uint8_t payload[47];
+    if (!ptpip_datetime_parse(datetime, &date) || !ptpip_sony_clock_encode(date, utc_offset_minutes, payload)) return false;
     uint32_t property = SONYALPHA_PROPCODE_DateTimeSet;
     return transaction(camera, SONYALPHA_OPCODE_SetControlDeviceA, &property, 1, payload, sizeof(payload), wait_ms);
 }
@@ -167,9 +168,35 @@ bool PtpIpSonyAlphaCamera::get_time(char* datetime, size_t size, uint32_t timeou
     return camera_time.get_time(*this, datetime, size, timeout_ms);
 }
 
-bool PtpIpSonyAlphaCamera::set_time(const char* datetime, uint32_t timeout_ms)
+bool PtpIpSonyClock::get_info(PtpIpSonyAlphaCamera& camera, ptpip_sony_clock_info_t* out, uint32_t timeout_ms)
 {
-    return camera_time.set_time(*this, datetime, timeout_ms);
+    if (!out || !transaction(camera, SONYALPHA_OPCODE_GetDateTime, NULL, 0, NULL, -1, timeout_ms)) return false;
+    *out = info;
+    return true;
+}
+
+bool PtpIpSonyClock::write_test(PtpIpSonyAlphaCamera& camera, const char* text, uint32_t timeout_ms)
+{
+    uint8_t payload[47];
+    size_t length;
+    if (!ptpip_sony_clock_encode_test(text, payload, sizeof(payload), &length)) return false;
+    uint32_t property = SONYALPHA_PROPCODE_DateTimeSet;
+    return transaction(camera, SONYALPHA_OPCODE_SetControlDeviceA, &property, 1, payload, length, timeout_ms);
+}
+
+bool PtpIpSonyAlphaCamera::get_time_info(ptpip_sony_clock_info_t* info, uint32_t timeout_ms)
+{
+    return camera_time.get_info(*this, info, timeout_ms);
+}
+
+bool PtpIpSonyAlphaCamera::test_time_write(const char* compact, uint32_t timeout_ms)
+{
+    return camera_time.write_test(*this, compact, timeout_ms);
+}
+
+bool PtpIpSonyAlphaCamera::set_time(const char* datetime, int32_t utc_offset_minutes, uint32_t timeout_ms)
+{
+    return camera_time.set_time(*this, datetime, utc_offset_minutes, timeout_ms);
 }
 
 bool PtpIpSonyAlphaCamera::request_time(time_callback_t callback, uint32_t timeout_ms)
@@ -177,9 +204,9 @@ bool PtpIpSonyAlphaCamera::request_time(time_callback_t callback, uint32_t timeo
     return camera_time.request_time(*this, callback, timeout_ms);
 }
 
-bool PtpIpSonyAlphaCamera::request_set_time(const char* datetime, time_callback_t callback, uint32_t timeout_ms)
+bool PtpIpSonyAlphaCamera::request_set_time(const char* datetime, int32_t utc_offset_minutes, time_callback_t callback, uint32_t timeout_ms)
 {
-    return camera_time.request_set_time(*this, datetime, callback, timeout_ms);
+    return camera_time.request_set_time(*this, datetime, utc_offset_minutes, callback, timeout_ms);
 }
 
 bool PtpIpSonyAlphaCamera::discard_pkt(const uint8_t* buff, uint32_t size)

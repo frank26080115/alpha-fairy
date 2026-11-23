@@ -95,13 +95,17 @@ class PtpIpSonyAlphaCamera : public PtpIpCamera
         // Blocking, bounded clock transactions. ASCII local wall time, no zone conversion.
         // get_time requires at least 22 bytes and returns YYYY-MM-DD HH:MM:SS.s.
         bool get_time(char* datetime, size_t size, uint32_t timeout_ms = DEFAULT_SAVE_TIMEOUT);
-        bool set_time(const char* datetime, uint32_t timeout_ms = DEFAULT_SAVE_TIMEOUT);
+        // Offset is mandatory: bare local time silently preserves the camera's old area.
+        bool set_time(const char* datetime, int32_t utc_offset_minutes, uint32_t timeout_ms = DEFAULT_SAVE_TIMEOUT);
+        bool last_time_info(ptpip_sony_clock_info_t* info) const { return camera_time.last_info(info); }
+        bool get_time_info(ptpip_sony_clock_info_t* info, uint32_t timeout_ms = DEFAULT_SAVE_TIMEOUT);
+        bool test_time_write(const char* compact, uint32_t timeout_ms = DEFAULT_SAVE_TIMEOUT);
 
         // Nonblocking, best-effort variants. Callbacks run from task(), outside packet decoding.
         // Read callback text is valid only during the callback; write callback text is NULL.
         typedef PtpIpSonyClock::time_callback_t time_callback_t;
         bool request_time(time_callback_t callback, uint32_t timeout_ms = DEFAULT_SAVE_TIMEOUT);
-        bool request_set_time(const char* datetime, time_callback_t callback, uint32_t timeout_ms = DEFAULT_SAVE_TIMEOUT);
+        bool request_set_time(const char* datetime, int32_t utc_offset_minutes, time_callback_t callback, uint32_t timeout_ms = DEFAULT_SAVE_TIMEOUT);
         void (*cb_onPropertiesUpdated)(void) = NULL;
 
         #if 0

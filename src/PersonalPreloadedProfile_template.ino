@@ -10,6 +10,9 @@
 
 void settings_default_personal(void)
 {
+    // Pacific standard time (UTC-8). Change to TIMEZONE_PDT (UTC-7) in summer.
+    // This overrides the compiler-host timezone fallback when defaults are loaded.
+    config_settings.time_utc_offset_minutes = TIMEZONE_PST;
     // Example default override:
     // config_settings.mictrig_level = 74;
 }

@@ -68,6 +68,8 @@ bool time_sync_rtc_from_camera(ptpip_datetime_t* synced_time = NULL);
 void time_camera_connected(void);
 void time_camera_properties_updated(void);
 void time_task(void);
+void time_init(void);
+bool time_set_utc_offset(int32_t minutes);
 void time_clock_view_active(bool active);
 // Offset is camera minus RTC, sampled at the last successful camera read, in tenths of a second.
 bool time_get_camera_offset(int64_t* deciseconds);

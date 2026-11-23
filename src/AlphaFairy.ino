@@ -79,6 +79,7 @@ void setup()
 
     storage_init();
     settings_init(); // Personal defaults may preload a profile, so LittleFS must already be mounted.
+    time_init();
     m5gfx_setBrightness(config_settings.lcd_brightness);
 
     #ifdef PMIC_LOG_ON_BOOT

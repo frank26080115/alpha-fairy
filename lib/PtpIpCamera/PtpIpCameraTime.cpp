@@ -76,8 +76,35 @@ bool ptpip_sony_clock_decode(const uint8_t* data, size_t size, ptpip_datetime_t*
     return ptpip_datetime_parse(text, value);
 }
 
+bool ptpip_datetime_shift_minutes(ptpip_datetime_t* value, int32_t minutes)
+{
+    if (!value || !ptpip_datetime_valid(*value) || minutes < -2880 || minutes > 2880) return false;
+    ptpip_datetime_t shifted = *value;
+    int clock = shifted.hour*60 + shifted.minute + minutes;
+    while (clock < 0) {
+        clock += 1440;
+        if (--shifted.day == 0) {
+            if (--shifted.month == 0) { shifted.month=12; --shifted.year; }
+            shifted.day=days_in_month(shifted.year,shifted.month);
+        }
+    }
+    while (clock >= 1440) {
+        clock -= 1440;
+        if (++shifted.day > days_in_month(shifted.year,shifted.month)) {
+            shifted.day=1;
+            if (++shifted.month > 12) { shifted.month=1; ++shifted.year; }
+        }
+    }
+    shifted.hour=clock/60; shifted.minute=clock%60;
+    if (!ptpip_datetime_valid(shifted)) return false;
+    *value=shifted;
+    return true;
+}
+
 bool ptpip_sony_clock_encode(const ptpip_datetime_t& t, uint8_t payload[37])
 {
+    // Bare form is retained for diagnostics/backward comparison only.
+    // Production writes use the offset overload below.
     if (!payload || !ptpip_datetime_valid(t)) return false;
     char compact[18];
     snprintf(compact, sizeof(compact), "%04u%02u%02uT%02u%02u%02u.%u",
@@ -86,5 +113,69 @@ bool ptpip_sony_clock_encode(const ptpip_datetime_t& t, uint8_t payload[37])
     memset(payload, 0, 37);
     payload[0] = 18; // UTF-16 code units including the terminating NUL.
     for (unsigned i = 0; i < 17; ++i) payload[1 + i * 2] = compact[i];
+    return true;
+}
+
+bool ptpip_utc_offset_valid(int32_t minutes)
+{
+    return minutes >= -12*60 && minutes <= 14*60 && minutes % 15 == 0;
+}
+
+bool ptpip_sony_clock_encode(const ptpip_datetime_t& t, int32_t offset, uint8_t payload[47])
+{
+    if (!payload || !ptpip_datetime_valid(t) || !ptpip_utc_offset_valid(offset)) return false;
+    // A1 II hardware tests, 2026-11-23: D223 accepts numeric +/-hhmm and changes
+    // both its clock and area (confirmed -0500 => New York, -0800 => Pacific).
+    // A trailing Z was ACKed but treated as literal wall time with the old offset.
+    // Never use Z, even at UTC: emit +0000. The .s field is also required.
+    // DST was zero in these tests; we do not claim to set a DST flag/rule here.
+    char text[23];
+    unsigned magnitude = offset < 0 ? -offset : offset;
+    snprintf(text, sizeof(text), "%04u%02u%02uT%02u%02u%02u.%u%c%02u%02u",
+        t.year,t.month,t.day,t.hour,t.minute,t.second,t.decisecond,
+        offset < 0 ? '-' : '+', magnitude/60,magnitude%60);
+    size_t length;
+    return ptpip_sony_clock_encode_test(text,payload,47,&length) && length==47;
+}
+
+bool ptpip_sony_clock_decode_info(const uint8_t* data, size_t size, ptpip_sony_clock_info_t* info)
+{
+    if (!info) return false;
+    ptpip_sony_clock_info_t result = {};
+    if (!ptpip_sony_clock_decode(data, size, &result.datetime)) return false;
+    int minutes = ((data[23]-'0')*10 + data[24]-'0')*60 + (data[25]-'0')*10 + data[26]-'0';
+    result.utc_offset_minutes = data[22] == '-' ? -minutes : minutes;
+    result.dst = data[28] != 0;
+    memcpy(result.raw, data, sizeof(result.raw));
+    *info = result;
+    return true;
+}
+
+bool ptpip_sony_clock_encode_test(const char* text, uint8_t* payload, size_t capacity, size_t* length)
+{
+    if (!text || !payload || !length) return false;
+    size_t n = strlen(text);
+    if ((n != 17 && n != 18 && n != 22) || capacity < 1 + (n+1)*2) return false;
+    for (size_t i=0; i<17; ++i) {
+        if (i==8) { if (text[i]!='T') return false; }
+        else if (i==15) { if (text[i]!='.') return false; }
+        else if (text[i]<'0' || text[i]>'9') return false;
+    }
+    char formatted[22];
+    snprintf(formatted,sizeof(formatted),"%.4s-%.2s-%.2s %.2s:%.2s:%.2s.%.1s",
+        text,text+4,text+6,text+9,text+11,text+13,text+16);
+    ptpip_datetime_t date;
+    if (!ptpip_datetime_parse(formatted,&date)) return false;
+    if (n==18 && text[17]!='Z') return false;
+    if (n==22) {
+        if (text[17]!='+' && text[17]!='-') return false;
+        for (size_t i=18; i<22; ++i) if (text[i]<'0' || text[i]>'9') return false;
+        if ((text[18]-'0')*10+text[19]-'0'>14 || (text[20]-'0')*10+text[21]-'0'>59
+            || ((text[18]-'0')*10+text[19]-'0'==14 && (text[20]!='0' || text[21]!='0'))) return false;
+    }
+    *length = 1 + (n+1)*2;
+    memset(payload,0,*length);
+    payload[0] = n+1;
+    for (size_t i=0; i<n; ++i) payload[1+i*2]=text[i];
     return true;
 }

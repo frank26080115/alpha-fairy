@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include "alfy_conf.h"
 #include "alfy_defs.h"
+#include "Timezones.h"
 
 typedef struct
 {
@@ -69,6 +70,10 @@ typedef struct
 #endif
 
   uint32_t infoscr_mode;
+
+  // Minutes east of UTC (e.g. TIMEZONE_PST=-480, TIMEZONE_PDT=-420).
+  // Describes RTC local wall time; update manually for daylight saving.
+  int32_t time_utc_offset_minutes;
 
   uint32_t crc32;
 }
