@@ -170,6 +170,9 @@ void PtpIpCamera::task()
     {
         if (socket_main.connected() == 0 || socket_event.connected() == 0) {
             dbgser_important->printf("PTP socket disconnected (state %u)\r\n", state);
+            dbgser_important->printf("PTP disconnect detail: main=%u event=%u WiFi=%d RSSI=%d rx_age=%u pending=%u buffered=%u\r\n",
+                socket_main.connected(), socket_event.connected(), (int)WiFi.status(), WiFi.RSSI(),
+                now - last_rx_time, pending_data, pktbuff_idx);
             state = PTPSTATE_DISCONNECT;
             return;
         }
@@ -292,7 +295,7 @@ void PtpIpCamera::poll()
     yield();
     #ifndef USE_ASYNC_SOCK
     poll_socket(&socket_main , pktbuff  , &pktbuff_idx  , PACKET_BUFFER_SIZE);
-    poll_socket(&socket_event, eventbuff, &eventbuff_idx, PACKET_BUFFER_SIZE);
+    poll_socket(&socket_event, eventbuff, &eventbuff_idx, sizeof(eventbuff));
     #else
         #ifdef ASYNCTCP_NO_RTOS_TASK
             socket_main.poll_task();
@@ -347,8 +350,8 @@ void PtpIpCamera::poll_socket(
         debug_rx((uint8_t*)buff, did_read);
         #endif
         error_cnt = 0;
+        last_rx_time = now;
     }
-    last_rx_time = now;
 
     int retries = 6;
     // the data we just read might contain multiple valid packets
@@ -369,6 +372,13 @@ bool PtpIpCamera::try_decode_pkt(uint8_t buff[], uint32_t* buff_idx, uint32_t bu
 {
     bool did_stuff = false;
     ptpip_pkthdr_t* hdr = (ptpip_pkthdr_t*)buff;
+
+    if (stream_state == PTPSTREAMSTATE_NONE && *buff_idx >= 8 && hdr->length >= buff_max) {
+        dbgser_important->printf("PTP packet exceeds receive capacity: type=%u length=%u capacity=%u\r\n",
+            hdr->pkt_type, hdr->length, buff_max - 1);
+        state = PTPSTATE_DISCONNECT;
+        return false;
+    }
 
     if (*buff_idx >= 8 && hdr->length >= 8
         && discard_pkt(buff, *buff_idx < hdr->length ? *buff_idx : hdr->length)) {
@@ -776,7 +786,7 @@ void PtpIpCamera::onAsyncPacket(void* pcam, AsyncClient* sock, struct pbuf* pb)
 void PtpIpCamera::onAsyncPacketEvent(void* pcam, AsyncClient* sock, struct pbuf* pb)
 {
     PtpIpCamera* cam = (PtpIpCamera*)pcam;
-    cam->poll_socket(sock, cam->eventbuff, &(cam->eventbuff_idx), PACKET_BUFFER_SIZE, pb);
+    cam->poll_socket(sock, cam->eventbuff, &(cam->eventbuff_idx), sizeof(cam->eventbuff), pb);
 }
 
 void PtpIpCamera::onAsyncError(void* pcam, AsyncClient* sock, int8_t errnum)

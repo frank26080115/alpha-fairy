@@ -1,4 +1,11 @@
 #include "SonyHttpCamera.h"
+#include "../../include/alfy_conf.h"
+
+#ifdef DISABLE_ALL_MSG
+extern DebuggingSerialDisabled dbg_ser;
+#else
+extern DebuggingSerial dbg_ser;
+#endif
 
 DebuggingSerial* SonyHttpCamera::dbgser_important;
 DebuggingSerial* SonyHttpCamera::dbgser_states;
@@ -57,6 +64,9 @@ void SonyHttpCamera::begin(uint32_t ip, WiFiUDP* sock)
     last_poll_time = 0;
     if (state != SHCAMSTATE_FORBIDDEN && ip != 0)
     {
+        // begin(0) is also called during global construction, before the
+        // application logger exists. Only log runtime connection attempts.
+        dbg_ser.printf("HTTP begin: ip=%s previous_state=0x%02X\r\n", IPAddress(ip).toString().c_str(), state);
         state = SHCAMSTATE_WAIT;
         state_after_wait = SHCAMSTATE_CONNECTING;
         start_time = now;
@@ -104,6 +114,30 @@ bool SonyHttpCamera::parse_event(char* data, int32_t maxlen)
 
     if (maxlen <= 0) {
         maxlen = rx_buff_idx;
+    }
+
+    // Availability changes with camera settings (for example, drive mode).
+    // Report the relevant methods explicitly instead of truncating their list
+    // inside the first getEvent response.
+    static uint32_t reported_session = ~0u;
+    static int reported_take = -1, reported_burst = -1;
+    if (scan_json_for_key(rx_buff, maxlen, "names", &i, &j, NULL, 0)) {
+        const char* take = strstr(rx_buff + i, "\"actTakePicture\"");
+        const char* burst = strstr(rx_buff + i, "\"startContShooting\"");
+        int can_take = take != NULL && take <= rx_buff + j;
+        int can_burst = burst != NULL && burst <= rx_buff + j;
+        if (reported_session != start_time || can_take != reported_take || can_burst != reported_burst) {
+            reported_session = start_time;
+            reported_take = can_take;
+            reported_burst = can_burst;
+            dbg_ser.printf("HTTP available APIs: %.*s\r\n", j - i + 1, rx_buff + i);
+            char status[32] = {}, mode[32] = {}, drive[32] = {};
+            scan_json_for_key(rx_buff, maxlen, "cameraStatus", &i, &j, status, sizeof(status));
+            scan_json_for_key(rx_buff, maxlen, "currentShootMode", &i, &j, mode, sizeof(mode));
+            scan_json_for_key(rx_buff, maxlen, "currentContShootingMode", &i, &j, drive, sizeof(drive));
+            dbg_ser.printf("HTTP shooting availability: actTakePicture=%d startContShooting=%d status=%s shootMode=%s contMode=%s\r\n",
+                can_take, can_burst, status, mode, drive);
+        }
     }
 
     found = scan_json_for_key(rx_buff, maxlen, "cameraStatus", &i, &j, (char*)res_buff, 64);
@@ -315,6 +349,13 @@ void SonyHttpCamera::poll()
         }
         if ((no_len && httpclient.connected() == false) || (no_len == false && http_content_len <= 0) || httpclient.connected() == false)
         {
+            // Report once per connection; leave normal event polls quiet.
+            static uint32_t reported_start = ~0u;
+            if (reported_start != start_time) {
+                reported_start = start_time;
+                dbg_ser.printf("HTTP first getEvent: status=%d bytes=%ld response=%.320s\r\n",
+                    last_http_resp_code, (long)rx_buff_idx, rx_buff);
+            }
             dbgser_rx->println();
             parse_event(rx_buff, rx_buff_idx);
             if (cli != NULL) {

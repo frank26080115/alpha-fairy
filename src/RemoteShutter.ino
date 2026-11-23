@@ -7,6 +7,8 @@ void remote_shutter(uint8_t time_delay, bool use_gui)
     uint32_t tstart, now, tdiff;
     bool quit = false;
 
+    dbg_ser.printf("Shutter request: delay=%u airplane=%u PTP=%u state=0x%04X HTTP=%u state=0x%02X\r\n",
+        time_delay, airplane_mode, ptpcam.isOperating(), ptpcam.getState(), httpcam.isOperating(), httpcam.getState());
     tstart = millis();
 
     cpufreq_boost();

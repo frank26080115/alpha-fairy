@@ -214,6 +214,10 @@ void NetMgr_eventHandler(WiFiEvent_t event, WiFiEventInfo_t info)
         NetMgr_taskAP();
     }
     else if (wifi_op_mode == WIFIOPMODE_STA) {
+        if (event != ARDUINO_EVENT_WIFI_STA_DISCONNECTED) {
+            NetMgr_taskSTA();
+            return;
+        }
         int reason = (int)info.wifi_sta_disconnected.reason;
         #if 0
         if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED && last_sta_status == WL_CONNECTED) {
@@ -226,13 +230,13 @@ void NetMgr_eventHandler(WiFiEvent_t event, WiFiEventInfo_t info)
             last_sta_reconn_time = millis();
         }
         #endif
-        if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED && (reason == 202 || reason == 203 || reason == 23 || reason == 15)) {
+        if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED && (reason == 202 || reason == 23 || reason == 15)) {
             dbg_ser.printf("STA disconnect auth fail %d\r\n", reason);
             if (disconnect_callback != NULL) {
                 disconnect_callback(WIFIDISCON_AUTH_FAIL, reason);
             }
         }
-        else if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED && (reason < 200 && reason != 3 && reason != 8 && reason != 7)) {
+        else if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED && ((reason < 200 && reason != 3 && reason != 8 && reason != 7) || reason == 203)) {
             dbg_ser.printf("STA disconnect error %d\r\n", reason);
             if (disconnect_callback != NULL) {
                 disconnect_callback(WIFIDISCON_AUTH_ERROR, reason);
@@ -243,8 +247,12 @@ void NetMgr_eventHandler(WiFiEvent_t event, WiFiEventInfo_t info)
             if (disconnect_callback != NULL) {
                 disconnect_callback(WIFIDISCON_NORMAL, reason);
             }
-            WiFi.reconnect();
-            last_sta_reconn_time = millis();
+            // ASSOC_LEAVE is produced by our own WiFi.disconnect(), including
+            // Auto Connect's scan setup. Reconnecting here cancels that intent.
+            if (reason != WIFI_REASON_ASSOC_LEAVE) {
+                WiFi.reconnect();
+                last_sta_reconn_time = millis();
+            }
         }
         else if (event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED && (reason == 7)) {
             // do nothing

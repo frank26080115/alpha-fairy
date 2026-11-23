@@ -9,8 +9,14 @@ void PtpIpSonyAlphaCamera::decode_properties()
 
     properties_pending = false;
     need_check_properties = false;
-    if (databuff_idx <= 0) {
+    if (databuff_idx < 8) {
         return;
+    }
+
+    const bool dump_was_enabled = dbgser_devprop_dump->enabled;
+    if (property_dump_requested) {
+        dbgser_devprop_dump->enabled = true;
+        property_dump_requested = false;
     }
 
     uint8_t* p = (uint8_t*)databuff;
@@ -22,7 +28,7 @@ void PtpIpSonyAlphaCamera::decode_properties()
     Serial.println();
     #endif
 
-    for (i = 0, j = 0; i < len && (j <= totalprops || i == 0); ) // for the entire buffer, basically for all properties
+    for (i = 0, j = 0; i < len && (j < totalprops || i == 0); ) // for the entire buffer, basically for all properties
     {
         if (i == 0)
         {
@@ -33,6 +39,10 @@ void PtpIpSonyAlphaCamera::decode_properties()
             continue;
         }
 
+        if (len - i < 6) {
+            dbgser_events->printf("Truncated property header at %u\r\n", i);
+            break;
+        }
         j += 1; // count the number of properties decoded so far
 
         dbgser_devprop_dump->printf("\r\n");
@@ -98,6 +108,10 @@ void PtpIpSonyAlphaCamera::decode_properties()
 
         if (datatype <= 0x000A) // simple integers
         {
+            if (len - i < 2 * dsz) {
+                dbgser_events->printf("Truncated property value 0x%04X\r\n", propcode);
+                break;
+            }
             i += dsz; // skips the default value
             dptr = (uint8_t*)(&(p[i]));
             i += dsz; // skips the data value
@@ -107,53 +121,26 @@ void PtpIpSonyAlphaCamera::decode_properties()
         }
         else if (datatype == 0xFFFF)
         {
-            // string
-            if (propdecode_weird_string == false)
-            {
-                uint32_t elecnt = p[i];
-                i += 1;
-                dbgser_devprop_dump->printf("[STR %u]: ", elecnt);
-                uint32_t j;
-                for (j = 0; j < (elecnt * 2); j += 2) // for all unicode characters, print them as ASCII if possible
-                {
-                    char uc = p[i + j];
-                    if (uc != 0)
-                    {
-                        dbgser_devprop_dump->printf("%c", uc);
+            // Like integers, strings have both a default and a current value.
+            // Each has a one-byte UTF-16 character count, including its terminator.
+            // Access flags do not change this representation (e.g. A1 II firmware D040).
+            bool complete = true;
+            for (int value = 0; value < 2; ++value) {
+                if (i >= len) { complete = false; break; }
+                uint32_t elecnt = p[i++];
+                if (elecnt > (len - i) / 2) { complete = false; break; }
+                if (value == 1) {
+                    dbgser_devprop_dump->printf("[STR %u]: ", elecnt);
+                    for (uint32_t c = 0; c < elecnt; ++c) {
+                        char uc = p[i + c * 2];
+                        if (uc != 0) dbgser_devprop_dump->printf("%c", uc);
                     }
                 }
                 i += elecnt * 2;
             }
-            else
-            {
-                uint32_t elecnt = p[i];
-                i -= 2;
-                if (p[i] == 0x01 && p[i + 1] == 0x01) // check the get/set
-                {
-                    // I don't understand this but it works
-                    i += 2;
-                    elecnt = (*((uint32_t*)&p[i])) & 0xFFFF;
-                    i += 2;
-                }
-                else if (p[i] == 0x00 && p[i + 1] == 0x02 && p[i + 2] == 0x00)
-                {
-                    // I don't understand this but it works
-                    i += 3;
-                    elecnt = (*((uint32_t*)&p[i])) & 0xFF;
-                    i += 1;
-                }
-                dbgser_devprop_dump->printf("[STR %u]: ", elecnt);
-                if (elecnt > 0)
-                {
-                    // warning: in-place copy
-                    copyn_utf16_to_bytes(&(p[i]), &(p[i]), elecnt);
-                    dbgser_devprop_dump->printf("\"%s\"", (char*)(&(p[i])));
-                    i += elecnt * 2;
-                }
-                else
-                {
-                    dbgser_devprop_dump->printf(" weird empty string");
-                }
+            if (!complete) {
+                dbgser_events->printf("Truncated property string 0x%04X\r\n", propcode);
+                break;
             }
         }
         else if ((datatype & 0x4000) != 0)
@@ -177,6 +164,10 @@ void PtpIpSonyAlphaCamera::decode_properties()
             dbgser_devprop_change->printf("***DevProp[0x%04X]: 0x%08X\r\n", propcode, get_property(propcode));
         }
 
+        if (i >= len) {
+            dbgser_events->printf("Missing property form 0x%04X\r\n", propcode);
+            break;
+        }
         uint8_t formflag = p[i];
         i += 1;
         if (formflag == 0)
@@ -186,6 +177,10 @@ void PtpIpSonyAlphaCamera::decode_properties()
         else if (formflag == 0x01)
         {
             // range
+            if (len - i < 3 * dsz) {
+                dbgser_events->printf("Truncated property range 0x%04X\r\n", propcode);
+                break;
+            }
             i += 3 * dsz;
             dbgser_devprop_dump->printf(" [FRM RNG %d]", dsz);
             continue;
@@ -193,10 +188,18 @@ void PtpIpSonyAlphaCamera::decode_properties()
         else if (formflag == 0x02)
         {
             // enumeration
+            if (len - i < 2) {
+                dbgser_events->printf("Missing property enumeration count 0x%04X\r\n", propcode);
+                break;
+            }
             if (propdecode_weird_form == false)
             {
                 uint16_t enumcnt = *(uint16_t*)(&(p[i]));
                 i += 2;
+                if (enumcnt > (len - i) / dsz) {
+                    dbgser_events->printf("Truncated property enumeration 0x%04X\r\n", propcode);
+                    break;
+                }
 
 #define PROP_TRYPOPULATETABLE(_tbl, _propcode, _dsz, _enumcnt, _txt) do \
                 {\
@@ -254,6 +257,10 @@ void PtpIpSonyAlphaCamera::decode_properties()
                 // the first table is the "default" table, the second table is the "current" table
                 uint16_t enumcnt = *(uint16_t*)(&(p[i]));
                 i += 2;
+                if (enumcnt > (len - i) / dsz) {
+                    dbgser_events->printf("Truncated property enumeration 0x%04X\r\n", propcode);
+                    break;
+                }
 
                 // populate the tables for the properties we care about
                 // don't worry, it's not actually doing all 4 operations, the macro will only execute the one that matches the propcode and dsz
@@ -264,10 +271,20 @@ void PtpIpSonyAlphaCamera::decode_properties()
                 PROP_TRYPOPULATETABLE(table_aperture     , SONYALPHA_PROPCODE_Aperture    , 4, enumcnt, "table_aperture");
 
                 i += enumcnt * dsz;
+                if (len - i < 2) {
+                    dbgser_events->printf("Missing second property enumeration count 0x%04X\r\n", propcode);
+                    break;
+                }
                 uint16_t enumcnt2 = *(uint16_t*)(&(p[i]));
-                if (enumcnt2 > 0 && enumcnt2 <= 0x0200) // suggested upper limit, just in case
+                // The count word is present even when the second table is empty.
+                // Leaving it behind misaligns every following descriptor.
+                i += 2;
+                if (enumcnt2 > (len - i) / dsz) {
+                    dbgser_events->printf("Truncated property enumeration 0x%04X\r\n", propcode);
+                    break;
+                }
+                if (enumcnt2 > 0)
                 {
-                    i += 2;
                     PROP_TRYPOPULATETABLE(table_shutter_speed, SONYALPHA_PROPCODE_ShutterSpeed, 4, enumcnt2, "table_shutter_speed");
                     PROP_TRYPOPULATETABLE(table_iso          , SONYALPHA_PROPCODE_ISO         , 4, enumcnt2, "table_iso");
                     PROP_TRYPOPULATETABLE(table_aperture     , SONYALPHA_PROPCODE_Aperture    , 2, enumcnt2, "table_aperture");
@@ -279,6 +296,8 @@ void PtpIpSonyAlphaCamera::decode_properties()
         }
     }
     dbgser_devprop_dump->printf("\r\n");
+
+    dbgser_devprop_dump->enabled = dump_was_enabled;
 
     // check if lens has disconnected, in which case, forget the aperture list
     if (table_aperture != NULL && ((has_property(SONYALPHA_PROPCODE_Aperture) && (get_property(SONYALPHA_PROPCODE_Aperture) == 0 || get_property(SONYALPHA_PROPCODE_Aperture) >= 0x7FFF)) || (has_property(SONYALPHA_PROPCODE_Aperture) == false))) {
@@ -311,7 +330,7 @@ bool PtpIpSonyAlphaCamera::update_property(uint16_t prop_code, uint16_t data_typ
     }
 
     bool is_interested = false;
-    for (i = 0; i < PTP_MAX_INTERESTED_PROPERTIES; i++) {
+    for (i = 0; i < properties_cnt; i++) {
         uint16_t intprop = p_interested_properties[i];
         if (intprop != 0) // not end of table
         {

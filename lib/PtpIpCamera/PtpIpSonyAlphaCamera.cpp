@@ -70,7 +70,6 @@ PtpIpSonyAlphaCamera::PtpIpSonyAlphaCamera(char* host_name, uint16_t* interested
 
     this->init_substeps = (ptpip_init_substep_t*)init_table;
 
-    propdecode_weird_string = true;
     propdecode_weird_form   = true;
 
     table_shutter_speed = NULL;
@@ -341,6 +340,9 @@ bool PtpIpSonyAlphaCamera::is_spotfocus()
         return false;
     }
     int32_t x = get_property(prop_code);
+    if (x == SONYALPHA_FOCUSAREA_MOVEABLE_XS || x == SONYALPHA_FOCUSAREA_MOVEABLE_XL) {
+        return true;
+    }
     return (x == SONYALPHA_FOCUSAREA_ZONE || x == SONYALPHA_FOCUSAREA_TRACKING_ZONE || x == SONYALPHA_FOCUSAREA_MOVEABLE_SMALL  || x == SONYALPHA_FOCUSAREA_MOVEABLE_MEDIUM || x == SONYALPHA_FOCUSAREA_MOVEABLE_LARGE || x == SONYALPHA_FOCUSAREA_MOVEABLE_EXPAND || x == SONYALPHA_FOCUSAREA_TRACKING_MOVEABLE_SMALL || x == SONYALPHA_FOCUSAREA_TRACKING_MOVEABLE_MEDIUM || x == SONYALPHA_FOCUSAREA_TRACKING_MOVEABLE_LARGE || x == SONYALPHA_FOCUSAREA_TRACKING_MOVEABLE_EXPAND);
 }
 

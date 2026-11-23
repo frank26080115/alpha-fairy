@@ -290,6 +290,22 @@ class AppFocus9Point : public FairyMenuItem
                 return false;
             }
 
+            dbg_ser.printf("9-point AF: area_present=%u area=0x%04X mode_present=%u mode=0x%04X spot=%u manual=%u\r\n",
+                ptpcam.has_property(SONYALPHA_PROPCODE_FocusArea),
+                (unsigned int)ptpcam.get_property(SONYALPHA_PROPCODE_FocusArea),
+                ptpcam.has_property(SONYALPHA_PROPCODE_FocusMode),
+                (unsigned int)ptpcam.get_property(SONYALPHA_PROPCODE_FocusMode),
+                ptpcam.is_spotfocus(), ptpcam.is_manuallyfocused());
+
+            if (ptpcam.isOperating() && !ptpcam.has_property(SONYALPHA_PROPCODE_FocusArea)) {
+                dbg_ser.println("9-point AF: focus-area property missing; dumping next property response");
+                #ifndef DISABLE_ALL_MSG
+                ptpcam.request_property_dump();
+                #endif
+                show_unable("AF zone unknown");
+                return false;
+            }
+
             if (ptpcam.isOperating() && ptpcam.is_spotfocus() == false) {
                 // the camera must be in one of the many spot focus modes
                 // we can't pick one for them

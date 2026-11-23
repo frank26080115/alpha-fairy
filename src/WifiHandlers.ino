@@ -26,7 +26,11 @@ void wifi_onConnect()
 {
     uint32_t newip;
 
-    dbg_ser.printf("application wifi event handler called\r\n");
+    dbg_ser.printf("Camera connect: mode=%s profile=%ld protocol=%ld candidate=%s PTP_state=0x%04X HTTP_state=0x%02X\r\n",
+        NetMgr_getOpMode() == WIFIOPMODE_STA ? "STA" : "AP",
+        (long)config_settings.wifi_profile, (long)config_settings.protocol,
+        IPAddress(NetMgr_getConnectableClient()).toString().c_str(),
+        ptpcam.getState(), httpcam.getState());
     autoconnect_status = AUTOCONNSTS_CONNECTED;
     pwr_tick(true);
 
@@ -40,11 +44,13 @@ void wifi_onConnect()
                 // if the mode is STA then it is more likely that the camera is HTTP
                 // it seems like some of those cameras do not like being connected to over the PTP port first
                 // so add an extra delay for the PTP initialization just in case
+                dbg_ser.println("Camera connect: trying PTP after 5000 ms");
                 ptpcam.begin(newip, 5000);
             }
             else
             #endif
             {
+                dbg_ser.println("Camera connect: trying PTP immediately");
                 ptpcam.begin(newip);
             }
             wifiprofile_t wp;
@@ -56,6 +62,10 @@ void wifi_onConnect()
     if (httpcam.canNewConnect() && config_settings.protocol != ALLOWEDPROTOCOL_PTP) {
         newip = NetMgr_getConnectableClient();
         if (newip != 0) {
+            dbg_ser.printf("Camera connect: trying HTTP, SSDP timeout=%ld s\r\n", (long)config_settings.ssdp_timeout);
+            #ifndef DISABLE_ALL_MSG
+            httpcam.set_debugflags(DEBUGFLAG_STATES);
+            #endif
             httpcam.begin(newip, NetMgr_getSsdpSock());
             httpcam.set_ssdpTimeout(config_settings.ssdp_timeout);
         }
@@ -94,7 +104,7 @@ void wifi_onDisconnect(uint8_t x, int reason)
 void ptpcam_onConnect()
 {
     cpufreq_boost();
-    dbg_ser.printf("ptpcam_onConnect\r\n");
+    dbg_ser.printf("Camera ready callback: PTP=%u HTTP=%u HTTP_state=0x%02X\r\n", ptpcam.isOperating(), httpcam.isOperating(), httpcam.getState());
     pwr_tick(true);
     if (ptpcam.isOperating()) {
         NetMgr_markClientCameraPtp(ptpcam.getIp());

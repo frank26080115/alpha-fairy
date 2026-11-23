@@ -1,4 +1,11 @@
 #include "SonyHttpCamera.h"
+#include "../../include/alfy_conf.h"
+
+#ifdef DISABLE_ALL_MSG
+extern DebuggingSerialDisabled dbg_ser;
+#else
+extern DebuggingSerial dbg_ser;
+#endif
 
 const char SonyHttpCamera::cmd_generic_fmt[]               = "{ \"method\": \"%s\", \"params\": [], \"id\": %u, \"version\": \"1.0\" }";
 const char SonyHttpCamera::cmd_generic_strparam_fmt[]      = "{ \"method\": \"%s\", \"params\": [\"%s\"], \"id\": %u, \"version\": \"1.0\" }";
@@ -15,6 +22,8 @@ void SonyHttpCamera::cmd_prep(void)
 
 bool SonyHttpCamera::cmd_send(char* cmd, char* alt_url, bool callend)
 {
+    if (callend) dbg_ser.printf("HTTP command: state=0x%02X url=%s request=%.192s\r\n",
+        state, alt_url == NULL ? service_url : alt_url, cmd);
     dbgser_tx->printf("httpcam cmd %s\r\n", cmd);
     httpclient.begin(alt_url == NULL ? service_url : alt_url);
     httpclient.addHeader("Content-Type", "application/json");
@@ -22,6 +31,15 @@ bool SonyHttpCamera::cmd_send(char* cmd, char* alt_url, bool callend)
     bool success = last_http_resp_code == 200;
     http_content_len = httpclient.getSize();
     if (callend) {
+        dbg_ser.printf("HTTP command: status=%d bytes=%d\r\n", last_http_resp_code, http_content_len);
+        #ifndef DISABLE_ALL_MSG
+        if (dbg_ser.enabled && last_http_resp_code > 0) {
+            // These responses were previously discarded by end(). Leave
+            // asynchronous getEvent responses to the existing parser.
+            String response = httpclient.getString();
+            dbg_ser.printf("HTTP command response: %.320s\r\n", response.c_str());
+        }
+        #endif
         #if 0
         WiFiClient* cli = httpclient.getStreamPtr();
         if (cli != NULL)
@@ -43,6 +61,7 @@ bool SonyHttpCamera::cmd_send(char* cmd, char* alt_url, bool callend)
 
 void SonyHttpCamera::cmd_Shoot(void)
 {
+    dbg_ser.printf("HTTP shutter: state=0x%02X operating=%u\r\n", state, isOperating());
     cmd_prep();
     sprintf(cmd_buffer, cmd_generic_fmt, "actTakePicture", req_id);
     cmd_send(cmd_buffer);

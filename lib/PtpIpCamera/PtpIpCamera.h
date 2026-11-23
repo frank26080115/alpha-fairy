@@ -33,8 +33,12 @@ enum
     PTPSTREAMSTATE_DONE_EMPTY,
 };
 
-#define PACKET_BUFFER_SIZE (1024 * 6) // needs to be just big enough for a whole device properties packet
-#define DATA_BUFFER_SIZE   (1024 * 6) // needs to be just big enough for a whole device properties packet
+// Newer bodies (including the A1 II) return property data larger than 12 KiB.
+// The assembler must hold a complete wire packet as well as its data payload.
+#define PACKET_BUFFER_SIZE (1024 * 16)
+#define DATA_BUFFER_SIZE   (1024 * 16)
+#define EVENT_BUFFER_SIZE  (1024 * 6)
+#define OUTPUT_BUFFER_SIZE (1024 * 6)
 #define NAME_BUFFER_SIZE    256
 
 //#define PTPIP_KEEP_STATS
@@ -168,8 +172,8 @@ class PtpIpCamera
         uint32_t eventbuff_idx;
         uint8_t  pktbuff  [PACKET_BUFFER_SIZE];
         uint8_t  databuff [DATA_BUFFER_SIZE];
-        uint8_t  eventbuff[PACKET_BUFFER_SIZE];
-        uint8_t  outbuff  [PACKET_BUFFER_SIZE];
+        uint8_t  eventbuff[EVENT_BUFFER_SIZE];
+        uint8_t  outbuff  [OUTPUT_BUFFER_SIZE];
         void     reset_buffers(void);
 
         // the protocol requires that these must be kept for the session

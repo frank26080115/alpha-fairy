@@ -429,7 +429,7 @@ bool wifi_newConnectOrPrompt(uint8_t profile_num, wifiprofile_t* profile, bool n
             int pret = wifi_promptForPassword((char*)profile->ssid, (char*)profile->password, (char*)profile->password);
             if (pret != WIFIPROMPTRET_CANCEL)
             {
-                dbg_ser.printf("autoconnect keyboard done: %s\r\n", profile->password);
+                dbg_ser.println("autoconnect keyboard done");
 
                 wifiprofile_writeProfile(profile_num, profile);
 

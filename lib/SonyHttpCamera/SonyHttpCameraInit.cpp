@@ -1,4 +1,11 @@
 #include "SonyHttpCamera.h"
+#include "../../include/alfy_conf.h"
+
+#ifdef DISABLE_ALL_MSG
+extern DebuggingSerialDisabled dbg_ser;
+#else
+extern DebuggingSerial dbg_ser;
+#endif
 
 void SonyHttpCamera::parse_dd_xml(char* data, int32_t maxlen)
 {
@@ -117,11 +124,13 @@ void SonyHttpCamera::parse_dd_xml(char* data, int32_t maxlen)
 
     if (hasUrl)
     {
+        dbg_ser.printf("HTTP discovery: camera=%s service=%s\r\n", friendly_name, service_url);
         dbgser_states->printf("service URL: %s\r\n", service_url);
         state = SHCAMSTATE_INIT_GOTDD;
     }
     else
     {
+        dbg_ser.println("HTTP discovery: device description has no camera service URL");
         dbgser_states->printf("no service URL found\r\n");
         state = SHCAMSTATE_FORBIDDEN;
         if (cb_onNoServiceUrl != NULL) {
@@ -153,6 +162,8 @@ void SonyHttpCamera::get_dd_xml()
     httpclient.begin(url_buffer_used);
     last_http_resp_code = httpclient.GET();
     http_content_len = httpclient.getSize();
+    dbg_ser.printf("HTTP discovery: GET %s status=%d bytes=%d\r\n",
+        url_buffer_used, last_http_resp_code, http_content_len);
     if (last_http_resp_code == 200)
     {
         dbgser_states->printf("httpcam success got dd.xml\r\n");

@@ -402,6 +402,11 @@ void M5DisplayExt::drawPngFileSprite(LovyanGFX* sprite, fs::FS &fs, const char *
   }
 
   pngle_t *pngle = pngle_new();
+  if (!pngle) {
+    log_e("PNG decoder allocation failed");
+    file.close();
+    return;
+  }
 
   png_file_decoder_t png;
 
@@ -456,6 +461,10 @@ void M5DisplayExt::drawPngDataSprite(LovyanGFX* sprite, const uint8_t* data, siz
   }
 
   pngle_t *pngle = pngle_new();
+  if (!pngle) {
+    log_e("PNG decoder allocation failed");
+    return;
+  }
 
   png_file_decoder_t png;
 
