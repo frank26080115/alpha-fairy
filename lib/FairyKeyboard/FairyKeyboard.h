@@ -67,6 +67,16 @@ class FairyKeyboard
         uint32_t _start_time, _blink_dly;
         bool _is_lowercase, _prev_lowercase;
         bool _recent_click;
+        struct Hover {
+            char character;
+            uint16_t milliseconds;
+        };
+        Hover _hover[3]; // Most recently visited unique keys first, including ENT/backspace.
+        char _hovered_char;
+        uint32_t _hover_time;
+        void reset_hover(void);
+        void track_hover(char character, uint32_t now);
+        char commit_character(void);
 
         char _str[KBD_STR_LEN + 2]; // stores current input string
         uint8_t _str_idx;           // write pointer for input string

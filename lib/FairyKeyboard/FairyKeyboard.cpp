@@ -41,6 +41,8 @@ FairyKeyboard::FairyKeyboard(M5DisplayExt* used_lcd, uint16_t colour_bg, uint16_
 
 void FairyKeyboard::reset()
 {
+    _cur_char     =  0;
+    reset_hover();
     _has_pitch     = false;
     _center_pitch  =  0;
     _cur_row       = -1;
@@ -268,6 +270,7 @@ void FairyKeyboard::update(float roll, float pitch)
     int16_t x, y, px, py, bw, bh;
     char pc;
     get_char_coords(_cur_row, _cur_col, &_cur_char, &x, &y);
+    track_hover(_cur_char, millis());
 
     // only draw if changes detected
     if (_cur_char != _prev_char || _prev_lowercase != _is_lowercase)
@@ -328,6 +331,7 @@ void FairyKeyboard::update(float roll, float pitch)
 
 void FairyKeyboard::toggleLowerCase()
 {
+    reset_hover(); // An explicit Shift must not commit a previously weighted uppercase key.
     _is_lowercase ^= true;
     _start_time = millis();
 }
@@ -335,6 +339,7 @@ void FairyKeyboard::toggleLowerCase()
 void FairyKeyboard::setLowerCase(bool x)
 {
     if (x != _is_lowercase) {
+        reset_hover();
         _start_time = millis();
     }
     _is_lowercase = x;
@@ -342,14 +347,16 @@ void FairyKeyboard::setLowerCase(bool x)
 
 bool FairyKeyboard::click(void)
 {
+    if (!_cur_char) return false; // No IMU selection yet.
+    const char chosen = commit_character();
     _start_time = millis();
     _recent_click = true;
-    if (_cur_char == KBD_SPECIALCHAR_ENTER)
+    if (chosen == KBD_SPECIALCHAR_ENTER)
     {
         // enter
         return true;
     }
-    else if (_cur_char == KBD_SPECIALCHAR_BACKSPACE)
+    else if (chosen == KBD_SPECIALCHAR_BACKSPACE)
     {
         // backspace
         if (_str_idx > 0) {
@@ -361,11 +368,62 @@ bool FairyKeyboard::click(void)
 
     if (_str_idx < KBD_STR_LEN)
     {
-        _str[_str_idx] = _cur_char;
+        _str[_str_idx] = chosen;
         _str_idx += 1;
         _str[_str_idx] = 0;
     }
     return false;
+}
+
+void FairyKeyboard::reset_hover(void)
+{
+    for (Hover& key : _hover) key = {0, 0};
+    _hovered_char = 0;
+    _hover_time = millis();
+}
+
+void FairyKeyboard::track_hover(char character, uint32_t now)
+{
+    // update() already polls the IMU. Attribute the elapsed interval to the key
+    // sampled last time, so a press-induced IMU jolt cannot steal that dwell.
+    uint32_t elapsed = now - _hover_time; // Unsigned subtraction handles millis rollover.
+    _hover_time = now;
+    if (elapsed > 2000) elapsed = 2000;
+    for (Hover& key : _hover) {
+        if (key.character && key.character == _hovered_char) {
+            uint32_t accumulated = key.milliseconds + elapsed;
+            key.milliseconds = accumulated > 2000 ? 2000 : accumulated;
+        } else {
+            key.milliseconds = key.milliseconds > elapsed ? key.milliseconds - elapsed : 0;
+        }
+    }
+
+    unsigned found = 0;
+    while (found < 3 && _hover[found].character != character) ++found;
+    // Revisits only update recency; a genuinely new key evicts the oldest and
+    // starts at zero. Two physical columns of ENT/backspace share one entry.
+    Hover current = found < 3 ? _hover[found] : Hover{character, 0};
+    if (found == 3) found = 2;
+    for (unsigned i = found; i > 0; --i) _hover[i] = _hover[i-1];
+    _hover[0] = current;
+    _hovered_char = character;
+}
+
+char FairyKeyboard::commit_character(void)
+{
+    char chosen = _cur_char;
+    uint32_t total = 0;
+    for (const Hover& key : _hover) total += key.milliseconds;
+    for (const Hover& key : _hover) {
+        if (key.character && key.milliseconds > 2 * (total - key.milliseconds)) {
+            chosen = key.character;
+            break;
+        }
+    }
+    // Keep the committed key's confidence for repeated letters. Do not change
+    // the actual IMU hover selection; all other accumulators start over.
+    for (Hover& key : _hover) if (key.character != chosen) key.milliseconds = 0;
+    return chosen;
 }
 
 void FairyKeyboard::get_char_coords(int8_t row, int8_t col, char* outchar, int16_t* outx, int16_t* outy)

@@ -1,5 +1,6 @@
 #include "AlphaFairy.h"
 #include <SerialCmdLine.h>
+#include <FairyKeyboard.h>
 
 /*
 handles command line commands
@@ -7,6 +8,7 @@ this is used only for testing
 */
 
 void factory_reset_func(void* cmd, char* argstr, Stream* stream);
+void testkeyboard_func(void* cmd, char* argstr, Stream* stream);
 void rtcset_func    (void* cmd, char* argstr, Stream* stream);
 void rtcget_func    (void* cmd, char* argstr, Stream* stream);
 void camtimeget_func(void* cmd, char* argstr, Stream* stream);
@@ -41,6 +43,7 @@ void readhex_func   (void* cmd, char* argstr, Stream* stream);
 
 const cmd_def_t cmds[] = {
   { "factoryreset", factory_reset_func},
+  { "testkeyboard", testkeyboard_func },
   { "rtcset"   , rtcset_func },
   { "rtcget"   , rtcget_func },
   { "camtimeget", camtimeget_func },
@@ -243,6 +246,57 @@ void rtcfromcam_func(void* cmd, char* argstr, Stream* stream)
     ptpip_datetime_format(actual, formatted, sizeof(formatted));
     stream->printf("OK rtcfromcam %s offset_minutes=%ld (from camera)\r\n", formatted,
         (long)config_settings.time_utc_offset_minutes);
+}
+
+static void testkeyboard_draw_prompt(void)
+{
+    M5Lcd.setTextFont(2);
+    M5Lcd.setTextDatum(TL_DATUM);
+    M5Lcd.setTextColor(TFT_BLACK, TFT_WHITE);
+    M5Lcd.setCursor(5,4);
+    M5Lcd.print("Keyboard test");
+    M5Lcd.setTextFont(1);
+    M5Lcd.setCursor(5,22);
+    M5Lcd.print("Big:type Side:shift Power:cancel");
+}
+
+void testkeyboard_func(void* cmd, char* argstr, Stream* stream)
+{
+    (void)cmd;
+    if (!clock_no_args(argstr, stream, "testkeyboard")) return;
+    FairyKeyboard keyboard(&M5Lcd);
+    keyboard.register_redraw_cb(testkeyboard_draw_prompt);
+    imu.poll();
+    keyboard.update(imu.roll, imu.pitch);
+    btnPwr_quickPoll();
+    btnAny_clrPressed(); // Discard the press that opened the test and stale PMIC events.
+    stream->println("KEYBOARD_TEST: big=type side=shift ENT=finish power=cancel");
+    while (true) {
+        yield();
+        cpufreq_boost();
+        imu.poll();
+        btnPwr_quickPoll();
+        pwr_tick(true);
+        // Do not re-enter app_poll()/autoconnect_poll() here: they poll the
+        // serial parser whose current command handler has not returned yet.
+        keyboard.update(imu.roll, imu.pitch);
+        if (btnSide_hasPressed()) { btnSide_clrPressed(); keyboard.toggleLowerCase(); }
+        if (btnBig_hasPressed()) {
+            btnBig_clrPressed();
+            if (keyboard.click()) {
+                stream->printf("KEYBOARD_TEST result=%s\r\n", keyboard.get_str());
+                break;
+            }
+        }
+        if (btnPwr_hasPressed()) {
+            btnPwr_clrPressed();
+            stream->println("KEYBOARD_TEST cancelled");
+            break;
+        }
+    }
+    btnAny_clrPressed();
+    extern bool redraw_flag;
+    redraw_flag = true;
 }
 
 static bool clock_print_camera_info(Stream* stream, const char* label)
